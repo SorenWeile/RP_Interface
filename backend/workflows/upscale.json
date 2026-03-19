@@ -1,0 +1,34 @@
+{
+  "10": {
+    "inputs": {
+      "image": "__PLACEHOLDER__",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Load Image" }
+  },
+  "12": {
+    "inputs": {
+      "model_name": "RealESRGAN_x4plus.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": { "title": "Load Upscale Model" }
+  },
+  "15": {
+    "inputs": {
+      "upscale_model": ["12", 0],
+      "image": ["10", 0],
+      "scale_by": 2.0
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": { "title": "Upscale Image (Using Model)" }
+  },
+  "20": {
+    "inputs": {
+      "filename_prefix": "upscaled",
+      "images": ["15", 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}
