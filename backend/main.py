@@ -47,9 +47,13 @@ async def check_comfyui():
 
 @app.post("/api/upload")
 async def upload(file: UploadFile = File(...)):
-    data = await file.read()
-    assigned_name = await comfy_client.upload_image(data, file.filename or "upload.png")
-    return {"filename": assigned_name}
+    try:
+        data = await file.read()
+        assigned_name = await comfy_client.upload_image(data, file.filename or "upload.png")
+        return {"filename": assigned_name}
+    except Exception as e:
+        print(f"[upload] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
 class WorkflowParams(BaseModel):
@@ -63,8 +67,9 @@ async def run_upscale(params: WorkflowParams):
         workflow = load_upscale(params.filename)
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
         return {"prompt_id": prompt_id, "client_id": client_id}
-    except RuntimeError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        print(f"[upscale] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
 @app.get("/api/status/{prompt_id}")
