@@ -51,7 +51,7 @@
   },
   "6": {
     "inputs": {
-      "model_name": "4x-UltraSharp.pth"
+      "model_name": "4xFFHQDAT.safetensors"
     },
     "class_type": "UpscaleModelLoader",
     "_meta": {
