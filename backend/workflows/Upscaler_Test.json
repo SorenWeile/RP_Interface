@@ -41,11 +41,12 @@
       "images": [
         "1",
         0
-      ]
+      ],
+      "filename_prefix": "rp_upscale"
     },
-    "class_type": "SaveImageWebsocket",
+    "class_type": "SaveImage",
     "_meta": {
-      "title": "SaveImageWebsocket"
+      "title": "Save Image"
     }
   },
   "6": {

@@ -19,7 +19,6 @@ export default function Upscaler() {
   const [stage, setStage]       = useState<Stage>({ status: 'idle' })
   const [preview, setPreview]   = useState<string | null>(null)
   const [filename, setFilename] = useState<string | null>(null)
-  const [scale, setScale]       = useState(2)
   const [dragging, setDragging] = useState(false)
   const fileInput               = useRef<HTMLInputElement>(null)
   const disconnectWs            = useRef<(() => void) | null>(null)
@@ -162,25 +161,6 @@ export default function Upscaler() {
 
       {/* Controls */}
       <div className="flex items-center gap-4">
-        {/* Scale selector */}
-        <div className="flex items-center gap-2 bg-comfy-panel border border-comfy-border rounded px-3 py-2">
-          <span className="text-comfy-muted text-xs">Scale</span>
-          {[2, 4].map((s) => (
-            <button
-              key={s}
-              onClick={() => setScale(s)}
-              className={[
-                'px-2 py-0.5 text-xs rounded transition-colors',
-                scale === s
-                  ? 'bg-comfy-accent text-comfy-bg font-medium'
-                  : 'text-comfy-muted hover:text-comfy-fg',
-              ].join(' ')}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
-
         {/* Upscale button */}
         <button
           onClick={startUpscale}

@@ -37,6 +37,14 @@ async def queue_workflow(workflow: dict, client_id: str) -> str:
         )
         response.raise_for_status()
         data = response.json()
+        # ComfyUI returns 200 even for validation errors — surface them explicitly
+        if "error" in data:
+            error = data["error"]
+            msg = error.get("message", str(error))
+            node_errors = data.get("node_errors", {})
+            if node_errors:
+                msg += f" | node errors: {node_errors}"
+            raise RuntimeError(msg)
         return data["prompt_id"]
 
 

@@ -58,10 +58,13 @@ class WorkflowParams(BaseModel):
 
 @app.post("/api/workflow/upscale")
 async def run_upscale(params: WorkflowParams):
-    client_id = str(uuid.uuid4())
-    workflow = load_upscale(params.filename)
-    prompt_id = await comfy_client.queue_workflow(workflow, client_id)
-    return {"prompt_id": prompt_id, "client_id": client_id}
+    try:
+        client_id = str(uuid.uuid4())
+        workflow = load_upscale(params.filename)
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except RuntimeError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/api/status/{prompt_id}")
