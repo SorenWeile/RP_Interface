@@ -14,12 +14,11 @@ export async function uploadImage(file: File): Promise<{ filename: string }> {
 
 export async function runUpscale(
   filename: string,
-  scale_by = 2.0,
 ): Promise<{ prompt_id: string; client_id: string }> {
   const res = await fetch(`${BASE}/api/workflow/upscale`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename, scale_by }),
+    body: JSON.stringify({ filename }),
   })
   if (!res.ok) throw new Error(`Workflow failed: ${res.statusText}`)
   return res.json()

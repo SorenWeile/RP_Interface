@@ -8,7 +8,6 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSock
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
 
 import comfy_client
 from workflows.loader import load_upscale
@@ -55,13 +54,12 @@ async def upload(file: UploadFile = File(...)):
 
 class WorkflowParams(BaseModel):
     filename: str
-    scale_by: Optional[float] = 2.0
 
 
 @app.post("/api/workflow/upscale")
 async def run_upscale(params: WorkflowParams):
     client_id = str(uuid.uuid4())
-    workflow = load_upscale(params.filename, params.scale_by or 2.0)
+    workflow = load_upscale(params.filename)
     prompt_id = await comfy_client.queue_workflow(workflow, client_id)
     return {"prompt_id": prompt_id, "client_id": client_id}
 
