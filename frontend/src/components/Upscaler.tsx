@@ -56,7 +56,7 @@ export default function Upscaler() {
     if (!filename) return
     try {
       setStage({ status: 'queued' })
-      const { prompt_id, client_id } = await runUpscale(filename, scale)
+      const { prompt_id, client_id } = await runUpscale(filename)
 
       setStage({ status: 'processing', value: 0, max: 1 })
 
