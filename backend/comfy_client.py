@@ -10,7 +10,7 @@ import websockets
 import json
 from typing import Any
 
-COMFYUI_HOST = os.getenv("COMFYUI_HOST", "127.0.0.1:8188")
+COMFYUI_HOST = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
 COMFYUI_HTTP = f"http://{COMFYUI_HOST}"
 COMFYUI_WS   = f"ws://{COMFYUI_HOST}"
 

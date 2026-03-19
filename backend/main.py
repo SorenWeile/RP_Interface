@@ -29,7 +29,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def check_comfyui():
-    host = os.getenv("COMFYUI_HOST", "127.0.0.1:8188")
+    host = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
     url = f"http://{host}"
     try:
         async with httpx.AsyncClient() as client:
