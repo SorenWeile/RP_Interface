@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  shadcn/ui CSS variables — mapped to the ComfyUI dark theme palette.
+  HSL values are bare channels (no hsl() wrapper) so Tailwind can compose them.
+  Both :root and .dark are identical since this app is always dark.
+*/
+@layer base {
+  :root,
+  .dark {
+    --background:          0 0% 12.5%;     /* comfy-bg      #202020 */
+    --foreground:          0 0% 86.7%;     /* comfy-text    #ddd    */
+
+    --card:                0 0% 20.8%;     /* comfy-panel   #353535 */
+    --card-foreground:     0 0% 86.7%;
+
+    --popover:             0 0% 20.8%;
+    --popover-foreground:  0 0% 86.7%;
+
+    --primary:             207 87% 68%;    /* comfy-accent  #64B5F6 */
+    --primary-foreground:  0 0% 12.5%;
+
+    --secondary:           0 0% 18.8%;    /* comfy-panelDark #303030 */
+    --secondary-foreground: 0 0% 86.7%;
+
+    --muted:               0 0% 20.8%;    /* comfy-panel   #353535 */
+    --muted-foreground:    0 0% 60%;       /* comfy-muted   #999    */
+
+    --accent:              0 0% 20.8%;
+    --accent-foreground:   207 87% 68%;   /* comfy-accent  #64B5F6 */
+
+    --destructive:         0 100% 63%;    /* comfy-error   #ff4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border:              0 0% 30.6%;    /* comfy-border  #4e4e4e */
+    --input:               0 0% 13.3%;    /* comfy-inputBg #222    */
+    --ring:                207 87% 68%;   /* comfy-accent  #64B5F6 */
+
+    --radius: 0.375rem;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

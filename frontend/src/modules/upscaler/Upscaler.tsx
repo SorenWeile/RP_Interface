@@ -5,7 +5,9 @@ import {
   runUpscale,
   uploadImage,
   type ProgressEvent,
-} from '../api/client'
+} from '@/api/client'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 
 type Stage =
   | { status: 'idle' }
@@ -64,7 +66,6 @@ export default function Upscaler() {
         if (event.type === 'progress') {
           setStage({ status: 'processing', value: event.value, max: event.max })
         } else if (event.type === 'complete') {
-          // Poll for result
           const poll = setInterval(async () => {
             try {
               const s = await (await fetch(`/api/status/${prompt_id}`)).json()
@@ -102,16 +103,10 @@ export default function Upscaler() {
       ? Math.round((stage.value / stage.max) * 100)
       : 0
 
+  const busy = stage.status === 'processing' || stage.status === 'uploading' || stage.status === 'queued'
+
   return (
     <div className="space-y-4">
-      {/* Title */}
-      <div className="mb-6">
-        <h1 className="text-comfy-fg text-lg font-medium tracking-wide">Image Upscaler</h1>
-        <p className="text-comfy-muted text-xs mt-1">
-          Drop an image, pick a scale factor, hit upscale.
-        </p>
-      </div>
-
       {/* Drop zone */}
       <div
         role="button"
@@ -125,8 +120,8 @@ export default function Upscaler() {
           'relative border-2 border-dashed rounded transition-colors cursor-pointer',
           'flex flex-col items-center justify-center min-h-52 select-none',
           dragging
-            ? 'border-comfy-accent bg-comfy-canvas'
-            : 'border-comfy-border bg-comfy-panel hover:border-comfy-accent/60',
+            ? 'border-primary bg-comfy-canvas'
+            : 'border-comfy-border bg-comfy-panel hover:border-primary/60',
         ].join(' ')}
       >
         {preview ? (
@@ -137,14 +132,14 @@ export default function Upscaler() {
           />
         ) : (
           <div className="text-center p-8">
-            <div className="text-comfy-muted text-3xl mb-3">↓</div>
-            <p className="text-comfy-muted text-sm">Drop image here or click to browse</p>
+            <div className="text-muted-foreground text-3xl mb-3">↓</div>
+            <p className="text-muted-foreground text-sm">Drop image here or click to browse</p>
           </div>
         )}
 
         {stage.status === 'uploading' && (
           <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/70 rounded">
-            <span className="text-comfy-muted text-xs tracking-widest animate-pulse">
+            <span className="text-muted-foreground text-xs tracking-widest animate-pulse">
               UPLOADING…
             </span>
           </div>
@@ -160,52 +155,39 @@ export default function Upscaler() {
       />
 
       {/* Controls */}
-      <div className="flex items-center gap-4">
-        {/* Upscale button */}
-        <button
+      <div className="flex items-center gap-3">
+        <Button
+          className="flex-1"
           onClick={startUpscale}
-          disabled={!filename || stage.status === 'processing' || stage.status === 'uploading' || stage.status === 'queued'}
-          className={[
-            'flex-1 py-2 rounded text-sm font-medium tracking-wide transition-colors',
-            filename && stage.status === 'idle'
-              ? 'bg-comfy-accent text-comfy-bg hover:bg-comfy-accent/80'
-              : 'bg-comfy-panel text-comfy-muted cursor-not-allowed',
-          ].join(' ')}
+          disabled={!filename || busy}
         >
           {stage.status === 'queued' ? 'Queued…'
             : stage.status === 'uploading' ? 'Uploading…'
+            : stage.status === 'processing' ? `Processing ${progressPct}%`
             : 'Upscale'}
-        </button>
+        </Button>
 
         {(stage.status !== 'idle' || preview) && (
-          <button
-            onClick={reset}
-            className="px-3 py-2 rounded text-xs text-comfy-muted border border-comfy-border hover:border-comfy-fg hover:text-comfy-fg transition-colors"
-          >
+          <Button variant="outline" size="sm" onClick={reset}>
             Reset
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Progress bar */}
       {stage.status === 'processing' && (
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-comfy-muted">
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Processing</span>
             <span>{progressPct}%</span>
           </div>
-          <div className="h-1 bg-comfy-panel rounded overflow-hidden">
-            <div
-              className="h-full bg-comfy-accent transition-all duration-300"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
+          <Progress value={progressPct} className="h-1" />
         </div>
       )}
 
       {/* Error */}
       {stage.status === 'error' && (
-        <p className="text-comfy-error text-xs border border-comfy-error/30 rounded px-3 py-2 bg-comfy-panel">
+        <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
           {stage.message}
         </p>
       )}
@@ -213,7 +195,7 @@ export default function Upscaler() {
       {/* Result */}
       {stage.status === 'done' && stage.images.length > 0 && (
         <div className="space-y-3">
-          <p className="text-comfy-muted text-xs tracking-widest uppercase">Result</p>
+          <p className="text-muted-foreground text-xs tracking-widest uppercase">Result</p>
           {stage.images.map((img) => {
             const url = imageUrl(img.filename, img.subfolder, img.type)
             return (
@@ -223,13 +205,11 @@ export default function Upscaler() {
                   alt="upscaled result"
                   className="w-full rounded border border-comfy-border"
                 />
-                <a
-                  href={url}
-                  download={img.filename}
-                  className="inline-block text-xs px-3 py-1.5 border border-comfy-border rounded text-comfy-muted hover:text-comfy-fg hover:border-comfy-fg transition-colors"
-                >
-                  Download {img.filename}
-                </a>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={url} download={img.filename}>
+                    Download {img.filename}
+                  </a>
+                </Button>
               </div>
             )
           })}

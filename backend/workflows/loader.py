@@ -2,7 +2,7 @@
 Workflow loader and patcher.
 Each workflow has a load_* function that reads the JSON and patches runtime values.
 
-Upscaler_Test.json patch points:
+upscale.json patch points:
   Node "2" -> inputs.image : input image filename
 """
 
@@ -20,6 +20,6 @@ def _load(name: str) -> dict:
 
 
 def load_upscale(filename: str) -> dict:
-    workflow = copy.deepcopy(_load("Upscaler_Test"))
+    workflow = copy.deepcopy(_load("upscale"))
     workflow["2"]["inputs"]["image"] = filename
     return workflow

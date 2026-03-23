@@ -1,34 +1,61 @@
 {
-  "10": {
+  "1": {
     "inputs": {
-      "image": "__PLACEHOLDER__",
-      "upload": "image"
-    },
-    "class_type": "LoadImage",
-    "_meta": { "title": "Load Image" }
-  },
-  "12": {
-    "inputs": {
-      "model_name": "RealESRGAN_x4plus.pth"
-    },
-    "class_type": "UpscaleModelLoader",
-    "_meta": { "title": "Load Upscale Model" }
-  },
-  "15": {
-    "inputs": {
-      "upscale_model": ["12", 0],
-      "image": ["10", 0],
-      "scale_by": 2.0
+      "upscale_model": [
+        "6",
+        0
+      ],
+      "image": [
+        "2",
+        0
+      ]
     },
     "class_type": "ImageUpscaleWithModel",
-    "_meta": { "title": "Upscale Image (Using Model)" }
+    "_meta": {
+      "title": "Upscale Image (using Model)"
+    }
   },
-  "20": {
+  "2": {
     "inputs": {
-      "filename_prefix": "upscaled",
-      "images": ["15", 0]
+      "image": "example.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "4": {
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "5": {
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "filename_prefix": "rp_upscale"
     },
     "class_type": "SaveImage",
-    "_meta": { "title": "Save Image" }
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "model_name": "4xFFHQDAT.safetensors"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
   }
 }
