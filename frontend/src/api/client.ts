@@ -43,6 +43,61 @@ export function imageUrl(filename: string, subfolder = '', type = 'output'): str
   return `${BASE}/api/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}`
 }
 
+// ── Batch (Upscale Rework) ────────────────────────────────────────────────
+
+export interface BatchJobStatus {
+  prompt_id: string
+  client_id: string
+  model: string
+  run: number
+  status: 'queued' | 'processing' | 'done' | 'error'
+  images: Array<{ filename: string; subfolder: string; type: string }>
+}
+
+export interface BatchStatus {
+  batch_id: string
+  filename: string
+  total: number
+  queued: number
+  processing: number
+  done: number
+  error: number
+  created_at: string
+  jobs: BatchJobStatus[]
+}
+
+export async function createUpscaleReworkBatch(params: {
+  filename: string
+  models: string[]
+  runs_per_model: number
+  client_path: string
+  product_path: string
+  filename_prefix: string
+}): Promise<{ batch_id: string; total: number }> {
+  const res = await fetch(`${BASE}/api/workflow/upscale_rework`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
+export async function getBatchStatus(batchId: string): Promise<BatchStatus> {
+  const res = await fetch(`${BASE}/api/batch/${batchId}`)
+  if (!res.ok) throw new Error(`Batch status failed: ${res.statusText}`)
+  return res.json()
+}
+
+export async function cancelBatch(batchId: string): Promise<{ cancelled: number }> {
+  const res = await fetch(`${BASE}/api/batch/${batchId}/cancel`, { method: 'POST' })
+  if (!res.ok) throw new Error(`Cancel failed: ${res.statusText}`)
+  return res.json()
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────
 
 export type ProgressEvent =

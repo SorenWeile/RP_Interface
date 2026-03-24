@@ -17,7 +17,9 @@ export interface WorkflowModule {
 // Add new modules here. No other files need to change.
 
 import upscalerModule from './upscaler'
+import upscalerReworkModule from './upscaler-rework'
 
 export const modules: WorkflowModule[] = [
   upscalerModule,
+  upscalerReworkModule,
 ]
