@@ -4,7 +4,9 @@
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
-      "Bash(python -c \"import main; print\\(''OK''\\)\")"
+      "Bash(python -c \"import main; print\\(''OK''\\)\")",
+      "Bash(mkdir -p /c/GitHub_Repos/RP_Interface/frontend/public)",
+      "Bash(cp /c/GitHub_Repos/RP_Interface/frontend/icon/interface_icon.ico /c/GitHub_Repos/RP_Interface/frontend/public/favicon.ico)"
     ]
   }
 }
