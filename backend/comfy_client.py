@@ -56,6 +56,42 @@ async def get_history(prompt_id: str) -> dict:
         return response.json()
 
 
+async def get_all_history(max_items: int = 200) -> dict:
+    """GET ComfyUI /history (all entries). Single call to check many prompt_ids at once."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{COMFYUI_HTTP}/history",
+            params={"max_items": max_items},
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def get_queue() -> dict:
+    """
+    GET ComfyUI /queue.
+    Returns { "running": set[str], "pending": set[str] } of prompt_ids.
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{COMFYUI_HTTP}/queue")
+        response.raise_for_status()
+        data = response.json()
+    running = {item[1] for item in data.get("queue_running", [])}
+    pending = {item[1] for item in data.get("queue_pending", [])}
+    return {"running": running, "pending": pending}
+
+
+async def cancel_queue_items(prompt_ids: list) -> None:
+    """Delete pending prompt_ids from the ComfyUI queue."""
+    if not prompt_ids:
+        return
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            f"{COMFYUI_HTTP}/queue",
+            json={"delete": prompt_ids},
+        )
+
+
 async def get_image(filename: str, subfolder: str = "", folder_type: str = "output") -> bytes:
     """GET image bytes from ComfyUI /view."""
     async with httpx.AsyncClient() as client:

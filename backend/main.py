@@ -1,8 +1,11 @@
 import os
 import uuid
+import datetime
 import asyncio
 import httpx
+from dataclasses import dataclass
 from pathlib import Path
+from typing import List
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -10,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import comfy_client
-from workflows.loader import load_upscale
+from workflows.loader import load_upscale, load_upscale_rework
 
 app = FastAPI(title="ComfyUI Workflow UI")
 
@@ -42,6 +45,52 @@ async def check_comfyui():
 
 
 # ---------------------------------------------------------------------------
+# Batch data model & in-memory store
+# ---------------------------------------------------------------------------
+
+@dataclass
+class BatchJob:
+    prompt_id: str
+    client_id: str
+    model: str
+    run_index: int
+
+
+@dataclass
+class Batch:
+    id: str
+    filename: str
+    client_path: str
+    product_path: str
+    filename_prefix: str
+    runs_per_model: int
+    jobs: List[BatchJob]
+    created_at: str
+
+
+# In-memory store — keyed by batch_id.
+# Fine for a single-pod tool; no persistence needed across restarts.
+_batches: dict = {}
+
+
+def _job_status(entry: dict) -> str:
+    """Derive a job status string from a ComfyUI history entry."""
+    s = entry.get("status", {})
+    if s.get("status_str") == "error":
+        return "error"
+    if s.get("completed", False):
+        return "done"
+    return "processing"
+
+
+def _job_images(entry: dict) -> list:
+    images = []
+    for node_output in entry.get("outputs", {}).values():
+        images.extend(node_output.get("images", []))
+    return images
+
+
+# ---------------------------------------------------------------------------
 # API routes
 # ---------------------------------------------------------------------------
 
@@ -55,6 +104,8 @@ async def upload(file: UploadFile = File(...)):
         print(f"[upload] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
+
+# ── Simple upscale (original workflow) ────────────────────────────────────────
 
 class WorkflowParams(BaseModel):
     filename: str
@@ -71,6 +122,190 @@ async def run_upscale(params: WorkflowParams):
         print(f"[upscale] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
+
+# ── Upscale Rework — batch creation ───────────────────────────────────────────
+
+UPSCALE_REWORK_MODELS = [
+    "4xUltrasharp_4xUltrasharpV10.pt",
+    "4xLexicaDAT2_otf.pth",
+    "4xRealWebPhoto_v4.pth",
+    "4xPurePhoto-RealPLSKR.pth",
+    "4xRealWebPhoto_v3_atd.pth",
+    "4xNomos8kSCHAT-L.pth",
+]
+
+
+class UpscaleReworkParams(BaseModel):
+    filename: str
+    models: List[str]           # subset of UPSCALE_REWORK_MODELS
+    runs_per_model: int = 4
+    client_path: str            # 95_CLIENT_PATH  e.g. "Deployed/HD"
+    product_path: str           # 96_PRODUCT_PATH e.g. "ProjectName"
+    filename_prefix: str        # 97_FILENAME     e.g. "Shot001"
+
+
+@app.post("/api/workflow/upscale_rework")
+async def run_upscale_rework(params: UpscaleReworkParams):
+    # Validate
+    invalid = [m for m in params.models if m not in UPSCALE_REWORK_MODELS]
+    if invalid:
+        raise HTTPException(422, f"Unknown model(s): {invalid}")
+    if not params.models:
+        raise HTTPException(422, "Select at least one model")
+    if not 1 <= params.runs_per_model <= 10:
+        raise HTTPException(422, "runs_per_model must be between 1 and 10")
+
+    batch_id = str(uuid.uuid4())
+    jobs: List[BatchJob] = []
+    errors: List[str] = []
+
+    for model in params.models:
+        for run in range(1, params.runs_per_model + 1):
+            try:
+                client_id = str(uuid.uuid4())
+                workflow = load_upscale_rework(
+                    filename=params.filename,
+                    model_name=model,
+                    run_index=run,
+                    client_path=params.client_path,
+                    product_path=params.product_path,
+                    filename_prefix=params.filename_prefix,
+                )
+                prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+                jobs.append(BatchJob(
+                    prompt_id=prompt_id,
+                    client_id=client_id,
+                    model=model,
+                    run_index=run,
+                ))
+                print(f"[batch:{batch_id}] queued {model} run {run} → {prompt_id}")
+            except Exception as e:
+                msg = f"{model} run {run}: {type(e).__name__}: {e}"
+                print(f"[batch:{batch_id}] ERROR queuing {msg}")
+                errors.append(msg)
+
+    if not jobs:
+        raise HTTPException(422, f"All jobs failed to queue: {errors}")
+
+    _batches[batch_id] = Batch(
+        id=batch_id,
+        filename=params.filename,
+        client_path=params.client_path,
+        product_path=params.product_path,
+        filename_prefix=params.filename_prefix,
+        runs_per_model=params.runs_per_model,
+        jobs=jobs,
+        created_at=datetime.datetime.utcnow().isoformat() + "Z",
+    )
+
+    return {
+        "batch_id": batch_id,
+        "total": len(jobs),
+        "queuing_errors": errors,
+        "jobs": [
+            {
+                "prompt_id": j.prompt_id,
+                "client_id": j.client_id,
+                "model": j.model,
+                "run": j.run_index,
+            }
+            for j in jobs
+        ],
+    }
+
+
+# ── Batch status ───────────────────────────────────────────────────────────────
+
+@app.get("/api/batch/{batch_id}")
+async def get_batch_status(batch_id: str):
+    batch = _batches.get(batch_id)
+    if not batch:
+        raise HTTPException(404, "Batch not found")
+
+    # Two ComfyUI calls regardless of batch size:
+    # 1) all completed history, 2) current queue state
+    try:
+        history = await comfy_client.get_all_history(max_items=500)
+    except Exception:
+        history = {}
+
+    try:
+        queue = await comfy_client.get_queue()
+        running_ids: set = queue["running"]
+        pending_ids: set = queue["pending"]
+    except Exception:
+        running_ids = set()
+        pending_ids = set()
+
+    counts = {"queued": 0, "processing": 0, "done": 0, "error": 0}
+    job_statuses = []
+
+    for job in batch.jobs:
+        entry = history.get(job.prompt_id)
+        if entry:
+            status = _job_status(entry)
+            images = _job_images(entry)
+        elif job.prompt_id in running_ids:
+            status = "processing"
+            images = []
+        else:
+            # In pending queue or not yet picked up — treat as queued
+            status = "queued"
+            images = []
+
+        counts[status] = counts.get(status, 0) + 1
+        job_statuses.append({
+            "prompt_id": job.prompt_id,
+            "client_id": job.client_id,
+            "model": job.model,
+            "run": job.run_index,
+            "status": status,
+            "images": images,
+        })
+
+    return {
+        "batch_id": batch_id,
+        "filename": batch.filename,
+        "total": len(batch.jobs),
+        "queued": counts["queued"],
+        "processing": counts["processing"],
+        "done": counts["done"],
+        "error": counts["error"],
+        "created_at": batch.created_at,
+        "jobs": job_statuses,
+    }
+
+
+# ── Batch cancel ───────────────────────────────────────────────────────────────
+
+@app.post("/api/batch/{batch_id}/cancel")
+async def cancel_batch(batch_id: str):
+    batch = _batches.get(batch_id)
+    if not batch:
+        raise HTTPException(404, "Batch not found")
+
+    # Find which of our jobs are still pending in the ComfyUI queue
+    try:
+        queue = await comfy_client.get_queue()
+        pending_ids: set = queue["pending"]
+    except Exception as e:
+        raise HTTPException(502, f"Could not reach ComfyUI: {e}")
+
+    to_cancel = [j.prompt_id for j in batch.jobs if j.prompt_id in pending_ids]
+    await comfy_client.cancel_queue_items(to_cancel)
+
+    print(f"[batch:{batch_id}] cancelled {len(to_cancel)} pending job(s)")
+    return {"batch_id": batch_id, "cancelled": len(to_cancel)}
+
+
+# ── List available upscale rework models ──────────────────────────────────────
+
+@app.get("/api/workflow/upscale_rework/models")
+async def get_upscale_rework_models():
+    return {"models": UPSCALE_REWORK_MODELS}
+
+
+# ── Status / image proxy (shared) ─────────────────────────────────────────────
 
 @app.get("/api/status/{prompt_id}")
 async def get_status(prompt_id: str):
@@ -110,7 +345,6 @@ async def proxy_image(filename: str, subfolder: str = "", type: str = "output"):
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
-    # Wait for the frontend to send the prompt_id
     try:
         msg = await websocket.receive_json()
         prompt_id = msg.get("prompt_id")
