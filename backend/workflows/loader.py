@@ -16,7 +16,14 @@ Upscaler_Rework_API.json patch points:
 
 import json
 import copy
+import random
 from pathlib import Path
+
+_MAX_SEED = 2**53 - 1  # ComfyUI accepts up to 53-bit seeds
+
+
+def _random_seed() -> int:
+    return random.randint(0, _MAX_SEED)
 
 WORKFLOWS_DIR = Path(__file__).parent
 
@@ -62,5 +69,13 @@ def load_upscale_rework(
     # Strip extension and truncate so paths stay reasonable
     model_short = model_name.rsplit(".", 1)[0][:24]
     workflow["16"]["inputs"]["value"] = f"{filename_prefix}_{model_short}_r{run_index:02d}_"
+
+    # Randomise seeds so each run produces a different result.
+    # ComfyUI uses the literal seed from the API payload; the "randomise"
+    # setting in the UI has no effect on API submissions.
+    workflow["46"]["inputs"]["noise_seed"] = _random_seed()   # RandomNoise (Flux 4K path)
+    workflow["165"]["inputs"]["noise_seed"] = _random_seed()  # RandomNoise (Flux 8K path)
+    workflow["72"]["inputs"]["seed"] = _random_seed()         # KSampler (SDXL 4K upscale)
+    workflow["130"]["inputs"]["seed"] = _random_seed()        # KSampler (SDXL 8K upscale)
 
     return workflow
