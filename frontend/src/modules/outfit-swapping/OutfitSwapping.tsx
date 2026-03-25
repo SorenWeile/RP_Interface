@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { uploadImage, runOutfitSwapping, getStatus, connectProgress, type ProgressEvent, imageUrl } from '@/api/client'
+import { uploadImage, runOutfitSwapping, connectProgress, type ProgressEvent, imageUrl } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -17,7 +17,6 @@ interface ImageSlot {
 }
 
 const EMPTY_SLOT: ImageSlot = { preview: null, filename: null, state: 'empty' }
-
 const REF_COUNT = 7
 
 type Stage =
@@ -33,10 +32,11 @@ interface DropZoneProps {
   label: string
   disabled?: boolean
   onFile: (file: File) => void
+  onClear: () => void
   size?: 'lg' | 'sm'
 }
 
-function DropZone({ slot, label, disabled, onFile, size = 'lg' }: DropZoneProps) {
+function DropZone({ slot, label, disabled, onFile, onClear, size = 'lg' }: DropZoneProps) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -48,53 +48,70 @@ function DropZone({ slot, label, disabled, onFile, size = 'lg' }: DropZoneProps)
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => !disabled && inputRef.current?.click()}
-      onKeyDown={(e) => !disabled && e.key === 'Enter' && inputRef.current?.click()}
-      onDrop={handleDrop}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-      onDragLeave={() => setDragging(false)}
-      className={cn(
-        'relative border-2 border-dashed rounded transition-colors select-none flex flex-col items-center justify-center',
-        size === 'lg' ? 'min-h-40' : 'min-h-20',
-        disabled ? 'cursor-default opacity-60' : 'cursor-pointer',
-        dragging
-          ? 'border-primary bg-comfy-canvas'
-          : 'border-comfy-border bg-comfy-panel hover:border-primary/60',
-      )}
-    >
-      {slot.preview ? (
-        <img
-          src={slot.preview}
-          alt={label}
+    <div className="relative">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => !disabled && inputRef.current?.click()}
+        onKeyDown={(e) => !disabled && e.key === 'Enter' && inputRef.current?.click()}
+        onDrop={handleDrop}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        className={cn(
+          'relative border-2 border-dashed rounded transition-colors select-none flex flex-col items-center justify-center',
+          size === 'lg' ? 'min-h-40' : 'min-h-20',
+          disabled ? 'cursor-default opacity-60' : 'cursor-pointer',
+          dragging
+            ? 'border-primary bg-comfy-canvas'
+            : 'border-comfy-border bg-comfy-panel hover:border-primary/60',
+        )}
+      >
+        {slot.preview ? (
+          <img
+            src={slot.preview}
+            alt={label}
+            className={cn(
+              'object-contain rounded opacity-80',
+              size === 'lg' ? 'max-h-48 max-w-full' : 'max-h-16 max-w-full',
+            )}
+          />
+        ) : (
+          <div className={cn('text-center', size === 'lg' ? 'p-6' : 'p-2')}>
+            {size === 'lg' && <div className="text-muted-foreground text-3xl mb-2">↓</div>}
+            <p className="text-muted-foreground text-xs">{label}</p>
+          </div>
+        )}
+        {slot.state === 'uploading' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/70 rounded">
+            <span className="text-muted-foreground text-xs tracking-widest animate-pulse">UPLOADING…</span>
+          </div>
+        )}
+        {slot.state === 'error' && (
+          <div className="absolute bottom-0 inset-x-0 bg-destructive/80 text-destructive-foreground text-xs text-center py-0.5 rounded-b">
+            upload failed
+          </div>
+        )}
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onFile(file)
+          e.target.value = ''
+        }} />
+      </div>
+
+      {/* Clear button — only shown when a file is loaded and not busy */}
+      {slot.preview && !disabled && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onClear() }}
           className={cn(
-            'object-contain rounded opacity-80',
-            size === 'lg' ? 'max-h-48 max-w-full' : 'max-h-16 max-w-full',
+            'absolute top-1 right-1 flex items-center justify-center rounded-full',
+            'w-5 h-5 text-xs bg-background/80 border border-border text-muted-foreground',
+            'hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors',
           )}
-        />
-      ) : (
-        <div className={cn('text-center', size === 'lg' ? 'p-6' : 'p-2')}>
-          {size === 'lg' && <div className="text-muted-foreground text-3xl mb-2">↓</div>}
-          <p className="text-muted-foreground text-xs">{label}</p>
-        </div>
+          title="Remove image"
+        >
+          ✕
+        </button>
       )}
-      {slot.state === 'uploading' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/70 rounded">
-          <span className="text-muted-foreground text-xs tracking-widest animate-pulse">UPLOADING…</span>
-        </div>
-      )}
-      {slot.state === 'error' && (
-        <div className="absolute bottom-0 inset-x-0 bg-destructive/80 text-destructive-foreground text-xs text-center py-0.5 rounded-b">
-          upload failed
-        </div>
-      )}
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
-        const file = e.target.files?.[0]
-        if (file) onFile(file)
-        e.target.value = ''
-      }} />
     </div>
   )
 }
@@ -102,14 +119,14 @@ function DropZone({ slot, label, disabled, onFile, size = 'lg' }: DropZoneProps)
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function OutfitSwapping() {
-  const [mainSlot, setMainSlot]     = useState<ImageSlot>(EMPTY_SLOT)
-  const [refSlots, setRefSlots]     = useState<ImageSlot[]>(Array(REF_COUNT).fill(EMPTY_SLOT))
-  const [prompt, setPrompt]         = useState('add rider to the Bike, he is wearing a race suit, outfit, helmet, boots and gloves.')
-  const [clientPath, setClientPath] = useState('Deployed/HD')
-  const [productPath, setProductPath] = useState('')
-  const [filePrefix, setFilePrefix] = useState('')
-  const [stage, setStage]           = useState<Stage>({ status: 'idle' })
-  const wsCleanupRef                = useRef<(() => void) | null>(null)
+  const [mainSlot, setMainSlot]         = useState<ImageSlot>(EMPTY_SLOT)
+  const [refSlots, setRefSlots]         = useState<ImageSlot[]>(Array(REF_COUNT).fill(EMPTY_SLOT))
+  const [prompt, setPrompt]             = useState('add rider to the Bike, he is wearing a race suit, outfit, helmet, boots and gloves.')
+  const [clientPath, setClientPath]     = useState('Deployed/HD')
+  const [productPath, setProductPath]   = useState('')
+  const [filePrefix, setFilePrefix]     = useState('')
+  const [stage, setStage]               = useState<Stage>({ status: 'idle' })
+  const wsCleanupRef                    = useRef<(() => void) | null>(null)
 
   // ── Upload helpers ───────────────────────────────────────────────────────────
 
@@ -140,6 +157,10 @@ export default function OutfitSwapping() {
     [uploadSlot],
   )
 
+  const clearMain = () => setMainSlot(EMPTY_SLOT)
+  const clearRef  = (index: number) =>
+    setRefSlots((prev) => prev.map((s, i) => (i === index ? EMPTY_SLOT : s)))
+
   // ── Submit ───────────────────────────────────────────────────────────────────
 
   const submit = async () => {
@@ -162,7 +183,7 @@ export default function OutfitSwapping() {
 
       setStage({ status: 'running', promptId: prompt_id, clientId: client_id, progress: 0, max: 1 })
 
-      wsCleanupRef.current = connectProgress(client_id, prompt_id, async (ev: ProgressEvent) => {
+      wsCleanupRef.current = connectProgress(client_id, prompt_id, (ev: ProgressEvent) => {
         if (ev.type === 'progress') {
           setStage((prev) =>
             prev.status === 'running'
@@ -171,13 +192,24 @@ export default function OutfitSwapping() {
           )
         } else if (ev.type === 'complete') {
           wsCleanupRef.current?.()
-          // Fetch output images from history
-          try {
-            const s = await getStatus(prompt_id)
-            setStage({ status: 'complete', images: s.images ?? [] })
-          } catch {
-            setStage({ status: 'complete', images: [] })
-          }
+          // Poll until history is populated — same pattern as Upscaler
+          const poll = setInterval(async () => {
+            try {
+              const res = await fetch(`/api/status/${prompt_id}`)
+              const s = await res.json()
+              if (s.status === 'done') {
+                clearInterval(poll)
+                setStage({ status: 'complete', images: s.images ?? [] })
+              } else if (s.status === 'error') {
+                clearInterval(poll)
+                setStage({ status: 'error', message: 'Workflow error' })
+              }
+              // 'pending' / 'processing' → keep polling
+            } catch {
+              clearInterval(poll)
+              setStage({ status: 'error', message: 'Status poll failed' })
+            }
+          }, 800)
         } else if (ev.type === 'error') {
           wsCleanupRef.current?.()
           setStage({ status: 'error', message: JSON.stringify(ev.data ?? ev.message) })
@@ -219,6 +251,7 @@ export default function OutfitSwapping() {
           label="Drop subject image here or click to browse"
           disabled={isBusy}
           onFile={handleMainFile}
+          onClear={clearMain}
           size="lg"
         />
       </div>
@@ -238,6 +271,7 @@ export default function OutfitSwapping() {
               label={`Ref ${i + 1}`}
               disabled={isBusy}
               onFile={(f) => handleRefFile(i, f)}
+              onClear={() => clearRef(i)}
               size="sm"
             />
           ))}
@@ -310,14 +344,12 @@ export default function OutfitSwapping() {
 
       {/* Progress */}
       {stage.status === 'running' && (
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className="animate-pulse">Processing…</span>
-              <span>{pct}%</span>
-            </div>
-            <Progress value={pct} className="h-1.5" />
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span className="animate-pulse">Processing…</span>
+            <span>{pct}%</span>
           </div>
+          <Progress value={pct} className="h-1.5" />
         </div>
       )}
 
@@ -328,15 +360,22 @@ export default function OutfitSwapping() {
             Done — {stage.images.length} image{stage.images.length !== 1 ? 's' : ''}
           </p>
           {stage.images.length > 0 && (
-            <div className="grid grid-cols-1 gap-3">
-              {stage.images.map((img, i) => (
-                <img
-                  key={i}
-                  src={imageUrl(img.filename, img.subfolder, img.type)}
-                  alt={img.filename}
-                  className="rounded border border-border max-w-full"
-                />
-              ))}
+            <div className="space-y-3">
+              {stage.images.map((img, i) => {
+                const url = imageUrl(img.filename, img.subfolder, img.type)
+                return (
+                  <div key={i} className="space-y-2">
+                    <img
+                      src={url}
+                      alt={img.filename}
+                      className="rounded border border-border max-w-full"
+                    />
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={url} download={img.filename}>Download {img.filename}</a>
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
           )}
           <Button variant="outline" size="sm" onClick={reset}>New run</Button>

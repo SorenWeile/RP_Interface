@@ -5,7 +5,7 @@ import type { WorkflowModule } from '@/modules/index'
 const outfitSwappingModule: WorkflowModule = {
   id: 'outfit-swapping',
   title: 'Outfit Swapping',
-  description: 'Place a rider on a bike wearing outfit references (suit, helmet, boots, gloves) using Gemini.',
+  description: 'Change the outfit of a character while keeping the same pose and background.',
   icon: Shirt,
   component: OutfitSwapping,
 }
