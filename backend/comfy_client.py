@@ -1,6 +1,11 @@
 """
 ComfyUI HTTP + WebSocket client.
 Fully decoupled from FastAPI — testable standalone.
+
+API key auth:
+  Set COMFYUI_API_KEY env var to enable.
+  HTTP requests get: Authorization: Bearer <key>
+  WebSocket URI gets: ?token=<key>
 """
 
 import os
@@ -10,9 +15,25 @@ import websockets
 import json
 from typing import Any
 
-COMFYUI_HOST = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
-COMFYUI_HTTP = f"http://{COMFYUI_HOST}"
-COMFYUI_WS   = f"ws://{COMFYUI_HOST}"
+COMFYUI_HOST    = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
+COMFYUI_API_KEY = os.getenv("COMFYUI_API_KEY", "")
+COMFYUI_HTTP    = f"http://{COMFYUI_HOST}"
+COMFYUI_WS      = f"ws://{COMFYUI_HOST}"
+
+
+def _auth_headers() -> dict:
+    """Return Authorization header dict when an API key is configured."""
+    if COMFYUI_API_KEY:
+        return {"Authorization": f"Bearer {COMFYUI_API_KEY}"}
+    return {}
+
+
+def _ws_uri(client_id: str) -> str:
+    """Build WebSocket URI, appending token query param when API key is set."""
+    uri = f"{COMFYUI_WS}/ws?clientId={client_id}"
+    if COMFYUI_API_KEY:
+        uri += f"&token={COMFYUI_API_KEY}"
+    return uri
 
 
 async def upload_image(image_bytes: bytes, filename: str) -> str:
@@ -22,6 +43,7 @@ async def upload_image(image_bytes: bytes, filename: str) -> str:
             f"{COMFYUI_HTTP}/upload/image",
             files={"image": (filename, image_bytes, "image/png")},
             data={"overwrite": "true"},
+            headers=_auth_headers(),
         )
         response.raise_for_status()
         data = response.json()
@@ -34,6 +56,7 @@ async def queue_workflow(workflow: dict, client_id: str) -> str:
         response = await client.post(
             f"{COMFYUI_HTTP}/prompt",
             json={"prompt": workflow, "client_id": client_id},
+            headers=_auth_headers(),
         )
         response.raise_for_status()
         data = response.json()
@@ -51,7 +74,10 @@ async def queue_workflow(workflow: dict, client_id: str) -> str:
 async def get_history(prompt_id: str) -> dict:
     """GET ComfyUI /history/{prompt_id}. Returns output info including generated filenames."""
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{COMFYUI_HTTP}/history/{prompt_id}")
+        response = await client.get(
+            f"{COMFYUI_HTTP}/history/{prompt_id}",
+            headers=_auth_headers(),
+        )
         response.raise_for_status()
         return response.json()
 
@@ -62,6 +88,7 @@ async def get_all_history(max_items: int = 200) -> dict:
         response = await client.get(
             f"{COMFYUI_HTTP}/history",
             params={"max_items": max_items},
+            headers=_auth_headers(),
         )
         response.raise_for_status()
         return response.json()
@@ -73,7 +100,10 @@ async def get_queue() -> dict:
     Returns { "running": set[str], "pending": set[str] } of prompt_ids.
     """
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{COMFYUI_HTTP}/queue")
+        response = await client.get(
+            f"{COMFYUI_HTTP}/queue",
+            headers=_auth_headers(),
+        )
         response.raise_for_status()
         data = response.json()
     running = {item[1] for item in data.get("queue_running", [])}
@@ -89,6 +119,7 @@ async def cancel_queue_items(prompt_ids: list) -> None:
         await client.post(
             f"{COMFYUI_HTTP}/queue",
             json={"delete": prompt_ids},
+            headers=_auth_headers(),
         )
 
 
@@ -98,6 +129,7 @@ async def get_image(filename: str, subfolder: str = "", folder_type: str = "outp
         response = await client.get(
             f"{COMFYUI_HTTP}/view",
             params={"filename": filename, "subfolder": subfolder, "type": folder_type},
+            headers=_auth_headers(),
         )
         response.raise_for_status()
         return response.content
@@ -108,7 +140,7 @@ async def watch_progress(client_id: str, prompt_id: str, websocket: Any) -> None
     Connect to ComfyUI WebSocket and forward progress events to the caller's WebSocket.
     Stops when execution completes or errors.
     """
-    uri = f"{COMFYUI_WS}/ws?clientId={client_id}"
+    uri = _ws_uri(client_id)
     try:
         async with websockets.connect(uri) as ws:
             async for raw in ws:

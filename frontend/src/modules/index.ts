@@ -18,8 +18,10 @@ export interface WorkflowModule {
 
 import upscalerModule from './upscaler'
 import upscalerReworkModule from './upscaler-rework'
+import outfitSwappingModule from './outfit-swapping'
 
 export const modules: WorkflowModule[] = [
   upscalerModule,
   upscalerReworkModule,
+  outfitSwappingModule,
 ]

@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import comfy_client
-from workflows.loader import load_upscale, load_upscale_rework
+from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping
 
 app = FastAPI(title="ComfyUI Workflow UI")
 
@@ -296,6 +296,41 @@ async def cancel_batch(batch_id: str):
 
     print(f"[batch:{batch_id}] cancelled {len(to_cancel)} pending job(s)")
     return {"batch_id": batch_id, "cancelled": len(to_cancel)}
+
+
+# ── Outfit Swapping ────────────────────────────────────────────────────────────
+
+class OutfitSwappingParams(BaseModel):
+    main_image: str           # 11_INPUT_IMAGE_LATENT
+    ref_images: List[str]     # up to 7 reference image filenames
+    prompt: str               # 05_PROMPT_POSITIVE_INSTRUCTION
+    client_path: str          # 95_CLIENT_PATH
+    product_path: str         # 96_PRODUCT_PATH
+    filename_prefix: str      # 97_FILENAME
+
+
+@app.post("/api/workflow/outfit_swapping")
+async def run_outfit_swapping(params: OutfitSwappingParams):
+    if not params.main_image:
+        raise HTTPException(422, "main_image is required")
+    if len(params.ref_images) > 7:
+        raise HTTPException(422, "At most 7 reference images are supported")
+    try:
+        client_id = str(uuid.uuid4())
+        workflow = load_outfit_swapping(
+            main_image=params.main_image,
+            ref_images=params.ref_images,
+            prompt=params.prompt,
+            client_path=params.client_path,
+            product_path=params.product_path,
+            filename_prefix=params.filename_prefix,
+        )
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        print(f"[outfit_swapping] queued → {prompt_id}")
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except Exception as e:
+        print(f"[outfit_swapping] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
 # ── List available upscale rework models ──────────────────────────────────────

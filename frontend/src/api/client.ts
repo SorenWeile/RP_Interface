@@ -98,6 +98,28 @@ export async function cancelBatch(batchId: string): Promise<{ cancelled: number 
   return res.json()
 }
 
+// ── Outfit Swapping ───────────────────────────────────────────────────────
+
+export async function runOutfitSwapping(params: {
+  main_image: string
+  ref_images: string[]
+  prompt: string
+  client_path: string
+  product_path: string
+  filename_prefix: string
+}): Promise<{ prompt_id: string; client_id: string }> {
+  const res = await fetch(`${BASE}/api/workflow/outfit_swapping`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────
 
 export type ProgressEvent =

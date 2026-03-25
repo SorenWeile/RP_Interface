@@ -12,6 +12,20 @@ Upscaler_Rework_API.json patch points:
   Node "15"  → inputs.value        : 96_PRODUCT_PATH (e.g. "ProjectName")
   Node "16"  → inputs.value        : 97_FILENAME prefix
                                       (model shortname + run index baked in automatically)
+
+Outfit_Swapping.json patch points:
+  Node "1"  → inputs.image   : 11_INPUT_IMAGE_LATENT (main subject image)
+  Node "11" → inputs.image   : 12_INPUT_IMAGE_REF    (ref image 1)
+  Node "2"  → inputs.image   : 13_INPUT_IMAGE_REF    (ref image 2)
+  Node "3"  → inputs.image   : 14_INPUT_IMAGE_REF    (ref image 3)
+  Node "4"  → inputs.image   : 15_INPUT_IMAGE_REF    (ref image 4)
+  Node "5"  → inputs.image   : 16_INPUT_IMAGE_REF    (ref image 5)
+  Node "6"  → inputs.image   : 17_INPUT_IMAGE_REF    (ref image 6)
+  Node "7"  → inputs.image   : 18_INPUT_IMAGE_REF    (ref image 7)
+  Node "23" → inputs.text    : 05_PROMPT_POSITIVE_INSTRUCTION
+  Node "14" → inputs.value   : 95_CLIENT_PATH
+  Node "15" → inputs.value   : 96_PRODUCT_PATH
+  Node "16" → inputs.value   : 97_FILENAME prefix
 """
 
 import json
@@ -77,5 +91,43 @@ def load_upscale_rework(
     workflow["165"]["inputs"]["noise_seed"] = _random_seed()  # RandomNoise (Flux 8K path)
     workflow["72"]["inputs"]["seed"] = _random_seed()         # KSampler (SDXL 4K upscale)
     workflow["130"]["inputs"]["seed"] = _random_seed()        # KSampler (SDXL 8K upscale)
+
+    return workflow
+
+
+# Ref image node IDs in order (titles 12→18_INPUT_IMAGE_REF)
+_OUTFIT_REF_NODES = ["11", "2", "3", "4", "5", "6", "7"]
+
+
+def load_outfit_swapping(
+    main_image: str,
+    ref_images: list[str],
+    prompt: str,
+    client_path: str,
+    product_path: str,
+    filename_prefix: str,
+) -> dict:
+    """
+    Patch Outfit_Swapping.json for a single run.
+
+    ref_images: list of up to 7 filenames; only provided slots are patched.
+    The remaining ref nodes keep whatever default filename is in the JSON.
+    """
+    workflow = copy.deepcopy(_load("Outfit_Swapping"))
+
+    # Main subject image
+    workflow["1"]["inputs"]["image"] = main_image
+
+    # Reference images — patch only the slots the caller supplied
+    for node_id, filename in zip(_OUTFIT_REF_NODES, ref_images):
+        workflow[node_id]["inputs"]["image"] = filename
+
+    # Prompt
+    workflow["23"]["inputs"]["text"] = prompt
+
+    # Output path nodes
+    workflow["14"]["inputs"]["value"] = client_path    # 95_CLIENT_PATH
+    workflow["15"]["inputs"]["value"] = product_path   # 96_PRODUCT_PATH
+    workflow["16"]["inputs"]["value"] = filename_prefix  # 97_FILENAME
 
     return workflow
