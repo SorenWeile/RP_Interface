@@ -2,10 +2,11 @@
 ComfyUI HTTP + WebSocket client.
 Fully decoupled from FastAPI — testable standalone.
 
-API key auth:
-  Set COMFYUI_API_KEY env var to enable.
-  HTTP requests get: Authorization: Bearer <key>
-  WebSocket URI gets: ?token=<key>
+Auth env vars:
+  COMFYUI_API_KEY   — local ComfyUI server auth (Authorization: Bearer header + WS token param)
+  COMFY_ORG_API_KEY — comfy.org cloud API key, injected into every workflow payload as
+                      extra_data.api_key_comfy_org (required for GeminiImage2Node etc.)
+                      See: https://docs.comfy.org/development/comfyui-server/api-key-integration
 """
 
 import os
@@ -15,10 +16,11 @@ import websockets
 import json
 from typing import Any
 
-COMFYUI_HOST    = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
-COMFYUI_API_KEY = os.getenv("COMFYUI_API_KEY", "")
-COMFYUI_HTTP    = f"http://{COMFYUI_HOST}"
-COMFYUI_WS      = f"ws://{COMFYUI_HOST}"
+COMFYUI_HOST        = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
+COMFYUI_API_KEY     = os.getenv("COMFYUI_API_KEY", "")
+COMFY_ORG_API_KEY   = os.getenv("COMFY_ORG_API_KEY", "")   # for GeminiImage2Node / cloud API nodes
+COMFYUI_HTTP        = f"http://{COMFYUI_HOST}"
+COMFYUI_WS          = f"ws://{COMFYUI_HOST}"
 
 
 def _auth_headers() -> dict:
@@ -52,10 +54,13 @@ async def upload_image(image_bytes: bytes, filename: str) -> str:
 
 async def queue_workflow(workflow: dict, client_id: str) -> str:
     """POST workflow to ComfyUI /prompt. Returns prompt_id."""
+    payload: dict = {"prompt": workflow, "client_id": client_id}
+    if COMFY_ORG_API_KEY:
+        payload["extra_data"] = {"api_key_comfy_org": COMFY_ORG_API_KEY}
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{COMFYUI_HTTP}/prompt",
-            json={"prompt": workflow, "client_id": client_id},
+            json=payload,
             headers=_auth_headers(),
         )
         response.raise_for_status()

@@ -44,6 +44,7 @@ async def check_comfyui():
         print(f"[startup] WARNING: Could not reach ComfyUI at {url}: {e}")
 
 
+
 # ---------------------------------------------------------------------------
 # Batch data model & in-memory store
 # ---------------------------------------------------------------------------
