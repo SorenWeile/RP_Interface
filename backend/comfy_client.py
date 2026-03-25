@@ -151,7 +151,9 @@ async def watch_progress(client_id: str, prompt_id: str, websocket: Any) -> None
             async for raw in ws:
                 try:
                     msg = json.loads(raw)
-                except (json.JSONDecodeError, TypeError):
+                except (ValueError, UnicodeDecodeError, TypeError):
+                    # ComfyUI sends binary preview frames alongside JSON messages;
+                    # skip anything that isn't valid JSON text.
                     continue
 
                 msg_type = msg.get("type")
