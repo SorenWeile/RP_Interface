@@ -23,6 +23,7 @@ Outfit_Swapping.json patch points:
   Node "6"  → inputs.image   : 17_INPUT_IMAGE_REF    (ref image 6)
   Node "7"  → inputs.image   : 18_INPUT_IMAGE_REF    (ref image 7)
   Node "23" → inputs.text    : 05_PROMPT_POSITIVE_INSTRUCTION
+  Node "13" → inputs.value   : DEFAULT_PATH (reset to "ComfyUI" — JSON has "ComfyUI/Deployed/Rider" hardcoded)
   Node "14" → inputs.value   : 95_CLIENT_PATH
   Node "15" → inputs.value   : 96_PRODUCT_PATH
   Node "16" → inputs.value   : 97_FILENAME prefix
@@ -125,7 +126,11 @@ def load_outfit_swapping(
     # Prompt
     workflow["23"]["inputs"]["text"] = prompt
 
-    # Output path nodes
+    # Output path nodes — match Batch Upscaler convention:
+    # DEFAULT_PATH = "ComfyUI", then client_path/product_path/filename are appended.
+    # The workflow JSON has "ComfyUI/Deployed/Rider" hardcoded in node "13"; we
+    # reset it to just "ComfyUI" so the final path is ComfyUI/{client}/{product}/{file}.
+    workflow["13"]["inputs"]["value"] = "ComfyUI"      # DEFAULT_PATH (reset hardcoded prefix)
     workflow["14"]["inputs"]["value"] = client_path    # 95_CLIENT_PATH
     workflow["15"]["inputs"]["value"] = product_path   # 96_PRODUCT_PATH
     workflow["16"]["inputs"]["value"] = filename_prefix  # 97_FILENAME
