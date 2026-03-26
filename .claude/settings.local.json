@@ -7,7 +7,10 @@
       "Bash(python -c \"import main; print\\(''OK''\\)\")",
       "Bash(mkdir -p /c/GitHub_Repos/RP_Interface/frontend/public)",
       "Bash(cp /c/GitHub_Repos/RP_Interface/frontend/icon/interface_icon.ico /c/GitHub_Repos/RP_Interface/frontend/public/favicon.ico)",
-      "WebFetch(domain:docs.comfy.org)"
+      "WebFetch(domain:docs.comfy.org)",
+      "Bash(grep -E \"\\\\.\\(js|jsx|ts|tsx|html|css|py|json\\)$\")",
+      "Bash(cp \"C:\\\\GitHub_Repos\\\\flux2-klein-4b-erp-outpaint-lora-demo\\\\demo\\\\static\\\\pano_editor_demo_core.js\" \"c:\\\\GitHub_Repos\\\\RP_Interface\\\\frontend\\\\public\\\\pano\\\\pano_editor_demo_core.js\")",
+      "Bash(cp \"C:\\\\GitHub_Repos\\\\flux2-klein-4b-erp-outpaint-lora-demo\\\\demo\\\\static\\\\pano_editor_demo.css\" \"c:\\\\GitHub_Repos\\\\RP_Interface\\\\frontend\\\\public\\\\pano\\\\pano_editor_demo.css\")"
     ]
   }
 }

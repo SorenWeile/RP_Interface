@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import comfy_client
-from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping
+from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama
 
 app = FastAPI(title="ComfyUI Workflow UI")
 
@@ -331,6 +331,33 @@ async def run_outfit_swapping(params: OutfitSwappingParams):
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
         print(f"[outfit_swapping] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
+
+
+# ── Panorama Outpainting ───────────────────────────────────────────────────────
+
+class PanoramaParams(BaseModel):
+    state_json: str           # full PanoramaStickers editor state from the frontend
+    prompt: str = "Fill the green spaces according to the image. Outpaint as a seamless 360 equirectangular panorama (2:1). Keep the horizon level. Match left and right edges."
+    filename_prefix: str = "ComfyUI"
+
+
+@app.post("/api/workflow/panorama")
+async def run_panorama(params: PanoramaParams):
+    if not params.state_json:
+        raise HTTPException(422, "state_json is required")
+    try:
+        client_id = str(uuid.uuid4())
+        workflow = load_panorama(
+            state_json=params.state_json,
+            prompt=params.prompt,
+            filename_prefix=params.filename_prefix,
+        )
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        print(f"[panorama] queued → {prompt_id}")
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except Exception as e:
+        print(f"[panorama] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 

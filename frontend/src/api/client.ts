@@ -120,6 +120,25 @@ export async function runOutfitSwapping(params: {
   return res.json()
 }
 
+// ── Panorama Outpainting ──────────────────────────────────────────────────
+
+export async function runPanorama(params: {
+  state_json: string
+  prompt: string
+  filename_prefix: string
+}): Promise<{ prompt_id: string; client_id: string }> {
+  const res = await fetch(`${BASE}/api/workflow/panorama`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────
 
 export type ProgressEvent =

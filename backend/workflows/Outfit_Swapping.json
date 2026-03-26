@@ -149,7 +149,7 @@
   },
   "13": {
     "inputs": {
-      "value": "ComfyUI/Deployed/Rider"
+      "value": "ComfyUI"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -158,7 +158,7 @@
   },
   "14": {
     "inputs": {
-      "value": "HD"
+      "value": "Deployed/HD"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -167,7 +167,7 @@
   },
   "15": {
     "inputs": {
-      "value": "PanAmerica_RA1250S"
+      "value": "Outfit"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -176,7 +176,7 @@
   },
   "16": {
     "inputs": {
-      "value": "PanAmerica_RA1250S_"
+      "value": "Outfitswap_"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
