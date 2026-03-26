@@ -52,7 +52,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-2xl">
+          <div className={active?.fullWidth ? undefined : 'max-w-2xl'}>
             {ActiveComponent
               ? <ActiveComponent />
               : <ModuleGrid modules={modules} onSelect={setActive} />

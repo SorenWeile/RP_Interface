@@ -53,9 +53,22 @@ const PanoramaEditor = forwardRef<PanoramaEditorHandle, Props>(function Panorama
     async function mount() {
       if (!hostRef.current) return
       try {
-        // Dynamic import keeps the 4 MB bundle out of Vite's main chunk.
-        // The CSS file lives alongside the JS and self-installs via import.meta.url.
-        const mod = await (import(/* @vite-ignore */ '/pano/pano_editor_demo_core.js') as Promise<PanoramaEditorModule>)
+        // Vite blocks direct dynamic import() of files inside /public.
+        // Workaround: fetch the text, wrap in a blob URL, then import that.
+        // We also set window.__PANO_DEMO_CSS_URL__ so installCss() uses the
+        // real path instead of import.meta.url (which would be the blob URL).
+        ;(window as Window & { __PANO_DEMO_CSS_URL__?: string }).__PANO_DEMO_CSS_URL__ =
+          '/pano/pano_editor_demo.css'
+        const res = await fetch('/pano/pano_editor_demo_core.js')
+        if (!res.ok) throw new Error(`Failed to fetch editor: ${res.statusText}`)
+        const blob = new Blob([await res.text()], { type: 'text/javascript' })
+        const blobUrl = URL.createObjectURL(blob)
+        let mod: PanoramaEditorModule
+        try {
+          mod = await (import(/* @vite-ignore */ blobUrl) as Promise<PanoramaEditorModule>)
+        } finally {
+          URL.revokeObjectURL(blobUrl)
+        }
         if (destroyed || !hostRef.current) return
 
         const editor = mod.createEmbeddedEditor(hostRef.current, {
@@ -125,9 +138,9 @@ const PanoramaEditor = forwardRef<PanoramaEditorHandle, Props>(function Panorama
   }))
 
   return (
-    <div className="relative w-full" style={{ minHeight: 480 }}>
+    <div className="relative w-full" style={{ minHeight: 600 }}>
       {/* Mount point — the editor renders directly into this div */}
-      <div ref={hostRef} className="w-full h-full" style={{ minHeight: 480 }} />
+      <div ref={hostRef} className="w-full h-full" style={{ minHeight: 600 }} />
 
       {loading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/80 rounded">

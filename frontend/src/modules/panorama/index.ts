@@ -8,6 +8,7 @@ const panoramaModule: WorkflowModule = {
   description: 'Place a starting image and outpaint it into a full 360° equirectangular panorama.',
   icon: Globe,
   component: Panorama,
+  fullWidth: true,
 }
 
 export default panoramaModule

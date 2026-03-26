@@ -11,6 +11,8 @@ export interface WorkflowModule {
   icon?: ComponentType<{ className?: string }>
   /** The full-page component rendered when this module is active */
   component: ComponentType
+  /** Remove the max-width cap so the module can use the full content area */
+  fullWidth?: boolean
 }
 
 // ── Registry ─────────────────────────────────────────────────────────────────
