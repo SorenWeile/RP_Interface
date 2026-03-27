@@ -87,7 +87,7 @@ def _job_status(entry: dict) -> str:
 def _job_images(entry: dict) -> list:
     images = []
     for node_output in entry.get("outputs", {}).values():
-        images.extend(node_output.get("images", []))
+        images.extend(img for img in node_output.get("images", []) if img.get("type") == "output")
     return images
 
 
@@ -381,7 +381,8 @@ async def get_status(prompt_id: str):
     images = []
     for node_output in outputs.values():
         for img in node_output.get("images", []):
-            images.append(img)
+            if img.get("type") == "output":  # exclude PreviewImage temp outputs
+                images.append(img)
 
     status = entry.get("status", {})
     completed = status.get("completed", False)

@@ -227,5 +227,18 @@
     "_meta": {
       "title": "Save Image"
     }
+  },
+  "67": {
+    "inputs": {
+      "filename_prefix": "ComfyUI_erp",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save ERP Image"
+    }
   }
 }

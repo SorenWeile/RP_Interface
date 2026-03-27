@@ -151,7 +151,8 @@ def load_panorama(
       Node "56" → state_json  : PanoramaStickers — full editor state from frontend
       Node "6"  → text        : positive prompt
       Node "31" → seed        : randomised KSampler seed
-      Node "66" → filename_prefix : SaveImage output name
+      Node "66" → filename_prefix : SaveImage — perspective cutout output name
+      Node "67" → filename_prefix : SaveImage — full ERP panorama output name
     """
     workflow = copy.deepcopy(_load("Panorama_Workflow_API"))
 
@@ -159,5 +160,6 @@ def load_panorama(
     workflow["6"]["inputs"]["text"] = prompt
     workflow["31"]["inputs"]["seed"] = _random_seed()
     workflow["66"]["inputs"]["filename_prefix"] = filename_prefix
+    workflow["67"]["inputs"]["filename_prefix"] = filename_prefix + "_erp"
 
     return workflow
