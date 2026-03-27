@@ -55,13 +55,11 @@ export default function Panorama() {
               if (s.status === 'done') {
                 clearInterval(poll)
                 setStage({ status: 'complete', images: s.images ?? [] })
-                // Feed the full ERP panorama back into the editor.
-                // The ERP image has a filename ending in "_erp" (node 67 prefix).
-                const imgs = s.images ?? []
-                const erp = imgs.find((i: { filename: string; subfolder: string; type: string }) => i.filename.includes('_erp')) ?? imgs[0]
-                if (erp) {
+                // Feed the generated ERP panorama back into the editor.
+                const first = (s.images ?? [])[0]
+                if (first) {
                   editorRef.current?.setErpPreview(
-                    imageUrl(erp.filename, erp.subfolder, erp.type)
+                    imageUrl(first.filename, first.subfolder, first.type)
                   )
                 }
               } else if (s.status === 'error') {
