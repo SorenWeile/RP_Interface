@@ -144,20 +144,20 @@ def load_panorama(
     filename_prefix: str = "ComfyUI",
 ) -> dict:
     """
-    Patch Panorama_Workflow_API.json for a single run.
+    Patch Panorama_Workflow_V3_API.json for a single run.
     state_json is produced directly by the frontend PanoramaStickers editor.
 
-    Panorama_Workflow_API.json patch points:
-      Node "56" → state_json       : PanoramaStickers — full editor state from frontend
-      Node "6"  → text             : positive prompt
-      Node "31" → seed             : randomised KSampler seed
-      Node "67" → filename_prefix  : SaveImage — full ERP panorama output name
+    Panorama_Workflow_V3_API.json patch points:
+      Node "56"  → state_json       : PanoramaStickers — full editor state from frontend
+      Node "6"   → text             : positive prompt
+      Node "31"  → seed             : randomised KSampler seed
+      Node "155" → filename_prefix  : SaveImage — final output name
     """
-    workflow = copy.deepcopy(_load("Panorama_Workflow_V2"))
+    workflow = copy.deepcopy(_load("Panorama_Workflow_V3_API"))
 
     workflow["56"]["inputs"]["state_json"] = state_json
     workflow["6"]["inputs"]["text"] = prompt
     workflow["31"]["inputs"]["seed"] = _random_seed()
-    workflow["67"]["inputs"]["filename_prefix"] = filename_prefix
+    workflow["155"]["inputs"]["filename_prefix"] = filename_prefix
 
     return workflow
