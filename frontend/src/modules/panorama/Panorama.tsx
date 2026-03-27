@@ -58,7 +58,7 @@ export default function Panorama() {
                 // Feed the full ERP panorama back into the editor.
                 // The ERP image has a filename ending in "_erp" (node 67 prefix).
                 const imgs = s.images ?? []
-                const erp = imgs.find(i => i.filename.includes('_erp')) ?? imgs[0]
+                const erp = imgs.find((i: { filename: string; subfolder: string; type: string }) => i.filename.includes('_erp')) ?? imgs[0]
                 if (erp) {
                   editorRef.current?.setErpPreview(
                     imageUrl(erp.filename, erp.subfolder, erp.type)
