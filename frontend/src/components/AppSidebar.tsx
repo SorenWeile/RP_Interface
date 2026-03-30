@@ -11,7 +11,7 @@ interface Props {
 
 export default function AppSidebar({ modules, active, onSelect }: Props) {
   return (
-    <aside className="w-52 shrink-0 border-l border-border bg-card flex flex-col">
+    <aside className="w-64 shrink-0 border-l border-border bg-card flex flex-col">
       <div className="px-4 py-3">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
           Apps

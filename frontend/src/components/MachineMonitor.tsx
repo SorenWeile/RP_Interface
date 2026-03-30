@@ -80,7 +80,7 @@ export default function MachineMonitor() {
   const totalJobs = stats ? stats.queue_running + stats.queue_pending : 0
 
   return (
-    <div className="px-4 py-3 space-y-3">
+    <div className="px-4 py-4 space-y-3.5">
       <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
         Machine
       </p>
