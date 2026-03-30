@@ -183,57 +183,6 @@
       "title": "97_FILENAME"
     }
   },
-  "17": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "13",
-        0
-      ],
-      "text_2": [
-        "14",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
-  "18": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "17",
-        0
-      ],
-      "text_2": [
-        "15",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
-  "19": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "18",
-        0
-      ],
-      "text_2": [
-        "16",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
   "20": {
     "inputs": {
       "value": "Deployed"
@@ -277,7 +226,7 @@
   "26": {
     "inputs": {
       "filename_prefix": [
-        "19",
+        "29",
         0
       ],
       "meta_name_0": "Seed",
@@ -302,6 +251,60 @@
     "class_type": "MetaSaver",
     "_meta": {
       "title": "99_SAVE_IMAGE_OUTPUT"
+    }
+  },
+  "27": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "13",
+        0
+      ],
+      "text_b": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "28": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "27",
+        0
+      ],
+      "text_b": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "29": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "28",
+        0
+      ],
+      "text_b": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
     }
   }
 }

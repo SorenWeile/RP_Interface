@@ -8,25 +8,26 @@ upscale.json patch points:
 Upscaler_Rework_API.json patch points:
   Node "18"  → inputs.image        : input image filename
   Node "167" → inputs.model_name   : upscale model (feeds both 4K and 8K branches)
-  Node "14"  → inputs.value        : 95_CLIENT_PATH  (e.g. "Deployed/HD")
-  Node "15"  → inputs.value        : 96_PRODUCT_PATH (e.g. "ProjectName")
-  Node "16"  → inputs.value        : 97_FILENAME prefix
-                                      (model shortname + run index baked in automatically)
+  Node "173" → inputs.value        : client path  (e.g. "Deployed/HD")
+  Node "15"  → inputs.value        : product path (e.g. "ProjectName")
+  Node "16"  → inputs.value        : filename prefix (model shortname + run index baked in automatically)
+  Path chain: 171("ComfyUI")/173/15 → split into 4K(node 175/177) and 8K(node 176/178) → MetaSaver 99+132
 
 Outfit_Swapping.json patch points:
-  Node "1"  → inputs.image   : 11_INPUT_IMAGE_LATENT (main subject image)
-  Node "11" → inputs.image   : 12_INPUT_IMAGE_REF    (ref image 1)
-  Node "2"  → inputs.image   : 13_INPUT_IMAGE_REF    (ref image 2)
-  Node "3"  → inputs.image   : 14_INPUT_IMAGE_REF    (ref image 3)
-  Node "4"  → inputs.image   : 15_INPUT_IMAGE_REF    (ref image 4)
-  Node "5"  → inputs.image   : 16_INPUT_IMAGE_REF    (ref image 5)
-  Node "6"  → inputs.image   : 17_INPUT_IMAGE_REF    (ref image 6)
-  Node "7"  → inputs.image   : 18_INPUT_IMAGE_REF    (ref image 7)
-  Node "23" → inputs.text    : 05_PROMPT_POSITIVE_INSTRUCTION
-  Node "13" → inputs.value   : DEFAULT_PATH (reset to "ComfyUI" — JSON has "ComfyUI/Deployed/Rider" hardcoded)
-  Node "14" → inputs.value   : 95_CLIENT_PATH
-  Node "15" → inputs.value   : 96_PRODUCT_PATH
-  Node "16" → inputs.value   : 97_FILENAME prefix
+  Node "1"  → inputs.image   : main subject image (LoadImage)
+  Node "11" → inputs.image   : ref image 1
+  Node "2"  → inputs.image   : ref image 2
+  Node "3"  → inputs.image   : ref image 3
+  Node "4"  → inputs.image   : ref image 4
+  Node "5"  → inputs.image   : ref image 5
+  Node "6"  → inputs.image   : ref image 6
+  Node "7"  → inputs.image   : ref image 7
+  Node "23" → inputs.text    : positive prompt (Text Multiline)
+  Node "13" → inputs.value   : base path — always "ComfyUI"
+  Node "14" → inputs.value   : client path  (e.g. "Deployed/HD")
+  Node "15" → inputs.value   : product path (e.g. "ProjectName")
+  Node "16" → inputs.value   : filename prefix
+  Path chain: 13/14/15/16 → concat nodes 27→28→29 → MetaSaver 26
 """
 
 import json
@@ -77,7 +78,7 @@ def load_upscale_rework(
     workflow["167"]["inputs"]["model_name"] = model_name
 
     # Output path nodes
-    workflow["14"]["inputs"]["value"] = client_path    # 95_CLIENT_PATH
+    workflow["173"]["inputs"]["value"] = client_path   # client path (concat node 172 feeds 174→175/176→177/178)
     workflow["15"]["inputs"]["value"] = product_path   # 96_PRODUCT_PATH
 
     # Build a unique filename prefix: "<user_prefix>_<model_short>_r<NN>_"
@@ -126,11 +127,8 @@ def load_outfit_swapping(
     # Prompt
     workflow["23"]["inputs"]["text"] = prompt
 
-    # Output path nodes — match Batch Upscaler convention:
-    # DEFAULT_PATH = "ComfyUI", then client_path/product_path/filename are appended.
-    # The workflow JSON has "ComfyUI/Deployed/Rider" hardcoded in node "13"; we
-    # reset it to just "ComfyUI" so the final path is ComfyUI/{client}/{product}/{file}.
-    workflow["13"]["inputs"]["value"] = "ComfyUI"      # DEFAULT_PATH (reset hardcoded prefix)
+    # Output path nodes — concat chain 13/14/15/16 → nodes 27→28→29 → MetaSaver 26
+    workflow["13"]["inputs"]["value"] = "ComfyUI"      # base path (always fixed)
     workflow["14"]["inputs"]["value"] = client_path    # 95_CLIENT_PATH
     workflow["15"]["inputs"]["value"] = product_path   # 96_PRODUCT_PATH
     workflow["16"]["inputs"]["value"] = filename_prefix  # 97_FILENAME

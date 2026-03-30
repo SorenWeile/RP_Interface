@@ -8,23 +8,6 @@
       "title": "98_USER"
     }
   },
-  "2": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "3",
-        0
-      ],
-      "text_2": [
-        "14",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
   "3": {
     "inputs": {
       "value": "ComfyUI"
@@ -32,74 +15,6 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "DEFAULT_PATH"
-    }
-  },
-  "8": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "2",
-        0
-      ],
-      "text_2": [
-        "15",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
-  "9": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "17",
-        0
-      ],
-      "text_2": [
-        "16",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
-  "10": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "8",
-        0
-      ],
-      "text_2": [
-        "12",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
-    }
-  },
-  "11": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "10",
-        0
-      ],
-      "text_2": [
-        "16",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
     }
   },
   "12": {
@@ -120,15 +35,6 @@
       "title": "8kString"
     }
   },
-  "14": {
-    "inputs": {
-      "value": "Deployed/HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
   "15": {
     "inputs": {
       "value": "PanAmerica_RA1250S"
@@ -145,23 +51,6 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "97_FILENAME"
-    }
-  },
-  "17": {
-    "inputs": {
-      "separator": "/",
-      "text_1": [
-        "8",
-        0
-      ],
-      "text_2": [
-        "13",
-        0
-      ]
-    },
-    "class_type": "TextConcatenate",
-    "_meta": {
-      "title": "TextConcatenate"
     }
   },
   "18": {
@@ -422,7 +311,7 @@
   },
   "54": {
     "inputs": {
-      "detail_amount": 0.20000000000000004,
+      "detail_amount": 0.2,
       "start": 0.05,
       "end": 0.9,
       "bias": 0.5,
@@ -782,7 +671,7 @@
         "141",
         0
       ],
-      "start": 0.25000000000000006,
+      "start": 0.25,
       "end": 0.9,
       "bias": 0.5,
       "exponent": 0,
@@ -804,7 +693,7 @@
   "99": {
     "inputs": {
       "filename_prefix": [
-        "11",
+        "177",
         0
       ],
       "meta_name_0": "Seed",
@@ -1129,7 +1018,7 @@
   "132": {
     "inputs": {
       "filename_prefix": [
-        "9",
+        "178",
         0
       ],
       "meta_name_0": "Seed",
@@ -1261,7 +1150,7 @@
     "inputs": {
       "scheduler": "karras",
       "steps": 20,
-      "denoise": 0.15000000000000002,
+      "denoise": 0.15,
       "model": [
         "156",
         0
@@ -1279,6 +1168,132 @@
     "class_type": "UpscaleModelLoader",
     "_meta": {
       "title": "Load Upscale Model"
+    }
+  },
+  "171": {
+    "inputs": {
+      "value": "ComfyUI"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "DEFAULT_PATH"
+    }
+  },
+  "172": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "171",
+        0
+      ],
+      "text_b": [
+        "173",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "173": {
+    "inputs": {
+      "value": "Deployed/HD"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "95_CLIENT_PATH"
+    }
+  },
+  "174": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "172",
+        0
+      ],
+      "text_b": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "175": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "174",
+        0
+      ],
+      "text_b": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "176": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "174",
+        0
+      ],
+      "text_b": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "177": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "175",
+        0
+      ],
+      "text_b": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
+    }
+  },
+  "178": {
+    "inputs": {
+      "delimiter": "/",
+      "clean_whitespace": "true",
+      "text_a": [
+        "176",
+        0
+      ],
+      "text_b": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "Text Concatenate",
+    "_meta": {
+      "title": "Text Concatenate"
     }
   }
 }
