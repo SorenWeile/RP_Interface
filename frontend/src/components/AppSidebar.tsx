@@ -1,6 +1,7 @@
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import type { WorkflowModule } from '@/modules/index'
+import MachineMonitor from './MachineMonitor'
 
 interface Props {
   modules: WorkflowModule[]
@@ -40,6 +41,9 @@ export default function AppSidebar({ modules, active, onSelect }: Props) {
           )
         })}
       </nav>
+
+      <Separator />
+      <MachineMonitor />
     </aside>
   )
 }

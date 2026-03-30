@@ -1,5 +1,7 @@
+import io
 import os
 import uuid
+import zipfile
 import datetime
 import asyncio
 import httpx
@@ -299,6 +301,50 @@ async def cancel_batch(batch_id: str):
     return {"batch_id": batch_id, "cancelled": len(to_cancel)}
 
 
+# ── Batch download ─────────────────────────────────────────────────────────────
+
+@app.get("/api/batch/{batch_id}/download")
+async def download_batch_zip(batch_id: str):
+    from fastapi.responses import StreamingResponse
+    batch = _batches.get(batch_id)
+    if not batch:
+        raise HTTPException(404, "Batch not found")
+
+    try:
+        history = await comfy_client.get_all_history(max_items=500)
+    except Exception as e:
+        raise HTTPException(502, f"Could not reach ComfyUI: {e}")
+
+    image_refs = []
+    for job in batch.jobs:
+        entry = history.get(job.prompt_id)
+        if entry:
+            image_refs.extend(_job_images(entry))
+
+    if not image_refs:
+        raise HTTPException(404, "No completed images found")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_STORED) as zf:
+        for img in image_refs:
+            try:
+                data = await comfy_client.get_image(
+                    img["filename"], img.get("subfolder", ""), img.get("type", "output")
+                )
+                zf.writestr(img["filename"], data)
+            except Exception as e:
+                print(f"[download:{batch_id}] WARNING: could not fetch {img['filename']}: {e}")
+
+    buf.seek(0)
+    prefix = batch.filename_prefix or "batch"
+    zip_name = f"{prefix}_{batch_id[:8]}.zip"
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{zip_name}"'},
+    )
+
+
 # ── Outfit Swapping ────────────────────────────────────────────────────────────
 
 class OutfitSwappingParams(BaseModel):
@@ -359,6 +405,56 @@ async def run_panorama(params: PanoramaParams):
     except Exception as e:
         print(f"[panorama] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
+
+
+# ── Machine monitor ───────────────────────────────────────────────────────────
+
+@app.get("/api/monitor/stats")
+async def get_monitor_stats():
+    stats_result, queue_result = await asyncio.gather(
+        comfy_client.get_system_stats(),
+        comfy_client.get_queue_detailed(),
+        return_exceptions=True,
+    )
+
+    system, device = {}, {}
+    if not isinstance(stats_result, Exception):
+        system = stats_result.get("system", {})
+        devices = stats_result.get("devices", [])
+        device = devices[0] if devices else {}
+
+    running_jobs, pending_jobs = [], []
+    if not isinstance(queue_result, Exception):
+        for item in queue_result.get("queue_running", []):
+            extra = item[3] if len(item) > 3 else {}
+            running_jobs.append({
+                "prompt_id": item[1],
+                "position": item[0],
+                "client_id": extra.get("client_id", ""),
+                "status": "running",
+            })
+        for item in queue_result.get("queue_pending", []):
+            extra = item[3] if len(item) > 3 else {}
+            pending_jobs.append({
+                "prompt_id": item[1],
+                "position": item[0],
+                "client_id": extra.get("client_id", ""),
+                "status": "pending",
+            })
+
+    def to_gb(b: int) -> float:
+        return round(b / (1024 ** 3), 1)
+
+    return {
+        "ram_total_gb":  to_gb(system.get("ram_total", 0)),
+        "ram_free_gb":   to_gb(system.get("ram_free",  0)),
+        "vram_total_gb": to_gb(device.get("vram_total", 0)),
+        "vram_free_gb":  to_gb(device.get("vram_free",  0)),
+        "gpu_name":      device.get("name", ""),
+        "queue_running": len(running_jobs),
+        "queue_pending": len(pending_jobs),
+        "jobs":          running_jobs + pending_jobs,
+    }
 
 
 # ── List available upscale rework models ──────────────────────────────────────

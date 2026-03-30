@@ -116,6 +116,28 @@ async def get_queue() -> dict:
     return {"running": running, "pending": pending}
 
 
+async def get_system_stats() -> dict:
+    """GET ComfyUI /system_stats. Returns RAM, VRAM, and device info."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{COMFYUI_HTTP}/system_stats",
+            headers=_auth_headers(),
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def get_queue_detailed() -> dict:
+    """GET ComfyUI /queue with full item arrays (position, prompt_id, extra_data)."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{COMFYUI_HTTP}/queue",
+            headers=_auth_headers(),
+        )
+        response.raise_for_status()
+        return response.json()
+
+
 async def cancel_queue_items(prompt_ids: list) -> None:
     """Delete pending prompt_ids from the ComfyUI queue."""
     if not prompt_ids:

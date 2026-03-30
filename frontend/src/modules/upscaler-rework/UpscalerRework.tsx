@@ -398,9 +398,14 @@ export default function UpscalerRework() {
                 </Button>
               )}
               {stage.status === 'complete' && (
-                <Button variant="outline" size="sm" onClick={reset}>
-                  New batch
-                </Button>
+                <>
+                  <a href={`/api/batch/${stage.batch.batchId}/download`} download>
+                    <Button variant="outline" size="sm">Download ZIP</Button>
+                  </a>
+                  <Button variant="outline" size="sm" onClick={reset}>
+                    New batch
+                  </Button>
+                </>
               )}
             </div>
           </div>

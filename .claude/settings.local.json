@@ -11,7 +11,10 @@
       "Bash(grep -E \"\\\\.\\(js|jsx|ts|tsx|html|css|py|json\\)$\")",
       "Bash(cp \"C:\\\\GitHub_Repos\\\\flux2-klein-4b-erp-outpaint-lora-demo\\\\demo\\\\static\\\\pano_editor_demo_core.js\" \"c:\\\\GitHub_Repos\\\\RP_Interface\\\\frontend\\\\public\\\\pano\\\\pano_editor_demo_core.js\")",
       "Bash(cp \"C:\\\\GitHub_Repos\\\\flux2-klein-4b-erp-outpaint-lora-demo\\\\demo\\\\static\\\\pano_editor_demo.css\" \"c:\\\\GitHub_Repos\\\\RP_Interface\\\\frontend\\\\public\\\\pano\\\\pano_editor_demo.css\")",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "WebSearch",
+      "WebFetch(domain:www.mintlify.com)",
+      "WebFetch(domain:medium.com)"
     ]
   }
 }
