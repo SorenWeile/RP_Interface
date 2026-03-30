@@ -20,9 +20,9 @@
         0
       ]
     },
-    "class_type": "TextConcatenate",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "TextConcatenate"
+      "title": "Text Concatenate"
     }
   },
   "3": {
@@ -46,9 +46,9 @@
         0
       ]
     },
-    "class_type": "TextConcatenate",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "TextConcatenate"
+      "title": "Text Concatenate"
     }
   },
   "9": {
@@ -63,9 +63,9 @@
         0
       ]
     },
-    "class_type": "TextConcatenate",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "TextConcatenate"
+      "title": "Text Concatenate"
     }
   },
   "10": {
@@ -80,9 +80,9 @@
         0
       ]
     },
-    "class_type": "TextConcatenate",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "TextConcatenate"
+      "title": "Text Concatenate"
     }
   },
   "11": {
@@ -97,9 +97,9 @@
         0
       ]
     },
-    "class_type": "TextConcatenate",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "TextConcatenate"
+      "title": "Text Concatenate"
     }
   },
   "12": {
@@ -159,9 +159,9 @@
         0
       ]
     },
-    "class_type": "TextConcatenate",
+    "class_type": "Text Concatenate",
     "_meta": {
-      "title": "TextConcatenate"
+      "title": "Text Concatenate"
     }
   },
   "18": {
