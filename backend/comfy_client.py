@@ -63,12 +63,24 @@ async def queue_workflow(workflow: dict, client_id: str) -> str:
             json=payload,
             headers=_auth_headers(),
         )
-        response.raise_for_status()
+        # Newer ComfyUI versions return 400 for validation errors;
+        # older ones return 200 with an "error" key.
+        # In either case, read the body to surface the real message.
+        if not response.is_success:
+            try:
+                data = response.json()
+                error = data.get("error", {})
+                msg = error.get("message", str(error)) if isinstance(error, dict) else str(error)
+                node_errors = data.get("node_errors", {})
+                if node_errors:
+                    msg += f" | node errors: {node_errors}"
+                raise RuntimeError(f"ComfyUI {response.status_code}: {msg}")
+            except (ValueError, KeyError):
+                response.raise_for_status()
         data = response.json()
-        # ComfyUI returns 200 even for validation errors — surface them explicitly
         if "error" in data:
             error = data["error"]
-            msg = error.get("message", str(error))
+            msg = error.get("message", str(error)) if isinstance(error, dict) else str(error)
             node_errors = data.get("node_errors", {})
             if node_errors:
                 msg += f" | node errors: {node_errors}"

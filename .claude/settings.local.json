@@ -14,7 +14,8 @@
       "Bash(node -e \":*)",
       "WebSearch",
       "WebFetch(domain:www.mintlify.com)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }
