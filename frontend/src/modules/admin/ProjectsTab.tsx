@@ -118,7 +118,7 @@ export default function ProjectsTab({ token }: { token: string }) {
   if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-foreground">Projects ({projects.length})</h2>

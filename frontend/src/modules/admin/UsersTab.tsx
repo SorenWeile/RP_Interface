@@ -305,7 +305,7 @@ export default function UsersTab({ token }: { token: string }) {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 max-w-5xl">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Users ({users.length})</h2>
         <Button size="sm" onClick={() => setEditUser(null)}>

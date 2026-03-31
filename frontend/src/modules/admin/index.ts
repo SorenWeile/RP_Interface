@@ -7,7 +7,7 @@ export default {
   description: 'Manage users, clients, and projects',
   icon: Shield,
   component: Admin,
-  fullWidth: false,
+  fullWidth: true,
   noPadding: false,
   hidesSidebar: false,
 }
