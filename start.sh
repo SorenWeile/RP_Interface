@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
+# Resolve ComfyUI output directory — RunPod mounts workspace at /workspace,
+# so prefer that path if it exists; fall back to the Docker default.
+if [ -z "$COMFYUI_OUTPUT_DIR" ]; then
+  if [ -d "/workspace/ComfyUI/output" ]; then
+    export COMFYUI_OUTPUT_DIR="/workspace/ComfyUI/output"
+  else
+    export COMFYUI_OUTPUT_DIR="/ComfyUI/output"
+  fi
+fi
+echo "[start] COMFYUI_OUTPUT_DIR=${COMFYUI_OUTPUT_DIR}"
+
 # 1. Start ComfyUI in background
 echo "[start] Launching ComfyUI..."
 python /ComfyUI/main.py --listen 127.0.0.1 --port 8188 &
