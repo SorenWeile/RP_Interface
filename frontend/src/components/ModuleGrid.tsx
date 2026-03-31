@@ -3,8 +3,8 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import type { WorkflowModule } from '@/modules/index'
 
 interface Props {
-  galleryModule: WorkflowModule
-  adminModule: WorkflowModule
+  galleryModule: WorkflowModule | null
+  adminModule: WorkflowModule | null
   workflowModules: WorkflowModule[]
   onSelect: (m: WorkflowModule) => void
 }
@@ -56,44 +56,55 @@ function BigCard({ m, onSelect }: { m: WorkflowModule; onSelect: (m: WorkflowMod
 }
 
 export default function ModuleGrid({ galleryModule, adminModule, workflowModules, onSelect }: Props) {
+  const hasAnyContent = galleryModule || workflowModules.length > 0 || adminModule
+  if (!hasAnyContent) {
+    return <p className="text-sm text-muted-foreground">No apps available for your account.</p>
+  }
+
   return (
     <div className="space-y-8 max-w-2xl">
       {/* Gallery */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold tracking-wide">Gallery</h2>
-          <p className="text-muted-foreground text-sm mt-1">Browse and manage your ComfyUI output images.</p>
-        </div>
-        <BigCard m={galleryModule} onSelect={onSelect} />
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-border" />
+      {galleryModule && (
+        <>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-foreground text-lg font-semibold tracking-wide">Gallery</h2>
+              <p className="text-muted-foreground text-sm mt-1">Browse and manage your ComfyUI output images.</p>
+            </div>
+            <BigCard m={galleryModule} onSelect={onSelect} />
+          </div>
+          {(workflowModules.length > 0 || adminModule) && <div className="border-t border-border" />}
+        </>
+      )}
 
       {/* Workflow Tools */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold tracking-wide">Workflow Tools</h2>
-          <p className="text-muted-foreground text-sm mt-1">Pick a ComfyUI workflow to run.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {workflowModules.map(m => (
-            <ModuleCard key={m.id} m={m} onSelect={onSelect} />
-          ))}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-border" />
+      {workflowModules.length > 0 && (
+        <>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-foreground text-lg font-semibold tracking-wide">Workflow Tools</h2>
+              <p className="text-muted-foreground text-sm mt-1">Pick a ComfyUI workflow to run.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {workflowModules.map(m => (
+                <ModuleCard key={m.id} m={m} onSelect={onSelect} />
+              ))}
+            </div>
+          </div>
+          {adminModule && <div className="border-t border-border" />}
+        </>
+      )}
 
       {/* Admin */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold tracking-wide">Settings</h2>
-          <p className="text-muted-foreground text-sm mt-1">Manage users, clients, and projects.</p>
+      {adminModule && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-foreground text-lg font-semibold tracking-wide">Settings</h2>
+            <p className="text-muted-foreground text-sm mt-1">Manage users, clients, and projects.</p>
+          </div>
+          <BigCard m={adminModule} onSelect={onSelect} />
         </div>
-        <BigCard m={adminModule} onSelect={onSelect} />
-      </div>
+      )}
     </div>
   )
 }

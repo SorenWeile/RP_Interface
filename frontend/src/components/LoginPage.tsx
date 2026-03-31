@@ -6,6 +6,12 @@ export interface AuthUser {
   username: string
   email: string
   is_admin: boolean
+  group: {
+    id: number
+    name: string
+    can_access_admin: boolean
+    allowed_modules: string[]
+  } | null
   clients: { id: number; client_id: string; name: string }[]
   projects: { id: number; project_id: string; name: string }[]
 }

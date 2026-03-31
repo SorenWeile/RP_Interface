@@ -5,10 +5,11 @@ import { cn } from '@/lib/utils'
 import UsersTab from './UsersTab'
 import ClientsTab from './ClientsTab'
 import ProjectsTab from './ProjectsTab'
+import GroupsTab from './GroupsTab'
 
 const TOKEN_KEY = 'admin_token'
 
-type Tab = 'users' | 'clients' | 'projects'
+type Tab = 'groups' | 'users' | 'clients' | 'projects'
 
 // ---------------------------------------------------------------------------
 // Login form
@@ -80,7 +81,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
 // ---------------------------------------------------------------------------
 
 function AdminPanel({ token, onLogout }: { token: string; onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>('users')
+  const [tab, setTab] = useState<Tab>('groups')
 
   const logout = async () => {
     await fetch('/api/admin/logout', {
@@ -92,8 +93,9 @@ function AdminPanel({ token, onLogout }: { token: string; onLogout: () => void }
   }
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'users', label: 'Users' },
-    { id: 'clients', label: 'Clients' },
+    { id: 'groups',   label: 'Groups' },
+    { id: 'users',    label: 'Users' },
+    { id: 'clients',  label: 'Clients' },
     { id: 'projects', label: 'Projects' },
   ]
 
@@ -127,8 +129,9 @@ function AdminPanel({ token, onLogout }: { token: string; onLogout: () => void }
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {tab === 'users' && <UsersTab token={token} />}
-        {tab === 'clients' && <ClientsTab token={token} />}
+        {tab === 'groups'   && <GroupsTab token={token} />}
+        {tab === 'users'    && <UsersTab token={token} />}
+        {tab === 'clients'  && <ClientsTab token={token} />}
         {tab === 'projects' && <ProjectsTab token={token} />}
       </div>
     </div>

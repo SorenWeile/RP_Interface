@@ -11,6 +11,19 @@ export default function App() {
   const [authState, setAuthState] = useState<'checking' | 'unauthenticated' | 'authenticated'>('checking')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [active, setActive] = useState<WorkflowModule | null>(null)
+
+  // Derive permissions from the logged-in user's group
+  const isAdmin = currentUser?.is_admin ?? false
+  const allowedIds: string[] = isAdmin
+    ? [...workflowModules.map(m => m.id), 'gallery']
+    : (currentUser?.group?.allowed_modules ?? [])
+  const canAccessAdmin = isAdmin || (currentUser?.group?.can_access_admin ?? false)
+
+  const visibleWorkflowModules = workflowModules.filter(m => allowedIds.includes(m.id))
+  const showGallery = allowedIds.includes('gallery')
+  const showAdmin  = canAccessAdmin
+
+  // If the active module is no longer permitted, go back to hub
   const ActiveComponent = active?.component ?? null
 
   // Restore session on mount
@@ -116,9 +129,9 @@ export default function App() {
             )
           ) : (
             <ModuleGrid
-              galleryModule={galleryModule}
-              adminModule={adminModule}
-              workflowModules={workflowModules}
+              galleryModule={showGallery ? galleryModule : null}
+              adminModule={showAdmin ? adminModule : null}
+              workflowModules={visibleWorkflowModules}
               onSelect={setActive}
             />
           )}
@@ -126,7 +139,13 @@ export default function App() {
 
         {/* Right sidebar — hidden when a module hides it (e.g. gallery) */}
         {!active?.hidesSidebar && (
-          <AppSidebar active={active} onSelect={setActive} />
+          <AppSidebar
+            active={active}
+            onSelect={setActive}
+            showGallery={showGallery}
+            showAdmin={showAdmin}
+            workflowModules={visibleWorkflowModules}
+          />
         )}
       </div>
     </div>

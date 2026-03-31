@@ -1,11 +1,14 @@
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { galleryModule, adminModule, workflowModules, type WorkflowModule } from '@/modules/index'
+import { galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
 import MachineMonitor from './MachineMonitor'
 
 interface Props {
   active: WorkflowModule | null
   onSelect: (m: WorkflowModule) => void
+  showGallery: boolean
+  showAdmin: boolean
+  workflowModules: WorkflowModule[]
 }
 
 function NavButton({
@@ -35,7 +38,7 @@ function NavButton({
   )
 }
 
-export default function AppSidebar({ active, onSelect }: Props) {
+export default function AppSidebar({ active, onSelect, showGallery, showAdmin, workflowModules }: Props) {
   return (
     <aside className="w-64 shrink-0 border-l border-border bg-card flex flex-col">
       <div className="px-4 py-3">
@@ -45,28 +48,34 @@ export default function AppSidebar({ active, onSelect }: Props) {
       <Separator />
 
       <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-        {/* Gallery — top entry */}
-        <NavButton m={galleryModule} active={active} onSelect={onSelect} />
+        {/* Gallery */}
+        {showGallery && <NavButton m={galleryModule} active={active} onSelect={onSelect} />}
 
-        <div className="pt-1 pb-0.5">
-          <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-            Workflow Tools
-          </p>
-        </div>
-
-        {/* Workflow modules */}
-        {workflowModules.map(m => (
-          <NavButton key={m.id} m={m} active={active} onSelect={onSelect} />
-        ))}
-
-        <div className="pt-1 pb-0.5">
-          <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-            Settings
-          </p>
-        </div>
+        {/* Workflow Tools */}
+        {workflowModules.length > 0 && (
+          <>
+            <div className="pt-1 pb-0.5">
+              <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                Workflow Tools
+              </p>
+            </div>
+            {workflowModules.map(m => (
+              <NavButton key={m.id} m={m} active={active} onSelect={onSelect} />
+            ))}
+          </>
+        )}
 
         {/* Admin */}
-        <NavButton m={adminModule} active={active} onSelect={onSelect} />
+        {showAdmin && (
+          <>
+            <div className="pt-1 pb-0.5">
+              <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                Settings
+              </p>
+            </div>
+            <NavButton m={adminModule} active={active} onSelect={onSelect} />
+          </>
+        )}
       </nav>
 
       <Separator />

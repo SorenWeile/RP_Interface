@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { AdminUser, AdminClient, AdminProject } from './types'
+import type { AdminUser, AdminClient, AdminProject, AdminGroup } from './types'
 
 const authHeader = (token: string) => ({ 'X-Admin-Token': token, 'Content-Type': 'application/json' })
 
@@ -10,6 +10,7 @@ interface FormState {
   username: string
   email: string
   password: string
+  group_id: number | null
   client_ids: number[]
   project_ids: number[]
 }
@@ -18,6 +19,7 @@ const emptyForm = (): FormState => ({
   username: '',
   email: '',
   password: '',
+  group_id: null,
   client_ids: [],
   project_ids: [],
 })
@@ -76,6 +78,7 @@ function CheckPicker<T extends { id: number; name: string }>({
 
 function UserDialog({
   user,
+  groups,
   clients,
   projects,
   token,
@@ -83,6 +86,7 @@ function UserDialog({
   onClose,
 }: {
   user: AdminUser | null
+  groups: AdminGroup[]
   clients: AdminClient[]
   projects: AdminProject[]
   token: string
@@ -95,6 +99,7 @@ function UserDialog({
           username: user.username,
           email: user.email,
           password: '',
+          group_id: user.group?.id ?? null,
           client_ids: user.clients.map(c => c.id),
           project_ids: user.projects.map(p => p.id),
         }
@@ -103,7 +108,7 @@ function UserDialog({
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const set = (k: keyof FormState, v: string | number[]) =>
+  const set = (k: keyof FormState, v: string | number[] | number | null) =>
     setForm(prev => ({ ...prev, [k]: v }))
 
   const submit = async (e: React.FormEvent) => {
@@ -114,6 +119,7 @@ function UserDialog({
       const body: Record<string, unknown> = {
         username: form.username,
         email: form.email,
+        group_id: form.group_id,
         client_ids: form.client_ids,
         project_ids: form.project_ids,
       }
@@ -188,6 +194,20 @@ function UserDialog({
             />
           </div>
 
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Group</label>
+            <select
+              value={form.group_id ?? ''}
+              onChange={e => set('group_id', e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-3 py-1.5 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">— No group —</option>
+              {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
           <CheckPicker
             label="Clients"
             items={clients}
@@ -243,6 +263,7 @@ function DeleteConfirm({ name, onConfirm, onCancel }: { name: string; onConfirm:
 
 export default function UsersTab({ token }: { token: string }) {
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [groups, setGroups] = useState<AdminGroup[]>([])
   const [clients, setClients] = useState<AdminClient[]>([])
   const [projects, setProjects] = useState<AdminProject[]>([])
   const [loading, setLoading] = useState(true)
@@ -252,12 +273,14 @@ export default function UsersTab({ token }: { token: string }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [u, c, p] = await Promise.all([
-        fetch('/api/admin/users', { headers: authHeader(token) }).then(r => r.json()),
-        fetch('/api/admin/clients', { headers: authHeader(token) }).then(r => r.json()),
+      const [u, g, c, p] = await Promise.all([
+        fetch('/api/admin/users',    { headers: authHeader(token) }).then(r => r.json()),
+        fetch('/api/admin/groups',   { headers: authHeader(token) }).then(r => r.json()),
+        fetch('/api/admin/clients',  { headers: authHeader(token) }).then(r => r.json()),
         fetch('/api/admin/projects', { headers: authHeader(token) }).then(r => r.json()),
       ])
       setUsers(u)
+      setGroups(g)
       setClients(c)
       setProjects(p)
     } finally {
@@ -300,6 +323,7 @@ export default function UsersTab({ token }: { token: string }) {
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Username</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Email</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Group</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Clients</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Projects</th>
                 <th className="px-4 py-2.5" />
@@ -310,6 +334,13 @@ export default function UsersTab({ token }: { token: string }) {
                 <tr key={u.id} className="hover:bg-accent/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{u.username}</td>
                   <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                  <td className="px-4 py-3">
+                    {u.group ? (
+                      <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">{u.group.name}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {u.clients.length === 0 ? (
@@ -364,6 +395,7 @@ export default function UsersTab({ token }: { token: string }) {
       {editUser !== undefined && (
         <UserDialog
           user={editUser}
+          groups={groups}
           clients={clients}
           projects={projects}
           token={token}

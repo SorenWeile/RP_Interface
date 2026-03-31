@@ -16,6 +16,7 @@ Routers:
 """
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import sqlite3
@@ -54,8 +55,7 @@ def _admin_password() -> str:
 
 _SECRET_KEY: str = os.environ.get("ADMIN_SECRET_KEY") or secrets.token_hex(32)
 
-# In-memory sessions — two separate stores so admin and user tokens are independent
-_sessions: dict = {}       # admin panel sessions (short, password-only gate)
+_sessions: dict = {}       # admin panel sessions
 _user_sessions: dict = {}  # app-level user sessions
 SESSION_TTL = 8 * 3600     # 8 hours
 
@@ -74,6 +74,13 @@ def init_user_db() -> None:
     conn = _get_conn()
     try:
         conn.executescript("""
+            CREATE TABLE IF NOT EXISTS groups (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                name             TEXT UNIQUE NOT NULL,
+                can_access_admin INTEGER NOT NULL DEFAULT 0,
+                allowed_modules  TEXT NOT NULL DEFAULT '[]',
+                created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+            );
             CREATE TABLE IF NOT EXISTS users (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 username      TEXT UNIQUE NOT NULL,
@@ -81,13 +88,14 @@ def init_user_db() -> None:
                 password_hash TEXT NOT NULL,
                 password_salt TEXT NOT NULL,
                 is_admin      INTEGER NOT NULL DEFAULT 0,
+                group_id      INTEGER REFERENCES groups(id) ON DELETE SET NULL,
                 created_at    TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS clients (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id TEXT UNIQUE NOT NULL,
-                name      TEXT NOT NULL,
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id  TEXT UNIQUE NOT NULL,
+                name       TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS projects (
@@ -108,6 +116,14 @@ def init_user_db() -> None:
             );
         """)
         conn.commit()
+
+        # Migration: add group_id to users if the column was added after initial creation
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
         print(f"[user_db] Initialized at {_db_path()}")
     finally:
         conn.close()
@@ -125,7 +141,7 @@ def _verify_password(password: str, salt: str, stored_hash: str) -> bool:
     return hmac.compare_digest(_hash_password(password, salt), stored_hash)
 
 # ---------------------------------------------------------------------------
-# Session tokens — shared signing logic, separate stores
+# Session tokens
 # ---------------------------------------------------------------------------
 
 def _make_token(store: dict, user_id: int) -> str:
@@ -150,15 +166,12 @@ def _check_token(store: dict, token: str) -> Optional[int]:
     return session["user_id"]
 
 
-# Convenience wrappers for admin sessions
 def _create_token(user_id: int) -> str:
     return _make_token(_sessions, user_id)
 
 def _validate_token(token: str) -> Optional[int]:
     return _check_token(_sessions, token)
 
-
-# Convenience wrappers for user sessions
 def _create_user_token(user_id: int) -> str:
     return _make_token(_user_sessions, user_id)
 
@@ -172,61 +185,37 @@ async def require_token(x_admin_token: Optional[str] = Header(None)) -> int:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return user_id
 
-
-async def require_user_token(x_user_token: Optional[str] = Header(None)) -> int:
-    user_id = _validate_user_token(x_user_token or "")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return user_id
-
 # ---------------------------------------------------------------------------
-# Auth routes
+# Row helpers
 # ---------------------------------------------------------------------------
 
-class LoginRequest(BaseModel):
-    password: str
+# All module IDs the app knows about — used as full-access set for admin user
+ALL_MODULE_IDS = ["gallery", "upscaler", "upscaler-rework", "outfit-swapping", "panorama"]
+
+_ADMIN_USER = {
+    "id": 0,
+    "username": "admin",
+    "email": "",
+    "is_admin": True,
+    "group": {
+        "id": -1,
+        "name": "admin",
+        "can_access_admin": True,
+        "allowed_modules": ALL_MODULE_IDS,
+    },
+    "clients": [],
+    "projects": [],
+}
 
 
-@router.post("/login")
-def login(req: LoginRequest):
-    try:
-        admin_pw = _admin_password()
-    except RuntimeError as e:
-        raise HTTPException(500, str(e))
-    if not hmac.compare_digest(req.password, admin_pw):
-        raise HTTPException(401, "Invalid password")
-    token = _create_token(0)  # admin session, user_id=0
-    return {"token": token, "expires_in": SESSION_TTL}
-
-
-@router.post("/logout")
-def logout(x_admin_token: Optional[str] = Header(None)):
-    _sessions.pop(x_admin_token or "", None)
-    return {"ok": True}
-
-
-@router.get("/me")
-def get_me(_: int = Depends(require_token)):
-    return {"authenticated": True}
-
-# ---------------------------------------------------------------------------
-# Users
-# ---------------------------------------------------------------------------
-
-class CreateUserRequest(BaseModel):
-    username: str
-    email: str
-    password: str
-    client_ids: list = []
-    project_ids: list = []
-
-
-class UpdateUserRequest(BaseModel):
-    username: Optional[str] = None
-    email: Optional[str] = None
-    password: Optional[str] = None
-    client_ids: Optional[list] = None
-    project_ids: Optional[list] = None
+def _group_dict(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "can_access_admin": bool(row["can_access_admin"]),
+        "allowed_modules": json.loads(row["allowed_modules"] or "[]"),
+        "created_at": row["created_at"],
+    }
 
 
 def _user_row(row: sqlite3.Row, conn: sqlite3.Connection) -> dict:
@@ -241,16 +230,136 @@ def _user_row(row: sqlite3.Row, conn: sqlite3.Connection) -> dict:
         "JOIN projects p ON p.id = up.project_id WHERE up.user_id = ?",
         (uid,),
     ).fetchall()
+    group = None
+    gid = row["group_id"] if "group_id" in row.keys() else None
+    if gid:
+        g = conn.execute("SELECT * FROM groups WHERE id=?", (gid,)).fetchone()
+        if g:
+            group = _group_dict(g)
     return {
         "id": uid,
         "username": row["username"],
         "email": row["email"],
         "is_admin": bool(row["is_admin"]),
+        "group": group,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "clients": [dict(c) for c in clients],
         "projects": [dict(p) for p in projects],
     }
+
+# ---------------------------------------------------------------------------
+# Admin panel auth  (/api/admin/login …)
+# ---------------------------------------------------------------------------
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+@router.post("/login")
+def login(req: LoginRequest):
+    if not hmac.compare_digest(req.password, _admin_password()):
+        raise HTTPException(401, "Invalid password")
+    token = _create_token(0)
+    return {"token": token, "expires_in": SESSION_TTL}
+
+
+@router.post("/logout")
+def logout(x_admin_token: Optional[str] = Header(None)):
+    _sessions.pop(x_admin_token or "", None)
+    return {"ok": True}
+
+
+@router.get("/me")
+def get_me(_: int = Depends(require_token)):
+    return {"authenticated": True}
+
+# ---------------------------------------------------------------------------
+# Groups
+# ---------------------------------------------------------------------------
+
+class GroupRequest(BaseModel):
+    name: str
+    can_access_admin: bool = False
+    allowed_modules: list = []
+
+
+@router.get("/groups")
+def list_groups(_: int = Depends(require_token)):
+    conn = _get_conn()
+    try:
+        rows = conn.execute("SELECT * FROM groups ORDER BY name").fetchall()
+        return [_group_dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+@router.post("/groups", status_code=201)
+def create_group(req: GroupRequest, _: int = Depends(require_token)):
+    if not req.name.strip():
+        raise HTTPException(422, "Group name is required")
+    conn = _get_conn()
+    try:
+        try:
+            cur = conn.execute(
+                "INSERT INTO groups (name, can_access_admin, allowed_modules) VALUES (?,?,?)",
+                (req.name.strip(), int(req.can_access_admin), json.dumps(req.allowed_modules)),
+            )
+            conn.commit()
+            row = conn.execute("SELECT * FROM groups WHERE id=?", (cur.lastrowid,)).fetchone()
+            return _group_dict(row)
+        except sqlite3.IntegrityError as e:
+            raise HTTPException(409, f"Conflict: {e}")
+    finally:
+        conn.close()
+
+
+@router.put("/groups/{group_id}")
+def update_group(group_id: int, req: GroupRequest, _: int = Depends(require_token)):
+    conn = _get_conn()
+    try:
+        conn.execute(
+            "UPDATE groups SET name=?, can_access_admin=?, allowed_modules=? WHERE id=?",
+            (req.name.strip(), int(req.can_access_admin), json.dumps(req.allowed_modules), group_id),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM groups WHERE id=?", (group_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Group not found")
+        return _group_dict(row)
+    finally:
+        conn.close()
+
+
+@router.delete("/groups/{group_id}", status_code=204)
+def delete_group(group_id: int, _: int = Depends(require_token)):
+    conn = _get_conn()
+    try:
+        conn.execute("DELETE FROM groups WHERE id=?", (group_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+class CreateUserRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    group_id: Optional[int] = None
+    client_ids: list = []
+    project_ids: list = []
+
+
+class UpdateUserRequest(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    group_id: Optional[int] = None
+    client_ids: Optional[list] = None
+    project_ids: Optional[list] = None
 
 
 @router.get("/users")
@@ -277,8 +386,8 @@ def create_user(req: CreateUserRequest, _: int = Depends(require_token)):
     try:
         try:
             cur = conn.execute(
-                "INSERT INTO users (username, email, password_hash, password_salt) VALUES (?,?,?,?)",
-                (req.username.strip(), req.email.strip(), pw_hash, salt),
+                "INSERT INTO users (username, email, password_hash, password_salt, group_id) VALUES (?,?,?,?,?)",
+                (req.username.strip(), req.email.strip(), pw_hash, salt, req.group_id),
             )
             uid = cur.lastrowid
         except sqlite3.IntegrityError as e:
@@ -317,6 +426,11 @@ def update_user(user_id: int, req: UpdateUserRequest, _: int = Depends(require_t
             conn.execute(
                 "UPDATE users SET password_hash=?, password_salt=?, updated_at=datetime('now') WHERE id=?",
                 (pw_hash, salt, user_id),
+            )
+        if req.group_id is not None or "group_id" in req.model_fields_set:
+            conn.execute(
+                "UPDATE users SET group_id=?, updated_at=datetime('now') WHERE id=?",
+                (req.group_id, user_id),
             )
         if req.client_ids is not None:
             conn.execute("DELETE FROM user_clients WHERE user_id=?", (user_id,))
@@ -474,16 +588,6 @@ def delete_project(project_db_id: int, _: int = Depends(require_token)):
 # App-level auth  (/api/auth/...)
 # ---------------------------------------------------------------------------
 
-_ADMIN_USER = {
-    "id": 0,
-    "username": "admin",
-    "email": "",
-    "is_admin": True,
-    "clients": [],
-    "projects": [],
-}
-
-
 class UserLoginRequest(BaseModel):
     identifier: str   # username or email
     password: str
@@ -491,13 +595,9 @@ class UserLoginRequest(BaseModel):
 
 @auth_router.post("/login")
 def app_login(req: UserLoginRequest):
-    # Special admin bypass — always available so you can create users on a fresh install
+    # Special admin bypass
     if req.identifier.strip().lower() == "admin":
-        try:
-            admin_pw = _admin_password()
-        except RuntimeError as e:
-            raise HTTPException(500, str(e))
-        if not hmac.compare_digest(req.password, admin_pw):
+        if not hmac.compare_digest(req.password, _admin_password()):
             raise HTTPException(401, "Invalid credentials")
         token = _create_user_token(0)
         return {"token": token, "user": _ADMIN_USER}
