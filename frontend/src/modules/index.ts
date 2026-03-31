@@ -13,6 +13,10 @@ export interface WorkflowModule {
   component: ComponentType
   /** Remove the max-width cap so the module can use the full content area */
   fullWidth?: boolean
+  /** Remove all padding from the main container (e.g. full-bleed gallery) */
+  noPadding?: boolean
+  /** Hide the right AppSidebar when this module is active */
+  hidesSidebar?: boolean
 }
 
 // ── Registry ─────────────────────────────────────────────────────────────────
@@ -22,10 +26,18 @@ import upscalerModule from './upscaler'
 import upscalerReworkModule from './upscaler-rework'
 import outfitSwappingModule from './outfit-swapping'
 import panoramaModule from './panorama'
+import galleryModuleDefinition from './gallery'
 
-export const modules: WorkflowModule[] = [
+/** The gallery entry — rendered full-bleed with its own panels. */
+export const galleryModule: WorkflowModule = galleryModuleDefinition
+
+/** Standard workflow tool modules shown in the Workflow Tools section. */
+export const workflowModules: WorkflowModule[] = [
   upscalerModule,
   upscalerReworkModule,
   outfitSwappingModule,
   panoramaModule,
 ]
+
+/** All modules combined (used by AppSidebar for navigation). */
+export const modules: WorkflowModule[] = [galleryModule, ...workflowModules]

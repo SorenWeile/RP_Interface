@@ -16,8 +16,10 @@ from pydantic import BaseModel
 
 import comfy_client
 from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama
+import gallery as gallery_module
 
 app = FastAPI(title="ComfyUI Workflow UI")
+app.include_router(gallery_module.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +34,8 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 @app.on_event("startup")
-async def check_comfyui():
+async def on_startup():
+    # ComfyUI reachability check
     host = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
     url = f"http://{host}"
     try:
@@ -44,6 +47,12 @@ async def check_comfyui():
                 print(f"[startup] WARNING: ComfyUI returned {r.status_code}")
     except Exception as e:
         print(f"[startup] WARNING: Could not reach ComfyUI at {url}: {e}")
+
+    # Initialise gallery DB
+    try:
+        gallery_module.init_gallery_db()
+    except Exception as e:
+        print(f"[startup] WARNING: Gallery DB init failed: {e}")
 
 
 

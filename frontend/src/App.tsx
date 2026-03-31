@@ -1,16 +1,10 @@
 import { useState } from 'react'
-import { ArrowLeft, Images } from 'lucide-react'
-import { modules, type WorkflowModule } from '@/modules/index'
+import { ArrowLeft } from 'lucide-react'
+import { workflowModules, galleryModule, type WorkflowModule } from '@/modules/index'
 import ModuleGrid from '@/components/ModuleGrid'
 import AppSidebar from '@/components/AppSidebar'
 import { Button } from '@/components/ui/button'
-
-function getGalleryUrl(): string {
-  const href = window.location.href
-  const match = href.match(/(https:\/\/[^-]+-)\d+(\.proxy\.runpod\.net)/)
-  if (match) return `${match[1]}3002${match[2]}`
-  return 'http://localhost:3002'
-}
+import { cn } from '@/lib/utils'
 
 export default function App() {
   const [active, setActive] = useState<WorkflowModule | null>(null)
@@ -30,19 +24,15 @@ export default function App() {
           </span>
         </button>
 
-        <a href={getGalleryUrl()} target="_blank" rel="noopener noreferrer" className="ml-auto">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Images className="w-4 h-4" />
-            Gallery
-          </Button>
-        </a>
-
         <Button
           variant="outline"
           size="icon"
           onClick={() => setActive(null)}
-          className={`transition-opacity ${active ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          aria-label="Back to grid"
+          className={cn(
+            'ml-auto transition-opacity',
+            active ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          )}
+          aria-label="Back to hub"
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
@@ -51,17 +41,36 @@ export default function App() {
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-8">
-          <div className={active?.fullWidth ? undefined : 'max-w-2xl'}>
-            {ActiveComponent
-              ? <ActiveComponent />
-              : <ModuleGrid modules={modules} onSelect={setActive} />
-            }
-          </div>
+        <main
+          className={cn(
+            'flex-1 overflow-hidden',
+            active?.noPadding ? '' : 'overflow-y-auto p-8'
+          )}
+        >
+          {ActiveComponent ? (
+            active?.noPadding ? (
+              /* Full-bleed modules (gallery) — fill the container exactly */
+              <div className="h-full">
+                <ActiveComponent />
+              </div>
+            ) : (
+              <div className={active?.fullWidth ? undefined : 'max-w-2xl'}>
+                <ActiveComponent />
+              </div>
+            )
+          ) : (
+            <ModuleGrid
+              galleryModule={galleryModule}
+              workflowModules={workflowModules}
+              onSelect={setActive}
+            />
+          )}
         </main>
 
-        {/* Right sidebar — always visible */}
-        <AppSidebar modules={modules} active={active} onSelect={setActive} />
+        {/* Right sidebar — hidden when a module hides it (e.g. gallery) */}
+        {!active?.hidesSidebar && (
+          <AppSidebar active={active} onSelect={setActive} />
+        )}
       </div>
     </div>
   )

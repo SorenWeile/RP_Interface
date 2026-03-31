@@ -3,3 +3,4 @@ uvicorn[standard]
 httpx
 websockets
 python-multipart
+Pillow
