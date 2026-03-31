@@ -1,13 +1,18 @@
 """
-User management API — admin-protected endpoints.
+User management + auth API.
 
 Env vars:
-  ADMIN_PASSWORD   (required) — admin login password
+  ADMIN_PASSWORD   (required) — admin login password; also allows logging in
+                                 as username "admin" at the app level
   ADMIN_SECRET_KEY (optional) — HMAC signing key; random key used if unset
                                  (sessions invalidated on restart without this)
   WORKSPACE_DIR    (optional) — defaults to /workspace
 
 DB: $WORKSPACE_DIR/.rp_interface/users.db
+
+Routers:
+  router      — /api/admin/...  (admin-only CRUD)
+  auth_router — /api/auth/...   (app-level login/logout/me)
 """
 import hashlib
 import hmac
@@ -22,6 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # ---------------------------------------------------------------------------
 # Config
@@ -51,9 +57,10 @@ def _admin_password() -> str:
 
 _SECRET_KEY: str = os.environ.get("ADMIN_SECRET_KEY") or secrets.token_hex(32)
 
-# In-memory sessions: token -> {"user_id": int, "expires": float}
-_sessions: dict = {}
-SESSION_TTL = 8 * 3600  # 8 hours
+# In-memory sessions — two separate stores so admin and user tokens are independent
+_sessions: dict = {}       # admin panel sessions (short, password-only gate)
+_user_sessions: dict = {}  # app-level user sessions
+SESSION_TTL = 8 * 3600     # 8 hours
 
 # ---------------------------------------------------------------------------
 # DB
@@ -121,33 +128,56 @@ def _verify_password(password: str, salt: str, stored_hash: str) -> bool:
     return hmac.compare_digest(_hash_password(password, salt), stored_hash)
 
 # ---------------------------------------------------------------------------
-# Session tokens
+# Session tokens — shared signing logic, separate stores
 # ---------------------------------------------------------------------------
 
-def _create_token(user_id: int) -> str:
+def _make_token(store: dict, user_id: int) -> str:
     raw = secrets.token_hex(32)
     sig = hmac.new(_SECRET_KEY.encode(), raw.encode(), "sha256").hexdigest()
     token = f"{raw}.{sig}"
-    _sessions[token] = {"user_id": user_id, "expires": time.time() + SESSION_TTL}
+    store[token] = {"user_id": user_id, "expires": time.time() + SESSION_TTL}
     return token
 
 
-def _validate_token(token: str) -> Optional[int]:
+def _check_token(store: dict, token: str) -> Optional[int]:
     if not token or "." not in token:
         return None
     raw, sig = token.rsplit(".", 1)
     expected = hmac.new(_SECRET_KEY.encode(), raw.encode(), "sha256").hexdigest()
     if not hmac.compare_digest(sig, expected):
         return None
-    session = _sessions.get(token)
+    session = store.get(token)
     if not session or time.time() > session["expires"]:
-        _sessions.pop(token, None)
+        store.pop(token, None)
         return None
     return session["user_id"]
 
 
+# Convenience wrappers for admin sessions
+def _create_token(user_id: int) -> str:
+    return _make_token(_sessions, user_id)
+
+def _validate_token(token: str) -> Optional[int]:
+    return _check_token(_sessions, token)
+
+
+# Convenience wrappers for user sessions
+def _create_user_token(user_id: int) -> str:
+    return _make_token(_user_sessions, user_id)
+
+def _validate_user_token(token: str) -> Optional[int]:
+    return _check_token(_user_sessions, token)
+
+
 async def require_token(x_admin_token: Optional[str] = Header(None)) -> int:
     user_id = _validate_token(x_admin_token or "")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return user_id
+
+
+async def require_user_token(x_user_token: Optional[str] = Header(None)) -> int:
+    user_id = _validate_user_token(x_user_token or "")
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return user_id
@@ -440,5 +470,74 @@ def delete_project(project_db_id: int, _: int = Depends(require_token)):
     try:
         conn.execute("DELETE FROM projects WHERE id=?", (project_db_id,))
         conn.commit()
+    finally:
+        conn.close()
+
+# ---------------------------------------------------------------------------
+# App-level auth  (/api/auth/...)
+# ---------------------------------------------------------------------------
+
+_ADMIN_USER = {
+    "id": 0,
+    "username": "admin",
+    "email": "",
+    "is_admin": True,
+    "clients": [],
+    "projects": [],
+}
+
+
+class UserLoginRequest(BaseModel):
+    identifier: str   # username or email
+    password: str
+
+
+@auth_router.post("/login")
+def app_login(req: UserLoginRequest):
+    # Special admin bypass — always available so you can create users on a fresh install
+    if req.identifier.strip().lower() == "admin":
+        try:
+            admin_pw = _admin_password()
+        except RuntimeError as e:
+            raise HTTPException(500, str(e))
+        if not hmac.compare_digest(req.password, admin_pw):
+            raise HTTPException(401, "Invalid credentials")
+        token = _create_user_token(0)
+        return {"token": token, "user": _ADMIN_USER}
+
+    # Regular user login
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM users WHERE username=? OR email=?",
+            (req.identifier.strip(), req.identifier.strip()),
+        ).fetchone()
+        if not row or not _verify_password(req.password, row["password_salt"], row["password_hash"]):
+            raise HTTPException(401, "Invalid credentials")
+        token = _create_user_token(row["id"])
+        return {"token": token, "user": _user_row(row, conn)}
+    finally:
+        conn.close()
+
+
+@auth_router.post("/logout")
+def app_logout(x_user_token: Optional[str] = Header(None)):
+    _user_sessions.pop(x_user_token or "", None)
+    return {"ok": True}
+
+
+@auth_router.get("/me")
+def app_me(x_user_token: Optional[str] = Header(None)):
+    user_id = _validate_user_token(x_user_token or "")
+    if user_id is None:
+        raise HTTPException(401, "Unauthorized")
+    if user_id == 0:
+        return {"user": _ADMIN_USER}
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            raise HTTPException(401, "Unauthorized")
+        return {"user": _user_row(row, conn)}
     finally:
         conn.close()

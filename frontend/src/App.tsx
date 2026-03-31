@@ -1,14 +1,58 @@
-import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowLeft, LogOut } from 'lucide-react'
 import { workflowModules, galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
 import ModuleGrid from '@/components/ModuleGrid'
 import AppSidebar from '@/components/AppSidebar'
+import LoginPage, { type AuthUser } from '@/components/LoginPage'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export default function App() {
+  const [authState, setAuthState] = useState<'checking' | 'unauthenticated' | 'authenticated'>('checking')
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [active, setActive] = useState<WorkflowModule | null>(null)
   const ActiveComponent = active?.component ?? null
+
+  // Restore session on mount
+  useEffect(() => {
+    const token = localStorage.getItem('user_token')
+    if (!token) { setAuthState('unauthenticated'); return }
+    fetch('/api/auth/me', { headers: { 'X-User-Token': token } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => { setCurrentUser(data.user); setAuthState('authenticated') })
+      .catch(() => { localStorage.removeItem('user_token'); setAuthState('unauthenticated') })
+  }, [])
+
+  const handleLogin = (token: string, user: AuthUser) => {
+    setCurrentUser(user)
+    setAuthState('authenticated')
+  }
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem('user_token')
+    if (token) {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'X-User-Token': token },
+      }).catch(() => {})
+      localStorage.removeItem('user_token')
+    }
+    setCurrentUser(null)
+    setActive(null)
+    setAuthState('unauthenticated')
+  }
+
+  if (authState === 'checking') {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    )
+  }
+
+  if (authState === 'unauthenticated') {
+    return <LoginPage onLogin={handleLogin} />
+  }
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -36,6 +80,18 @@ export default function App() {
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
+
+        {/* User info + logout */}
+        <div className="flex items-center gap-2 ml-3">
+          <span className="text-xs text-muted-foreground">{currentUser?.username}</span>
+          <button
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </header>
 
       {/* Body */}

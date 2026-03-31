@@ -22,6 +22,7 @@ import user_management as user_mgmt_module
 app = FastAPI(title="ComfyUI Workflow UI")
 app.include_router(gallery_module.router)
 app.include_router(user_mgmt_module.router)
+app.include_router(user_mgmt_module.auth_router)
 
 app.add_middleware(
     CORSMiddleware,
