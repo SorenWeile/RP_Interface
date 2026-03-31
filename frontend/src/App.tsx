@@ -23,7 +23,7 @@ export default function App() {
       .catch(() => { localStorage.removeItem('user_token'); setAuthState('unauthenticated') })
   }, [])
 
-  const handleLogin = (token: string, user: AuthUser) => {
+  const handleLogin = (_token: string, user: AuthUser) => {
     setCurrentUser(user)
     setAuthState('authenticated')
   }
