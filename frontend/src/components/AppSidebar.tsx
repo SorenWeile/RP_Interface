@@ -1,6 +1,6 @@
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { galleryModule, workflowModules, type WorkflowModule } from '@/modules/index'
+import { galleryModule, adminModule, workflowModules, type WorkflowModule } from '@/modules/index'
 import MachineMonitor from './MachineMonitor'
 
 interface Props {
@@ -58,6 +58,15 @@ export default function AppSidebar({ active, onSelect }: Props) {
         {workflowModules.map(m => (
           <NavButton key={m.id} m={m} active={active} onSelect={onSelect} />
         ))}
+
+        <div className="pt-1 pb-0.5">
+          <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+            Settings
+          </p>
+        </div>
+
+        {/* Admin */}
+        <NavButton m={adminModule} active={active} onSelect={onSelect} />
       </nav>
 
       <Separator />

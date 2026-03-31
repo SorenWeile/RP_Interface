@@ -17,9 +17,11 @@ from pydantic import BaseModel
 import comfy_client
 from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama
 import gallery as gallery_module
+import user_management as user_mgmt_module
 
 app = FastAPI(title="ComfyUI Workflow UI")
 app.include_router(gallery_module.router)
+app.include_router(user_mgmt_module.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,6 +55,12 @@ async def on_startup():
         gallery_module.init_gallery_db()
     except Exception as e:
         print(f"[startup] WARNING: Gallery DB init failed: {e}")
+
+    # Initialise user management DB
+    try:
+        user_mgmt_module.init_user_db()
+    except Exception as e:
+        print(f"[startup] WARNING: User DB init failed: {e}")
 
 
 

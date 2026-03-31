@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import { workflowModules, galleryModule, type WorkflowModule } from '@/modules/index'
+import { workflowModules, galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
 import ModuleGrid from '@/components/ModuleGrid'
 import AppSidebar from '@/components/AppSidebar'
 import { Button } from '@/components/ui/button'
@@ -61,6 +61,7 @@ export default function App() {
           ) : (
             <ModuleGrid
               galleryModule={galleryModule}
+              adminModule={adminModule}
               workflowModules={workflowModules}
               onSelect={setActive}
             />

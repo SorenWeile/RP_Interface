@@ -27,9 +27,13 @@ import upscalerReworkModule from './upscaler-rework'
 import outfitSwappingModule from './outfit-swapping'
 import panoramaModule from './panorama'
 import galleryModuleDefinition from './gallery'
+import adminModuleDefinition from './admin'
 
 /** The gallery entry — rendered full-bleed with its own panels. */
 export const galleryModule: WorkflowModule = galleryModuleDefinition
+
+/** Admin module — password-protected user/client/project management. */
+export const adminModule: WorkflowModule = adminModuleDefinition
 
 /** Standard workflow tool modules shown in the Workflow Tools section. */
 export const workflowModules: WorkflowModule[] = [
@@ -40,4 +44,4 @@ export const workflowModules: WorkflowModule[] = [
 ]
 
 /** All modules combined (used by AppSidebar for navigation). */
-export const modules: WorkflowModule[] = [galleryModule, ...workflowModules]
+export const modules: WorkflowModule[] = [galleryModule, adminModule, ...workflowModules]
