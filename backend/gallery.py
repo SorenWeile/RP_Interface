@@ -47,7 +47,7 @@ _DB_FILE: Optional[str] = None
 def init_gallery_db() -> None:
     """Called once at app startup to create / migrate the SQLite schema."""
     global _DB_FILE
-    output_dir = os.environ.get("COMFYUI_OUTPUT_DIR", "/ComfyUI/output")
+    output_dir = _output_dir()
     db_dir = os.path.join(output_dir, ".gallery_cache")
     os.makedirs(db_dir, exist_ok=True)
     _DB_FILE = os.path.join(db_dir, "gallery.db")
@@ -130,7 +130,7 @@ def _sync_files_to_db(images: list) -> None:
 # ---------------------------------------------------------------------------
 
 def _output_dir() -> str:
-    return os.environ.get("COMFYUI_OUTPUT_DIR", "/ComfyUI/output")
+    return os.environ.get("COMFYUI_OUTPUT_DIR", "/workspace/ComfyUI/output")
 
 
 def _safe_path(rel_path: str) -> Optional[str]:
