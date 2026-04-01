@@ -69,7 +69,7 @@ def load_upscale_rework(
     The model shortname and run index are automatically appended to the filename
     prefix so every output is uniquely identifiable in the ComfyUI output folder.
     """
-    workflow = copy.deepcopy(_load("Upscaler_Batch_V2"))
+    workflow = copy.deepcopy(_load("Upscaler_Batch_V2_API"))
 
     # Image input
     workflow["18"]["inputs"]["image"] = filename
