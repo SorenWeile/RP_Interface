@@ -666,6 +666,41 @@ def app_logout(x_user_token: Optional[str] = Header(None)):
     return {"ok": True}
 
 
+@auth_router.get("/path-options")
+def app_path_options(x_user_token: Optional[str] = Header(None)):
+    """Return clients and projects available to the current user for workflow path selection."""
+    user_id = _validate_user_token(x_user_token or "")
+    if user_id is None:
+        raise HTTPException(401, "Unauthorized")
+    conn = _get_conn()
+    try:
+        if user_id == 0:
+            # Admin: all clients and all projects
+            clients = conn.execute(
+                "SELECT id, client_id, name FROM clients ORDER BY name"
+            ).fetchall()
+            projects = conn.execute(
+                "SELECT p.id, p.project_id, p.name, p.client_id FROM projects p ORDER BY p.name"
+            ).fetchall()
+        else:
+            clients = conn.execute(
+                "SELECT c.id, c.client_id, c.name FROM user_clients uc "
+                "JOIN clients c ON c.id = uc.client_id WHERE uc.user_id = ? ORDER BY c.name",
+                (user_id,),
+            ).fetchall()
+            projects = conn.execute(
+                "SELECT p.id, p.project_id, p.name, p.client_id FROM user_projects up "
+                "JOIN projects p ON p.id = up.project_id WHERE up.user_id = ? ORDER BY p.name",
+                (user_id,),
+            ).fetchall()
+        return {
+            "clients": [dict(c) for c in clients],
+            "projects": [dict(p) for p in projects],
+        }
+    finally:
+        conn.close()
+
+
 @auth_router.get("/me")
 def app_me(x_user_token: Optional[str] = Header(None)):
     user_id = _validate_user_token(x_user_token or "")

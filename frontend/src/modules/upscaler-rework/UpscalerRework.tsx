@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { uploadImage, createUpscaleReworkBatch, getBatchStatus, cancelBatch, type BatchJobStatus } from '@/api/client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import ClientProjectPicker from '@/components/ClientProjectPicker'
 
 // ── Model catalogue ───────────────────────────────────────────────────────────
 
@@ -69,7 +69,7 @@ export default function UpscalerRework() {
   const [dragging, setDragging]         = useState(false)
   const [selectedModels, setSelectedModels] = useState<string[]>([...MODELS])
   const [runsPerModel, setRunsPerModel] = useState(4)
-  const [clientPath, setClientPath]     = useState('Deployed/HD')
+  const [clientPath, setClientPath]     = useState('')
   const [productPath, setProductPath]   = useState('')
   const [filePrefix, setFilePrefix]     = useState('')
 
@@ -237,32 +237,14 @@ export default function UpscalerRework() {
         <div className="space-y-4">
 
           {/* Output path fields */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground uppercase tracking-widest">Client Path</label>
-              <Input
-                placeholder="Deployed/HD"
-                value={clientPath}
-                onChange={e => setClientPath(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground uppercase tracking-widest">Product Path</label>
-              <Input
-                placeholder="ProjectName"
-                value={productPath}
-                onChange={e => setProductPath(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground uppercase tracking-widest">Filename Prefix</label>
-              <Input
-                placeholder="Shot001"
-                value={filePrefix}
-                onChange={e => setFilePrefix(e.target.value)}
-              />
-            </div>
-          </div>
+          <ClientProjectPicker
+            clientPath={clientPath}
+            productPath={productPath}
+            filePrefix={filePrefix}
+            onClientPath={setClientPath}
+            onProductPath={setProductPath}
+            onFilePrefix={setFilePrefix}
+          />
 
           <Separator />
 
