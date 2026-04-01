@@ -694,6 +694,7 @@ def app_path_options(x_user_token: Optional[str] = Header(None)):
                 (user_id,),
             ).fetchall()
         return {
+            "is_admin": user_id == 0,
             "clients": [dict(c) for c in clients],
             "projects": [dict(p) for p in projects],
         }

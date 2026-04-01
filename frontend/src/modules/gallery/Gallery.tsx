@@ -8,6 +8,29 @@ import MetadataPanel from './MetadataPanel'
 import type { GalleryImage, GalleryFolder, FolderTreeNode, ImageMetadata } from './types'
 
 // ---------------------------------------------------------------------------
+// Path filtering helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if `path` is under any of the given client_id prefixes.
+ * e.g. path="ComfyUI/Deployed/HD/Proj/4k/img.png", clientId="Deployed/HD" → true
+ */
+function isPathAllowed(path: string, clientIds: string[]): boolean {
+  const norm = '/' + path.replace(/\\/g, '/').replace(/^\/|\/$/g, '') + '/'
+  return clientIds.some(cid => {
+    const needle = '/' + cid.replace(/^\/|\/$/g, '') + '/'
+    return norm.includes(needle)
+  })
+}
+
+/** Recursively filter tree: keep a node if it is allowed or has allowed descendants. */
+function filterTree(nodes: FolderTreeNode[], clientIds: string[]): FolderTreeNode[] {
+  return nodes
+    .map(node => ({ ...node, children: filterTree(node.children, clientIds) }))
+    .filter(node => isPathAllowed(node.path, clientIds) || node.children.length > 0)
+}
+
+// ---------------------------------------------------------------------------
 // API helpers
 // ---------------------------------------------------------------------------
 
@@ -20,6 +43,13 @@ async function apiBrowse(path: string) {
 async function apiTree(): Promise<FolderTreeNode[]> {
   const r = await fetch('/api/gallery/tree')
   if (!r.ok) return []
+  return r.json()
+}
+
+async function apiPathOptions(): Promise<{ is_admin: boolean; clients: { client_id: string }[] }> {
+  const token = localStorage.getItem('user_token') ?? ''
+  const r = await fetch('/api/auth/path-options', { headers: { 'X-User-Token': token } })
+  if (!r.ok) return { is_admin: false, clients: [] }
   return r.json()
 }
 
@@ -79,10 +109,27 @@ export default function Gallery() {
   const [metadata, setMetadata] = useState<ImageMetadata | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(false)
   const [loading, setLoading] = useState(false)
+  // null = admin (no filter), string[] = allowed client_ids for this user
+  const [allowedClientIds, setAllowedClientIds] = useState<string[] | null>(null)
 
-  // Load folder tree once
+  // Load path permissions + folder tree together
   useEffect(() => {
-    apiTree().then(setTree).catch(console.error)
+    Promise.all([apiTree(), apiPathOptions()]).then(([rawTree, opts]) => {
+      if (opts.is_admin) {
+        setAllowedClientIds(null)
+        setTree(rawTree)
+      } else {
+        const ids = opts.clients.map(c => c.client_id)
+        setAllowedClientIds(ids)
+        const filtered = filterTree(rawTree, ids)
+        setTree(filtered)
+        // Auto-navigate to first allowed folder if at root
+        setCurrentPath(prev => {
+          if (prev === '' && filtered.length > 0) return filtered[0].path
+          return prev
+        })
+      }
+    }).catch(console.error)
   }, [])
 
   // Load browse results whenever path or favorites filter changes
@@ -92,15 +139,26 @@ export default function Gallery() {
       try {
         if (favOnly) {
           const fav = await apiFavorites()
-          setImages(fav.images ?? [])
+          const favImgs: GalleryImage[] = fav.images ?? []
+          setImages(allowedClientIds ? favImgs.filter(i => isPathAllowed(i.path, allowedClientIds)) : favImgs)
           setFolders([])
         } else {
           const data = await apiBrowse(path)
-          setFolders(data.folders ?? [])
-          setImages(data.images ?? [])
-          // Kick off background thumbnail generation
-          if (data.images?.length) {
-            apiGenerateThumbnails(data.images.map((i: GalleryImage) => i.path))
+          const rawFolders: GalleryFolder[] = data.folders ?? []
+          const rawImages: GalleryImage[] = data.images ?? []
+          const filteredFolders = allowedClientIds
+            ? rawFolders.filter(f =>
+                isPathAllowed(f.path, allowedClientIds) ||
+                filterTree([{ name: f.name, path: f.path, type: 'folder', children: [] }], allowedClientIds).length > 0
+              )
+            : rawFolders
+          const filteredImages = allowedClientIds
+            ? rawImages.filter(i => isPathAllowed(i.path, allowedClientIds))
+            : rawImages
+          setFolders(filteredFolders)
+          setImages(filteredImages)
+          if (filteredImages.length) {
+            apiGenerateThumbnails(filteredImages.map(i => i.path))
           }
         }
         setSelectedIndex(0)
@@ -111,7 +169,7 @@ export default function Gallery() {
         setLoading(false)
       }
     },
-    []
+    [allowedClientIds]
   )
 
   useEffect(() => {
@@ -184,7 +242,9 @@ export default function Gallery() {
 
   const refreshTree = async () => {
     await fetch('/api/gallery/tree/refresh')
-    apiTree().then(setTree)
+    apiTree().then(rawTree => {
+      setTree(allowedClientIds ? filterTree(rawTree, allowedClientIds) : rawTree)
+    })
     loadBrowse(currentPath, showFavoritesOnly)
   }
 
@@ -235,6 +295,7 @@ export default function Gallery() {
             currentPath={currentPath}
             onNavigate={navigate}
             showFavoritesOnly={showFavoritesOnly}
+            isAdmin={allowedClientIds === null}
           />
         )}
 

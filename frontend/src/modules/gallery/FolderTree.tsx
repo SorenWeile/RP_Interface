@@ -8,6 +8,7 @@ interface Props {
   currentPath: string
   onNavigate: (path: string) => void
   showFavoritesOnly: boolean
+  isAdmin: boolean
 }
 
 function TreeNode({
@@ -76,7 +77,7 @@ function TreeNode({
   )
 }
 
-export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly }: Props) {
+export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly, isAdmin }: Props) {
   return (
     <aside className="w-56 shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
       <div className="px-3 py-2 border-b border-border">
@@ -86,24 +87,26 @@ export default function FolderTree({ tree, currentPath, onNavigate, showFavorite
       </div>
 
       <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
-        {/* Root */}
-        <button
-          onClick={() => onNavigate('')}
-          className={cn(
-            'w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-left transition-colors',
-            currentPath === '' && !showFavoritesOnly
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          )}
-        >
-          <span className="w-3.5 h-3.5 shrink-0" />
-          {currentPath === '' && !showFavoritesOnly ? (
-            <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-          ) : (
-            <Folder className="w-3.5 h-3.5 shrink-0" />
-          )}
-          <span className="truncate font-medium">All Output</span>
-        </button>
+        {/* Root — only for admins */}
+        {isAdmin && (
+          <button
+            onClick={() => onNavigate('')}
+            className={cn(
+              'w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-left transition-colors',
+              currentPath === '' && !showFavoritesOnly
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            )}
+          >
+            <span className="w-3.5 h-3.5 shrink-0" />
+            {currentPath === '' && !showFavoritesOnly ? (
+              <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <Folder className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span className="truncate font-medium">All Output</span>
+          </button>
+        )}
 
         {tree.map(node => (
           <TreeNode
