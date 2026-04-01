@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { AdminProject } from './types'
+import type { AdminClient, AdminProject } from './types'
 
 const authHeader = (token: string) => ({ 'X-Admin-Token': token, 'Content-Type': 'application/json' })
 
@@ -11,15 +11,18 @@ function InlineForm({
   onCancel,
   token,
   editId,
+  clients,
 }: {
   initial?: AdminProject
   onSave: () => void
   onCancel: () => void
   token: string
   editId: number | null
+  clients: AdminClient[]
 }) {
   const [projectId, setProjectId] = useState(initial?.project_id ?? '')
   const [name, setName] = useState(initial?.name ?? '')
+  const [clientId, setClientId] = useState<string>(initial?.client_id?.toString() ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -34,7 +37,11 @@ function InlineForm({
       const res = await fetch(url, {
         method,
         headers: authHeader(token),
-        body: JSON.stringify({ project_id: projectId.trim(), name: name.trim() }),
+        body: JSON.stringify({
+          project_id: projectId.trim(),
+          name: name.trim(),
+          client_id: clientId ? parseInt(clientId) : null,
+        }),
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
@@ -51,7 +58,7 @@ function InlineForm({
 
   return (
     <form onSubmit={submit} className="flex items-start gap-2">
-      <div className="flex-1 grid grid-cols-2 gap-2">
+      <div className="flex-1 grid grid-cols-3 gap-2">
         <input
           value={projectId}
           onChange={e => setProjectId(e.target.value)}
@@ -65,6 +72,16 @@ function InlineForm({
           placeholder="Display name"
           className="px-3 py-1.5 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
+        <select
+          value={clientId}
+          onChange={e => setClientId(e.target.value)}
+          className="px-3 py-1.5 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+        >
+          <option value="">— No client —</option>
+          {clients.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
       </div>
       {error && <span className="text-xs text-destructive self-center">{error}</span>}
       <button
@@ -89,6 +106,7 @@ function InlineForm({
 
 export default function ProjectsTab({ token }: { token: string }) {
   const [projects, setProjects] = useState<AdminProject[]>([])
+  const [clients, setClients] = useState<AdminClient[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -97,8 +115,12 @@ export default function ProjectsTab({ token }: { token: string }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await fetch('/api/admin/projects', { headers: authHeader(token) }).then(r => r.json())
-      setProjects(data)
+      const [projectData, clientData] = await Promise.all([
+        fetch('/api/admin/projects', { headers: authHeader(token) }).then(r => r.json()),
+        fetch('/api/admin/clients', { headers: authHeader(token) }).then(r => r.json()),
+      ])
+      setProjects(projectData)
+      setClients(clientData)
     } finally {
       setLoading(false)
     }
@@ -137,6 +159,7 @@ export default function ProjectsTab({ token }: { token: string }) {
           <InlineForm
             token={token}
             editId={null}
+            clients={clients}
             onSave={() => { setAdding(false); load() }}
             onCancel={() => setAdding(false)}
           />
@@ -152,6 +175,7 @@ export default function ProjectsTab({ token }: { token: string }) {
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Project ID</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Display Name</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Client</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
@@ -159,11 +183,12 @@ export default function ProjectsTab({ token }: { token: string }) {
               {projects.map(p => (
                 editId === p.id ? (
                   <tr key={p.id}>
-                    <td colSpan={3} className="px-4 py-3">
+                    <td colSpan={4} className="px-4 py-3">
                       <InlineForm
                         initial={p}
                         token={token}
                         editId={p.id}
+                        clients={clients}
                         onSave={() => { setEditId(null); load() }}
                         onCancel={() => setEditId(null)}
                       />
@@ -171,7 +196,7 @@ export default function ProjectsTab({ token }: { token: string }) {
                   </tr>
                 ) : deleteId === p.id ? (
                   <tr key={p.id} className="bg-destructive/5">
-                    <td colSpan={2} className="px-4 py-3 text-sm">
+                    <td colSpan={3} className="px-4 py-3 text-sm">
                       Delete <strong>{p.name}</strong>?
                     </td>
                     <td className="px-4 py-3">
@@ -185,6 +210,7 @@ export default function ProjectsTab({ token }: { token: string }) {
                   <tr key={p.id} className="hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs">{p.project_id}</td>
                     <td className="px-4 py-3 text-muted-foreground">{p.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.client?.name ?? <span className="text-muted-foreground/50">—</span>}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button

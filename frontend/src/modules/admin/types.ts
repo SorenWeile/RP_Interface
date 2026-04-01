@@ -17,6 +17,8 @@ export interface AdminProject {
   id: number
   project_id: string
   name: string
+  client_id: number | null
+  client: { id: number; client_id: string; name: string } | null
   created_at: string
 }
 

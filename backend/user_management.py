@@ -124,6 +124,13 @@ def init_user_db() -> None:
         except sqlite3.OperationalError:
             pass  # column already exists
 
+        # Migration: add client_id to projects
+        try:
+            conn.execute("ALTER TABLE projects ADD COLUMN client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
         print(f"[user_db] Initialized at {_db_path()}")
     finally:
         conn.close()
@@ -527,14 +534,50 @@ def delete_client(client_db_id: int, _: int = Depends(require_token)):
 class ProjectRequest(BaseModel):
     project_id: str
     name: str
+    client_id: Optional[int] = None
+
+
+def _project_dict(project_db_id: int, conn: sqlite3.Connection) -> dict:
+    row = conn.execute(
+        "SELECT p.id, p.project_id, p.name, p.client_id, p.created_at, "
+        "c.client_id as client_ext_id, c.name as client_name "
+        "FROM projects p LEFT JOIN clients c ON c.id = p.client_id WHERE p.id=?",
+        (project_db_id,),
+    ).fetchone()
+    if not row:
+        return {}
+    return {
+        "id": row["id"],
+        "project_id": row["project_id"],
+        "name": row["name"],
+        "client_id": row["client_id"],
+        "client": {"id": row["client_id"], "client_id": row["client_ext_id"], "name": row["client_name"]}
+                  if row["client_id"] else None,
+        "created_at": row["created_at"],
+    }
 
 
 @router.get("/projects")
 def list_projects(_: int = Depends(require_token)):
     conn = _get_conn()
     try:
-        rows = conn.execute("SELECT * FROM projects ORDER BY name").fetchall()
-        return [dict(r) for r in rows]
+        rows = conn.execute(
+            "SELECT p.id, p.project_id, p.name, p.client_id, p.created_at, "
+            "c.client_id as client_ext_id, c.name as client_name "
+            "FROM projects p LEFT JOIN clients c ON c.id = p.client_id ORDER BY p.name"
+        ).fetchall()
+        result = []
+        for row in rows:
+            result.append({
+                "id": row["id"],
+                "project_id": row["project_id"],
+                "name": row["name"],
+                "client_id": row["client_id"],
+                "client": {"id": row["client_id"], "client_id": row["client_ext_id"], "name": row["client_name"]}
+                          if row["client_id"] else None,
+                "created_at": row["created_at"],
+            })
+        return result
     finally:
         conn.close()
 
@@ -547,11 +590,11 @@ def create_project(req: ProjectRequest, _: int = Depends(require_token)):
     try:
         try:
             cur = conn.execute(
-                "INSERT INTO projects (project_id, name) VALUES (?,?)",
-                (req.project_id.strip(), req.name.strip()),
+                "INSERT INTO projects (project_id, name, client_id) VALUES (?,?,?)",
+                (req.project_id.strip(), req.name.strip(), req.client_id),
             )
             conn.commit()
-            return dict(conn.execute("SELECT * FROM projects WHERE id=?", (cur.lastrowid,)).fetchone())
+            return _project_dict(cur.lastrowid, conn)
         except sqlite3.IntegrityError as e:
             raise HTTPException(409, f"Conflict: {e}")
     finally:
@@ -563,14 +606,14 @@ def update_project(project_db_id: int, req: ProjectRequest, _: int = Depends(req
     conn = _get_conn()
     try:
         conn.execute(
-            "UPDATE projects SET project_id=?, name=? WHERE id=?",
-            (req.project_id.strip(), req.name.strip(), project_db_id),
+            "UPDATE projects SET project_id=?, name=?, client_id=? WHERE id=?",
+            (req.project_id.strip(), req.name.strip(), req.client_id, project_db_id),
         )
         conn.commit()
-        row = conn.execute("SELECT * FROM projects WHERE id=?", (project_db_id,)).fetchone()
-        if not row:
+        result = _project_dict(project_db_id, conn)
+        if not result:
             raise HTTPException(404, "Project not found")
-        return dict(row)
+        return result
     finally:
         conn.close()
 
