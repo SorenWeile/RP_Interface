@@ -431,6 +431,10 @@ class GenerateThumbnailsRequest(BaseModel):
     images: List[str]
 
 
+class DeleteImagesRequest(BaseModel):
+    paths: List[str]
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -596,6 +600,84 @@ def gallery_get_favorites():
         for r in rows
     ]
     return {"images": images, "total": len(images)}
+
+
+@router.delete("/image/{image_path:path}")
+def gallery_delete_image(image_path: str):
+    full = _safe_path(image_path)
+    if not full or not os.path.exists(full):
+        raise HTTPException(status_code=404, detail="Image not found")
+    if not os.path.isfile(full):
+        raise HTTPException(status_code=400, detail="Path is not a file")
+    # Remove thumbnail if it exists
+    thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(image_path))}.jpg")
+    if os.path.exists(thumb):
+        os.remove(thumb)
+    # Remove from DB
+    if _DB_FILE:
+        with sqlite3.connect(_DB_FILE) as conn:
+            conn.execute("DELETE FROM files WHERE path=?", (image_path,))
+            conn.commit()
+    os.remove(full)
+    return {"status": "deleted", "path": image_path}
+
+
+@router.delete("/folder/{folder_path:path}")
+def gallery_delete_folder(folder_path: str):
+    full = _safe_path(folder_path)
+    if not full or not os.path.exists(full):
+        raise HTTPException(status_code=404, detail="Folder not found")
+    if not os.path.isdir(full):
+        raise HTTPException(status_code=400, detail="Path is not a folder")
+    # Collect all image paths under this folder before deleting
+    images_in_folder = _get_images_recursive(full)
+    rel_paths = []
+    base = _output_dir()
+    for img in images_in_folder:
+        # img["path"] is relative to `full`, re-derive relative to base
+        full_img = os.path.normpath(os.path.join(full, img["path"]))
+        rel = _encode_path(os.path.relpath(full_img, base))
+        rel_paths.append(rel)
+        # Remove thumbnail
+        thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(rel))}.jpg")
+        if os.path.exists(thumb):
+            os.remove(thumb)
+    # Remove all DB entries
+    if _DB_FILE and rel_paths:
+        with sqlite3.connect(_DB_FILE) as conn:
+            ph = ",".join("?" * len(rel_paths))
+            conn.execute(f"DELETE FROM files WHERE path IN ({ph})", rel_paths)
+            conn.commit()
+    # Delete the folder tree
+    import shutil
+    shutil.rmtree(full)
+    # Invalidate tree cache
+    global _tree_cache, _tree_cache_time
+    _tree_cache = None
+    _tree_cache_time = None
+    return {"status": "deleted", "path": folder_path, "images_removed": len(rel_paths)}
+
+
+@router.post("/delete-images")
+def gallery_delete_images(req: DeleteImagesRequest):
+    """Batch delete multiple images."""
+    deleted = []
+    errors = []
+    for image_path in req.paths:
+        full = _safe_path(image_path)
+        if not full or not os.path.exists(full) or not os.path.isfile(full):
+            errors.append(image_path)
+            continue
+        thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(image_path))}.jpg")
+        if os.path.exists(thumb):
+            os.remove(thumb)
+        if _DB_FILE:
+            with sqlite3.connect(_DB_FILE) as conn:
+                conn.execute("DELETE FROM files WHERE path=?", (image_path,))
+                conn.commit()
+        os.remove(full)
+        deleted.append(image_path)
+    return {"status": "done", "deleted": len(deleted), "errors": errors}
 
 
 @router.get("/health")

@@ -124,6 +124,8 @@ export default function Gallery() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({ clients: [], projects: [], users: [] })
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(emptyFilters())
+  type DeleteConfirm = { label: string; onConfirm: () => Promise<void> }
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null)
 
   // When admin changes the filter, derive new allowedPaths and re-filter the tree
   const handleFilterChange = useCallback((f: ActiveFilters) => {
@@ -287,6 +289,48 @@ export default function Gallery() {
     loadBrowse(currentPath, showFavoritesOnly)
   }
 
+  const confirmDeleteImage = useCallback((img: GalleryImage) => {
+    setDeleteConfirm({
+      label: `Delete "${img.name}"?`,
+      onConfirm: async () => {
+        const encoded = img.path.split('/').map(encodeURIComponent).join('/')
+        await fetch(`/api/gallery/image/${encoded}`, { method: 'DELETE' })
+        setImages(prev => prev.filter(i => i.path !== img.path))
+        setSelectedImages(prev => { const n = new Set(prev); n.delete(img.path); return n })
+      },
+    })
+  }, [])
+
+  const confirmDeleteFolder = useCallback((folder: GalleryFolder) => {
+    setDeleteConfirm({
+      label: `Delete folder "${folder.name}" and all its images?`,
+      onConfirm: async () => {
+        const encoded = folder.path.split('/').map(encodeURIComponent).join('/')
+        await fetch(`/api/gallery/folder/${encoded}`, { method: 'DELETE' })
+        setFolders(prev => prev.filter(f => f.path !== folder.path))
+        await fetch('/api/gallery/tree/refresh')
+        apiTree().then(rawTree => setTree(allowedPaths ? filterTree(rawTree, allowedPaths) : rawTree))
+      },
+    })
+  }, [allowedPaths])
+
+  const confirmDeleteSelected = useCallback(() => {
+    const count = selectedImages.size
+    if (count === 0) return
+    setDeleteConfirm({
+      label: `Delete ${count} selected image${count !== 1 ? 's' : ''}?`,
+      onConfirm: async () => {
+        await fetch('/api/gallery/delete-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths: Array.from(selectedImages) }),
+        })
+        setImages(prev => prev.filter(i => !selectedImages.has(i.path)))
+        setSelectedImages(new Set())
+      },
+    })
+  }, [selectedImages])
+
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Gallery toolbar */}
@@ -357,6 +401,8 @@ export default function Gallery() {
               onSelectIndex={setSelectedIndex}
               onNavigate={navigate}
               onToggleFavorite={toggleFavorite}
+              onDeleteImage={confirmDeleteImage}
+              onDeleteFolder={confirmDeleteFolder}
             />
           ) : (
             <GridView
@@ -368,6 +414,9 @@ export default function Gallery() {
               onSelect={toggleImageSelection}
               onBatchFavorite={batchFavorite}
               onClearSelection={() => setSelectedImages(new Set())}
+              onDeleteImage={confirmDeleteImage}
+              onDeleteFolder={confirmDeleteFolder}
+              onDeleteSelected={confirmDeleteSelected}
             />
           )}
         </div>
@@ -382,6 +431,29 @@ export default function Gallery() {
           />
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-sm shadow-xl space-y-4">
+            <p className="text-sm text-foreground">{deleteConfirm.label}</p>
+            <p className="text-xs text-muted-foreground">This cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  await deleteConfirm.onConfirm()
+                  setDeleteConfirm(null)
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

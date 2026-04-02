@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
 
 function encodePath(p: string) {
@@ -16,6 +17,8 @@ interface Props {
   onSelectIndex: (i: number) => void
   onNavigate: (path: string) => void
   onToggleFavorite: (img: GalleryImage) => void
+  onDeleteImage: (img: GalleryImage) => void
+  onDeleteFolder: (folder: GalleryFolder) => void
 }
 
 export default function DetailView({
@@ -27,8 +30,43 @@ export default function DetailView({
   onSelectIndex,
   onNavigate,
   onToggleFavorite,
+  onDeleteImage,
+  onDeleteFolder,
 }: Props) {
   const selectedImage = images[selectedIndex] ?? null
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+
+  const openImageMenu = (e: React.MouseEvent, img: GalleryImage) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        {
+          label: 'Delete image',
+          icon: <Trash2 className="w-4 h-4" />,
+          variant: 'destructive',
+          onClick: () => onDeleteImage(img),
+        },
+      ],
+    })
+  }
+
+  const openFolderMenu = (e: React.MouseEvent, folder: GalleryFolder) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        {
+          label: 'Delete folder',
+          icon: <Trash2 className="w-4 h-4" />,
+          variant: 'destructive',
+          onClick: () => onDeleteFolder(folder),
+        },
+      ],
+    })
+  }
 
   // Zoom / pan state
   const [scale, setScale] = useState(1)
@@ -237,6 +275,7 @@ export default function DetailView({
           <button
             key={folder.path}
             onClick={() => onNavigate(folder.path)}
+            onContextMenu={e => openFolderMenu(e, folder)}
             className="shrink-0 w-[160px] h-[156px] rounded border border-border bg-accent/30 hover:bg-accent flex flex-col items-center justify-center gap-2 transition-colors text-muted-foreground hover:text-foreground"
           >
             <Folder className="w-10 h-10" />
@@ -250,6 +289,7 @@ export default function DetailView({
             key={img.path}
             data-active={i === selectedIndex}
             onClick={() => onSelectIndex(i)}
+            onContextMenu={e => openImageMenu(e, img)}
             className={cn(
               'shrink-0 w-[156px] h-[156px] rounded overflow-hidden border-2 transition-colors relative',
               i === selectedIndex ? 'border-primary' : 'border-transparent hover:border-border'
@@ -276,6 +316,8 @@ export default function DetailView({
           </div>
         )}
       </div>
+
+      <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
     </div>
   )
 }

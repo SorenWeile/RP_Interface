@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
-import { Folder, Star, Download, Check } from 'lucide-react'
+import { Folder, Star, Download, Check, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
 
 function encodePath(p: string) {
@@ -17,6 +18,9 @@ interface Props {
   onSelect: (img: GalleryImage) => void
   onBatchFavorite: (is_favorite: boolean) => Promise<void>
   onClearSelection: () => void
+  onDeleteImage: (img: GalleryImage) => void
+  onDeleteFolder: (folder: GalleryFolder) => void
+  onDeleteSelected: () => void
 }
 
 export default function GridView({
@@ -28,8 +32,44 @@ export default function GridView({
   onSelect,
   onBatchFavorite,
   onClearSelection,
+  onDeleteImage,
+  onDeleteFolder,
+  onDeleteSelected,
 }: Props) {
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+
+  const openImageMenu = (e: React.MouseEvent, img: GalleryImage) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        {
+          label: 'Delete image',
+          icon: <Trash2 className="w-4 h-4" />,
+          variant: 'destructive',
+          onClick: () => onDeleteImage(img),
+        },
+      ],
+    })
+  }
+
+  const openFolderMenu = (e: React.MouseEvent, folder: GalleryFolder) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      x: e.clientX, y: e.clientY,
+      items: [
+        {
+          label: 'Delete folder',
+          icon: <Trash2 className="w-4 h-4" />,
+          variant: 'destructive',
+          onClick: () => onDeleteFolder(folder),
+        },
+      ],
+    })
+  }
 
   const handleImageClick = useCallback(
     (img: GalleryImage, index: number, e: React.MouseEvent) => {
@@ -112,6 +152,10 @@ export default function GridView({
               <Download className="w-3.5 h-3.5" />
               Download
             </Button>
+            <Button size="sm" variant="destructive" onClick={onDeleteSelected} className="gap-1.5">
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </Button>
             <Button size="sm" variant="ghost" onClick={onClearSelection}>
               Clear
             </Button>
@@ -128,6 +172,7 @@ export default function GridView({
               key={folder.path}
               onDoubleClick={() => onNavigate(folder.path)}
               onClick={() => onNavigate(folder.path)}
+              onContextMenu={e => openFolderMenu(e, folder)}
               className="aspect-square rounded border border-border bg-accent/30 hover:bg-accent flex flex-col items-center justify-center gap-2 transition-colors text-muted-foreground hover:text-foreground"
             >
               <Folder className="w-12 h-12" />
@@ -142,6 +187,7 @@ export default function GridView({
               <button
                 key={img.path}
                 onClick={e => handleImageClick(img, index, e)}
+                onContextMenu={e => openImageMenu(e, img)}
                 className={cn(
                   'aspect-square rounded overflow-hidden border-2 relative group transition-all',
                   isSelected ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-border'
@@ -189,6 +235,8 @@ export default function GridView({
           )}
         </div>
       </div>
+
+      <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
     </div>
   )
 }
