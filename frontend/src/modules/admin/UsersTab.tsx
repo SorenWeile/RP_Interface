@@ -212,15 +212,35 @@ function UserDialog({
             label="Clients"
             items={clients}
             selected={form.client_ids}
-            onChange={ids => set('client_ids', ids)}
+            onChange={ids => {
+              // When a client is unchecked, also remove its projects
+              const removed = form.client_ids.filter(id => !ids.includes(id))
+              const projectsToRemove = projects
+                .filter(p => p.client_id != null && removed.includes(p.client_id))
+                .map(p => p.id)
+              setForm(prev => ({
+                ...prev,
+                client_ids: ids,
+                project_ids: prev.project_ids.filter(id => !projectsToRemove.includes(id)),
+              }))
+            }}
           />
 
-          <CheckPicker
-            label="Projects"
-            items={projects}
-            selected={form.project_ids}
-            onChange={ids => set('project_ids', ids)}
-          />
+          {(() => {
+            const visible = projects.filter(p => p.client_id != null && form.client_ids.includes(p.client_id))
+            return form.client_ids.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">Select a client to assign projects.</p>
+            ) : visible.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No projects assigned to the selected client(s).</p>
+            ) : (
+              <CheckPicker
+                label="Projects"
+                items={visible}
+                selected={form.project_ids}
+                onChange={ids => set('project_ids', ids)}
+              />
+            )
+          })()}
 
           {error && <p className="text-xs text-destructive">{error}</p>}
         </form>
