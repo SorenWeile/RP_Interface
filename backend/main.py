@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import comfy_client
-from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama
+from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama, load_image_edit
 import gallery as gallery_module
 import user_management as user_mgmt_module
 
@@ -422,6 +422,39 @@ async def run_panorama(params: PanoramaParams):
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
         print(f"[panorama] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
+
+
+# ── Image Edit ────────────────────────────────────────────────────────────────
+
+class ImageEditParams(BaseModel):
+    filename: str             # 11_INPUT_IMAGE_LATENT
+    prompt: str               # 05_PROMPT_INSTRUCTION
+    client_path: str          # 95_CLIENT_PATH
+    product_path: str         # 96_PRODUCT_PATH
+    filename_prefix: str      # 97_FILENAME
+
+
+@app.post("/api/workflow/image_edit")
+async def run_image_edit(params: ImageEditParams):
+    if not params.filename:
+        raise HTTPException(422, "filename is required")
+    if not params.prompt:
+        raise HTTPException(422, "prompt is required")
+    try:
+        client_id = str(uuid.uuid4())
+        workflow = load_image_edit(
+            filename=params.filename,
+            prompt=params.prompt,
+            client_path=params.client_path,
+            product_path=params.product_path,
+            filename_prefix=params.filename_prefix,
+        )
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        print(f"[image_edit] queued → {prompt_id}")
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except Exception as e:
+        print(f"[image_edit] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 

@@ -139,6 +139,27 @@ export async function runPanorama(params: {
   return res.json()
 }
 
+// ── Image Edit ────────────────────────────────────────────────────────────
+
+export async function runImageEdit(params: {
+  filename: string
+  prompt: string
+  client_path: string
+  product_path: string
+  filename_prefix: string
+}): Promise<{ prompt_id: string; client_id: string }> {
+  const res = await fetch(`${BASE}/api/workflow/image_edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────
 
 export type ProgressEvent =

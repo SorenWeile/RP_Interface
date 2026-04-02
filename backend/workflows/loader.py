@@ -136,6 +136,37 @@ def load_outfit_swapping(
     return workflow
 
 
+def load_image_edit(
+    filename: str,
+    prompt: str,
+    client_path: str,
+    product_path: str,
+    filename_prefix: str,
+) -> dict:
+    """
+    Patch image_edit_V1_API.json for a single run.
+
+    image_edit_V1_API.json patch points:
+      Node "11"  → inputs.image   : input image (LoadImage)
+      Node "36"  → inputs.value   : prompt instruction (05_PROMPT_INSTRUCTION)
+      Node "45"  → inputs.value   : client path  (95_CLIENT_PATH)
+      Node "55"  → inputs.value   : product path (96_PRODUCT_PATH)
+      Node "56"  → inputs.value   : filename prefix (97_FILENAME)
+      Node "35"  → inputs.seed    : randomised Gemini seed
+      Path chain: 40("ComfyUI")/45/55/56 → concat 57→58→59 → MetaSaver 37
+    """
+    workflow = copy.deepcopy(_load("image_edit_V1_API"))
+
+    workflow["11"]["inputs"]["image"] = filename
+    workflow["36"]["inputs"]["value"] = prompt
+    workflow["45"]["inputs"]["value"] = client_path
+    workflow["55"]["inputs"]["value"] = product_path
+    workflow["56"]["inputs"]["value"] = filename_prefix
+    workflow["35"]["inputs"]["seed"] = _random_seed()
+
+    return workflow
+
+
 def load_panorama(
     state_json: str,
     prompt: str = "Fill the green spaces according to the image. Outpaint as a seamless 360 equirectangular panorama (2:1). Keep the horizon level. Match left and right edges.",
