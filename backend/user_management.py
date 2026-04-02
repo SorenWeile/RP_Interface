@@ -702,6 +702,47 @@ def app_path_options(x_user_token: Optional[str] = Header(None)):
         conn.close()
 
 
+@auth_router.get("/gallery-filter-options")
+def gallery_filter_options(x_user_token: Optional[str] = Header(None)):
+    """Return clients, projects, and users (with path segments) for the gallery filter. Admin only."""
+    user_id = _validate_user_token(x_user_token or "")
+    if user_id != 0:
+        raise HTTPException(403, "Admin only")
+    conn = _get_conn()
+    try:
+        clients = conn.execute("SELECT id, client_id, name FROM clients ORDER BY name").fetchall()
+        projects = conn.execute(
+            "SELECT p.id, p.project_id, p.name, p.client_id FROM projects p ORDER BY p.name"
+        ).fetchall()
+        users_rows = conn.execute("SELECT id, username FROM users ORDER BY username").fetchall()
+        users_out = []
+        for u in users_rows:
+            uid = u["id"]
+            u_clients = conn.execute(
+                "SELECT c.id, c.client_id FROM user_clients uc "
+                "JOIN clients c ON c.id = uc.client_id WHERE uc.user_id = ?",
+                (uid,),
+            ).fetchall()
+            u_projects = conn.execute(
+                "SELECT p.project_id, p.client_id FROM user_projects up "
+                "JOIN projects p ON p.id = up.project_id WHERE up.user_id = ?",
+                (uid,),
+            ).fetchall()
+            client_map = {c["id"]: c["client_id"] for c in u_clients}
+            paths = []
+            for p in u_projects:
+                client_str = client_map.get(p["client_id"])
+                paths.append(f"{client_str}/{p['project_id']}" if client_str else p["project_id"])
+            users_out.append({"id": uid, "username": u["username"], "paths": paths})
+        return {
+            "clients": [dict(c) for c in clients],
+            "projects": [dict(p) for p in projects],
+            "users": users_out,
+        }
+    finally:
+        conn.close()
+
+
 @auth_router.get("/me")
 def app_me(x_user_token: Optional[str] = Header(None)):
     user_id = _validate_user_token(x_user_token or "")

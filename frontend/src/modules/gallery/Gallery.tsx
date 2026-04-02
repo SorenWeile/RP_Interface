@@ -5,6 +5,12 @@ import FolderTree from './FolderTree'
 import DetailView from './DetailView'
 import GridView from './GridView'
 import MetadataPanel from './MetadataPanel'
+import GalleryFilterPanel, {
+  type FilterOptions,
+  type ActiveFilters,
+  emptyFilters,
+  deriveAllowedPaths,
+} from './GalleryFilterPanel'
 import type { GalleryImage, GalleryFolder, FolderTreeNode, ImageMetadata } from './types'
 
 // ---------------------------------------------------------------------------
@@ -115,14 +121,38 @@ export default function Gallery() {
   const [loading, setLoading] = useState(false)
   // null = admin (no filter), string[] = allowed "clientId/projectId" path segments
   const [allowedPaths, setAllowedPaths] = useState<string[] | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({ clients: [], projects: [], users: [] })
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>(emptyFilters())
+
+  // When admin changes the filter, derive new allowedPaths and re-filter the tree
+  const handleFilterChange = useCallback((f: ActiveFilters) => {
+    setActiveFilters(f)
+    const derived = deriveAllowedPaths(f, filterOptions)
+    setAllowedPaths(derived)
+    apiTree().then(rawTree => {
+      setTree(derived ? filterTree(rawTree, derived) : rawTree)
+      if (derived !== null && derived.length === 0) {
+        setCurrentPath('')
+      }
+    })
+  }, [filterOptions])
 
   // Load path permissions + folder tree together
   useEffect(() => {
+    const token = localStorage.getItem('user_token') ?? ''
     Promise.all([apiTree(), apiPathOptions()]).then(([rawTree, opts]) => {
       if (opts.is_admin) {
+        setIsAdmin(true)
         setAllowedPaths(null)
         setTree(rawTree)
+        // Load filter options (clients/projects/users) for admins
+        fetch('/api/auth/gallery-filter-options', { headers: { 'X-User-Token': token } })
+          .then(r => r.ok ? r.json() : { clients: [], projects: [], users: [] })
+          .then(setFilterOptions)
+          .catch(() => {})
       } else {
+        setIsAdmin(false)
         // Build "clientId/projectId" segments from the user's assigned projects
         const clientMap = new Map(opts.clients.map(c => [c.id, c.client_id]))
         const paths = opts.projects.map(p => {
@@ -289,6 +319,13 @@ export default function Gallery() {
             )}
             {viewMode === 'grid' ? 'Detail' : 'Grid'}
           </Button>
+          {isAdmin && (
+            <GalleryFilterPanel
+              options={filterOptions}
+              filters={activeFilters}
+              onChange={handleFilterChange}
+            />
+          )}
           <Button variant="outline" size="icon" onClick={refreshTree} title="Refresh">
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
@@ -304,7 +341,7 @@ export default function Gallery() {
             currentPath={currentPath}
             onNavigate={navigate}
             showFavoritesOnly={showFavoritesOnly}
-            isAdmin={allowedPaths === null}
+            isAdmin={isAdmin && allowedPaths === null}
           />
         )}
 
