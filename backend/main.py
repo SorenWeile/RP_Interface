@@ -7,9 +7,9 @@ import asyncio
 import httpx
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -63,6 +63,27 @@ async def on_startup():
     except Exception as e:
         print(f"[startup] WARNING: User DB init failed: {e}")
 
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _resolve_username(token: Optional[str]) -> str:
+    """Return the username for a user token, or 'admin'/'unknown' as fallback."""
+    if not token:
+        return "unknown"
+    user_id = user_mgmt_module._validate_user_token(token)
+    if user_id is None:
+        return "unknown"
+    if user_id == 0:
+        return "admin"
+    conn = user_mgmt_module._get_conn()
+    try:
+        row = conn.execute("SELECT username FROM users WHERE id=?", (user_id,)).fetchone()
+        return row["username"] if row else "unknown"
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +187,7 @@ class UpscaleReworkParams(BaseModel):
 
 
 @app.post("/api/workflow/upscale_rework")
-async def run_upscale_rework(params: UpscaleReworkParams):
+async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional[str] = Header(None)):
     # Validate
     invalid = [m for m in params.models if m not in UPSCALE_REWORK_MODELS]
     if invalid:
@@ -176,6 +197,7 @@ async def run_upscale_rework(params: UpscaleReworkParams):
     if not 1 <= params.runs_per_model <= 10:
         raise HTTPException(422, "runs_per_model must be between 1 and 10")
 
+    username = _resolve_username(x_user_token)
     batch_id = str(uuid.uuid4())
     jobs: List[BatchJob] = []
     errors: List[str] = []
@@ -191,6 +213,7 @@ async def run_upscale_rework(params: UpscaleReworkParams):
                     client_path=params.client_path,
                     product_path=params.product_path,
                     filename_prefix=params.filename_prefix,
+                    username=username,
                 )
                 prompt_id = await comfy_client.queue_workflow(workflow, client_id)
                 jobs.append(BatchJob(
@@ -375,7 +398,7 @@ class OutfitSwappingParams(BaseModel):
 
 
 @app.post("/api/workflow/outfit_swapping")
-async def run_outfit_swapping(params: OutfitSwappingParams):
+async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Optional[str] = Header(None)):
     if not params.main_image:
         raise HTTPException(422, "main_image is required")
     if len(params.ref_images) > 7:
@@ -389,6 +412,7 @@ async def run_outfit_swapping(params: OutfitSwappingParams):
             client_path=params.client_path,
             product_path=params.product_path,
             filename_prefix=params.filename_prefix,
+            username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
         print(f"[outfit_swapping] queued → {prompt_id}")
@@ -436,7 +460,7 @@ class ImageEditParams(BaseModel):
 
 
 @app.post("/api/workflow/image_edit")
-async def run_image_edit(params: ImageEditParams):
+async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = Header(None)):
     if not params.filename:
         raise HTTPException(422, "filename is required")
     if not params.prompt:
@@ -449,6 +473,7 @@ async def run_image_edit(params: ImageEditParams):
             client_path=params.client_path,
             product_path=params.product_path,
             filename_prefix=params.filename_prefix,
+            username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
         print(f"[image_edit] queued → {prompt_id}")

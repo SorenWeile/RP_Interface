@@ -63,6 +63,7 @@ def load_upscale_rework(
     client_path: str,
     product_path: str,
     filename_prefix: str,
+    username: str = "",
 ) -> dict:
     """
     Patch Upscaler_Rework_API.json for a single batch run.
@@ -86,6 +87,9 @@ def load_upscale_rework(
     model_short = model_name.rsplit(".", 1)[0][:24]
     workflow["16"]["inputs"]["value"] = f"{filename_prefix}_{model_short}_r{run_index:02d}_"
 
+    # User
+    workflow["1"]["inputs"]["value"] = username             # 98_USER
+
     # Randomise seeds so each run produces a different result.
     # ComfyUI uses the literal seed from the API payload; the "randomise"
     # setting in the UI has no effect on API submissions.
@@ -108,6 +112,7 @@ def load_outfit_swapping(
     client_path: str,
     product_path: str,
     filename_prefix: str,
+    username: str = "",
 ) -> dict:
     """
     Patch Outfit_Swapping.json for a single run.
@@ -132,6 +137,7 @@ def load_outfit_swapping(
     workflow["14"]["inputs"]["value"] = client_path    # 95_CLIENT_PATH
     workflow["15"]["inputs"]["value"] = product_path   # 96_PRODUCT_PATH
     workflow["16"]["inputs"]["value"] = filename_prefix  # 97_FILENAME
+    workflow["20"]["inputs"]["value"] = username         # 98_USER
 
     return workflow
 
@@ -142,6 +148,7 @@ def load_image_edit(
     client_path: str,
     product_path: str,
     filename_prefix: str,
+    username: str = "",
 ) -> dict:
     """
     Patch image_edit_V1_API.json for a single run.
@@ -162,6 +169,7 @@ def load_image_edit(
     workflow["45"]["inputs"]["value"] = client_path
     workflow["55"]["inputs"]["value"] = product_path
     workflow["56"]["inputs"]["value"] = filename_prefix
+    workflow["46"]["inputs"]["value"] = username         # 98_USER
     workflow["35"]["inputs"]["seed"] = _random_seed()
 
     return workflow

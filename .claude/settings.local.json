@@ -16,7 +16,8 @@
       "WebFetch(domain:www.mintlify.com)",
       "WebFetch(domain:medium.com)",
       "Bash(python3 -c \":*)",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k, d[k].get\\('_meta',{}\\).get\\('title',''\\), list\\(d[k]['inputs'].keys\\(\\)\\)[:5]\\) for k in d]\")"
     ]
   }
 }

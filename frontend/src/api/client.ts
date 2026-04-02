@@ -74,9 +74,10 @@ export async function createUpscaleReworkBatch(params: {
   product_path: string
   filename_prefix: string
 }): Promise<{ batch_id: string; total: number }> {
+  const token = localStorage.getItem('user_token') ?? ''
   const res = await fetch(`${BASE}/api/workflow/upscale_rework`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
     body: JSON.stringify(params),
   })
   if (!res.ok) {
@@ -108,9 +109,10 @@ export async function runOutfitSwapping(params: {
   product_path: string
   filename_prefix: string
 }): Promise<{ prompt_id: string; client_id: string }> {
+  const token = localStorage.getItem('user_token') ?? ''
   const res = await fetch(`${BASE}/api/workflow/outfit_swapping`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
     body: JSON.stringify(params),
   })
   if (!res.ok) {
@@ -148,9 +150,10 @@ export async function runImageEdit(params: {
   product_path: string
   filename_prefix: string
 }): Promise<{ prompt_id: string; client_id: string }> {
+  const token = localStorage.getItem('user_token') ?? ''
   const res = await fetch(`${BASE}/api/workflow/image_edit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
     body: JSON.stringify(params),
   })
   if (!res.ok) {
