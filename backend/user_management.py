@@ -197,7 +197,7 @@ async def require_token(x_admin_token: Optional[str] = Header(None)) -> int:
 # ---------------------------------------------------------------------------
 
 # All module IDs the app knows about — used as full-access set for admin user
-ALL_MODULE_IDS = ["gallery", "upscaler", "upscaler-rework", "outfit-swapping", "panorama"]
+ALL_MODULE_IDS = ["gallery", "upscaler", "upscaler-rework", "outfit-swapping", "panorama", "image-edit"]
 
 _ADMIN_USER = {
     "id": 0,

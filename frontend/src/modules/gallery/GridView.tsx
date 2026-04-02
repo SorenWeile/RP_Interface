@@ -1,9 +1,20 @@
 import { useState, useCallback } from 'react'
-import { Folder, Star, Download, Check, Trash2 } from 'lucide-react'
+import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
+
+async function fetchMetadataForCopy(path: string) {
+  const encoded = path.split('/').map(encodeURIComponent).join('/')
+  const r = await fetch(`/api/gallery/metadata/${encoded}`)
+  if (!r.ok) return null
+  return r.json()
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text).catch(() => {})
+}
 
 function encodePath(p: string) {
   return p.split('/').map(encodeURIComponent).join('/')
@@ -46,9 +57,32 @@ export default function GridView({
       x: e.clientX, y: e.clientY,
       items: [
         {
+          label: 'Copy path',
+          icon: <Copy className="w-4 h-4" />,
+          onClick: () => copyToClipboard(img.path),
+        },
+        {
+          label: 'Copy metadata as JSON',
+          icon: <FileJson className="w-4 h-4" />,
+          onClick: async () => {
+            const meta = await fetchMetadataForCopy(img.path)
+            if (meta) copyToClipboard(JSON.stringify(meta, null, 2))
+          },
+        },
+        {
+          label: 'Copy workflow JSON',
+          icon: <GitBranch className="w-4 h-4" />,
+          onClick: async () => {
+            const meta = await fetchMetadataForCopy(img.path)
+            if (meta?.workflow) copyToClipboard(JSON.stringify(meta.workflow, null, 2))
+            else if (meta?.prompt) copyToClipboard(JSON.stringify(meta.prompt, null, 2))
+          },
+        },
+        { separator: true as const },
+        {
           label: 'Delete image',
           icon: <Trash2 className="w-4 h-4" />,
-          variant: 'destructive',
+          variant: 'destructive' as const,
           onClick: () => onDeleteImage(img),
         },
       ],
@@ -62,9 +96,26 @@ export default function GridView({
       x: e.clientX, y: e.clientY,
       items: [
         {
+          label: 'Copy path',
+          icon: <Copy className="w-4 h-4" />,
+          onClick: () => copyToClipboard(folder.path),
+        },
+        {
+          label: 'Download as ZIP',
+          icon: <Download className="w-4 h-4" />,
+          onClick: () => {
+            const encoded = folder.path.split('/').map(encodeURIComponent).join('/')
+            const a = document.createElement('a')
+            a.href = `/api/gallery/download-folder/${encoded}`
+            a.download = `${folder.name}.zip`
+            a.click()
+          },
+        },
+        { separator: true as const },
+        {
           label: 'Delete folder',
           icon: <Trash2 className="w-4 h-4" />,
-          variant: 'destructive',
+          variant: 'destructive' as const,
           onClick: () => onDeleteFolder(folder),
         },
       ],

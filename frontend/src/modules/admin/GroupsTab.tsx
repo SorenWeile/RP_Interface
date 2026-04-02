@@ -12,6 +12,7 @@ const ALL_MODULES: { id: string; label: string }[] = [
   { id: 'upscaler-rework',  label: 'Batch Upscaler' },
   { id: 'outfit-swapping',  label: 'Outfit Swapping' },
   { id: 'panorama',         label: 'Panorama Outpainting' },
+  { id: 'image-edit',       label: 'Image Edit' },
 ]
 
 // ---------------------------------------------------------------------------
