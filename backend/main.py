@@ -427,11 +427,13 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
 class PanoramaParams(BaseModel):
     state_json: str           # full PanoramaStickers editor state from the frontend
     prompt: str = "Fill the green spaces according to the image. Outpaint as a seamless 360 equirectangular panorama (2:1). Keep the horizon level. Match left and right edges."
-    filename_prefix: str = "ComfyUI"
+    client_path: str = "HD"          # 95_CLIENT_PATH
+    product_path: str = "Panorama"   # 96_PRODUCT_PATH
+    filename_prefix: str = "Shot001" # 97_FILENAME
 
 
 @app.post("/api/workflow/panorama")
-async def run_panorama(params: PanoramaParams):
+async def run_panorama(params: PanoramaParams, x_user_token: Optional[str] = Header(None)):
     if not params.state_json:
         raise HTTPException(422, "state_json is required")
     try:
@@ -439,7 +441,10 @@ async def run_panorama(params: PanoramaParams):
         workflow = load_panorama(
             state_json=params.state_json,
             prompt=params.prompt,
+            client_path=params.client_path,
+            product_path=params.product_path,
             filename_prefix=params.filename_prefix,
+            username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
         print(f"[panorama] queued → {prompt_id}")

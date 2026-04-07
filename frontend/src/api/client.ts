@@ -127,11 +127,14 @@ export async function runOutfitSwapping(params: {
 export async function runPanorama(params: {
   state_json: string
   prompt: string
+  client_path: string
+  product_path: string
   filename_prefix: string
 }): Promise<{ prompt_id: string; client_id: string }> {
+  const token = localStorage.getItem('user_token') ?? ''
   const res = await fetch(`${BASE}/api/workflow/panorama`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
     body: JSON.stringify(params),
   })
   if (!res.ok) {

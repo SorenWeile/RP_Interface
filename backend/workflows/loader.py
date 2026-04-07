@@ -178,23 +178,43 @@ def load_image_edit(
 def load_panorama(
     state_json: str,
     prompt: str = "Fill the green spaces according to the image. Outpaint as a seamless 360 equirectangular panorama (2:1). Keep the horizon level. Match left and right edges.",
-    filename_prefix: str = "ComfyUI",
+    client_path: str = "HD",
+    product_path: str = "Panorama",
+    filename_prefix: str = "Shot001",
+    username: str = "",
 ) -> dict:
     """
-    Patch Panorama_Workflow_V3_API.json for a single run.
+    Patch Panorama_Workflow_V5_API.json for a single run.
     state_json is produced directly by the frontend PanoramaStickers editor.
 
-    Panorama_Workflow_V3_API.json patch points:
-      Node "56"  → state_json       : PanoramaStickers — full editor state from frontend
-      Node "6"   → text             : positive prompt
-      Node "31"  → seed             : randomised KSampler seed
-      Node "155" → filename_prefix  : SaveImage — final output name
+    Panorama_Workflow_V5_API.json patch points:
+      Node "56"  → state_json  : PanoramaStickers — full editor state from frontend
+      Node "6"   → text        : positive prompt (panorama outpaint pass)
+      Node "31"  → seed        : randomised KSampler seed
+      Node "83"  → noise_seed  : randomised RandomNoise (img2img pass)
+      Node "147" → noise_seed  : randomised RandomNoise (detail pass)
+      Node "160" → value       : 95_CLIENT_PATH
+      Node "162" → value       : 96_PRODUCT_PATH
+      Node "163" → value       : 97_FILENAME
+      Node "166" → meta_value_5: USER (MetaSaver)
+      Path chain: 158("ComfyUI")/160/162/163 → concat 159→164→165 → MetaSaver 166
     """
-    workflow = copy.deepcopy(_load("Panorama_Workflow_V4_API"))
+    workflow = copy.deepcopy(_load("Panorama_Workflow_V5_API"))
 
     workflow["56"]["inputs"]["state_json"] = state_json
     workflow["6"]["inputs"]["text"] = prompt
+
+    # Randomise all sampler seeds
     workflow["31"]["inputs"]["seed"] = _random_seed()
-    workflow["155"]["inputs"]["filename_prefix"] = filename_prefix
+    workflow["83"]["inputs"]["noise_seed"] = _random_seed()
+    workflow["147"]["inputs"]["noise_seed"] = _random_seed()
+
+    # Output path nodes
+    workflow["160"]["inputs"]["value"] = client_path
+    workflow["162"]["inputs"]["value"] = product_path
+    workflow["163"]["inputs"]["value"] = filename_prefix
+
+    # User metadata in MetaSaver
+    workflow["166"]["inputs"]["meta_value_5"] = username
 
     return workflow

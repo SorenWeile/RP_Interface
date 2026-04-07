@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react'
 import { runPanorama, connectProgress, type ProgressEvent, imageUrl } from '@/api/client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import PanoramaEditor, { type PanoramaEditorHandle } from './PanoramaEditor'
+import ClientProjectPicker from '@/components/ClientProjectPicker'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,9 @@ export default function Panorama() {
   const [prompt, setPrompt]               = useState(
     'Fill the green spaces according to the image. Outpaint as a seamless 360 equirectangular panorama (2:1). Keep the horizon level. Match left and right edges.'
   )
-  const [filePrefix, setFilePrefix]       = useState('')
+  const [clientPath, setClientPath]       = useState('')
+  const [productPath, setProductPath]     = useState('')
+  const [filePrefix, setFilePrefix]       = useState('Shot001')
   const [stage, setStage]                 = useState<Stage>({ status: 'idle' })
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -37,7 +39,9 @@ export default function Panorama() {
       const { prompt_id, client_id } = await runPanorama({
         state_json,
         prompt,
-        filename_prefix: filePrefix || 'ComfyUI',
+        client_path: clientPath,
+        product_path: productPath,
+        filename_prefix: filePrefix || 'Shot001',
       })
       setStage({ status: 'running', promptId: prompt_id, clientId: client_id, progress: 0, max: 1 })
 
@@ -123,16 +127,15 @@ export default function Panorama() {
 
       <Separator />
 
-      {/* Filename prefix */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Filename Prefix</label>
-        <Input
-          placeholder="ComfyUI"
-          value={filePrefix}
-          onChange={(e) => setFilePrefix(e.target.value)}
-          disabled={isBusy}
-        />
-      </div>
+      <ClientProjectPicker
+        clientPath={clientPath}
+        productPath={productPath}
+        filePrefix={filePrefix}
+        onClientPath={setClientPath}
+        onProductPath={setProductPath}
+        onFilePrefix={setFilePrefix}
+        disabled={isBusy}
+      />
 
       {/* Submit */}
       {(stage.status === 'idle' || stage.status === 'submitting') && (
