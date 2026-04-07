@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
@@ -30,6 +30,7 @@ interface Props {
   onToggleFavorite: (img: GalleryImage) => void
   onDeleteImage: (img: GalleryImage) => void
   onDeleteFolder: (folder: GalleryFolder) => void
+  onRenameImage: (img: GalleryImage) => void
 }
 
 export default function DetailView({
@@ -43,6 +44,7 @@ export default function DetailView({
   onToggleFavorite,
   onDeleteImage,
   onDeleteFolder,
+  onRenameImage,
 }: Props) {
   const selectedImage = images[selectedIndex] ?? null
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -76,6 +78,11 @@ export default function DetailView({
           },
         },
         { separator: true as const },
+        {
+          label: 'Rename',
+          icon: <Pencil className="w-4 h-4" />,
+          onClick: () => onRenameImage(img),
+        },
         {
           label: 'Delete image',
           icon: <Trash2 className="w-4 h-4" />,

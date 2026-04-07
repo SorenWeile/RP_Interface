@@ -440,6 +440,11 @@ class MoveRequest(BaseModel):
     dest_folder: str   # relative path of destination folder (empty = output root)
 
 
+class RenameRequest(BaseModel):
+    path: str       # relative path of image to rename
+    new_name: str   # new filename (basename only, no directory)
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -727,6 +732,46 @@ def gallery_move(req: MoveRequest):
         os.remove(old_thumb)
 
     return {"status": "moved", "old_path": src_path, "new_path": new_rel}
+
+
+@router.post("/rename")
+def gallery_rename(req: RenameRequest):
+    # Sanitise: new_name must be a bare filename with no path separators
+    new_name = os.path.basename(req.new_name.strip())
+    if not new_name:
+        raise HTTPException(status_code=400, detail="new_name must not be empty")
+    if new_name != req.new_name.strip():
+        raise HTTPException(status_code=400, detail="new_name must be a filename, not a path")
+
+    src_path = req.path.replace("\\", "/")
+    src_full = _safe_path(src_path)
+    if not src_full or not os.path.exists(src_full) or not os.path.isfile(src_full):
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    dest_full = os.path.join(os.path.dirname(src_full), new_name)
+    if os.path.exists(dest_full):
+        raise HTTPException(status_code=409, detail=f"'{new_name}' already exists in this folder")
+
+    os.rename(src_full, dest_full)
+
+    new_rel = _encode_path(os.path.relpath(dest_full, _output_dir()))
+    new_fid = _file_id(new_rel)
+    old_fid = _file_id(src_path)
+
+    if _DB_FILE:
+        with sqlite3.connect(_DB_FILE) as conn:
+            conn.execute(
+                "UPDATE files SET id=?, path=?, name=?, last_synced=? WHERE id=?",
+                (new_fid, new_rel, new_name, time.time(), old_fid),
+            )
+            conn.commit()
+
+    # Remove old thumbnail
+    old_thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(src_path))}.jpg")
+    if os.path.exists(old_thumb):
+        os.remove(old_thumb)
+
+    return {"status": "renamed", "old_path": src_path, "new_path": new_rel, "name": new_name}
 
 
 @router.get("/health")

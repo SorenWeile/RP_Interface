@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Star, LayoutGrid, Columns2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import FolderTree from './FolderTree'
 import DetailView from './DetailView'
 import GridView from './GridView'
@@ -126,6 +127,10 @@ export default function Gallery() {
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(emptyFilters())
   type DeleteConfirm = { label: string; onConfirm: () => Promise<void> }
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null)
+  type RenameTarget = { img: GalleryImage; name: string }
+  const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
+  const [notification, setNotification] = useState<string | null>(null)
+  const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // When admin changes the filter, derive new allowedPaths and re-filter the tree
   const handleFilterChange = useCallback((f: ActiveFilters) => {
@@ -281,6 +286,12 @@ export default function Gallery() {
     })
   }, [])
 
+  const showNotification = useCallback((msg: string) => {
+    setNotification(msg)
+    if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+    notifTimerRef.current = setTimeout(() => setNotification(null), 4000)
+  }, [])
+
   const moveImage = useCallback(async (imagePath: string, destFolder: string) => {
     try {
       const res = await fetch('/api/gallery/move', {
@@ -290,16 +301,35 @@ export default function Gallery() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
-        console.error('Move failed:', err.detail)
+        showNotification(err.detail ?? 'Move failed')
         return
       }
       // Remove image from current view immediately
       setImages(prev => prev.filter(i => i.path !== imagePath))
       setSelectedImages(prev => { const n = new Set(prev); n.delete(imagePath); return n })
     } catch (e) {
-      console.error('Move error:', e)
+      showNotification('Move failed')
     }
-  }, [])
+  }, [showNotification])
+
+  const handleRename = useCallback(async (img: GalleryImage, newName: string) => {
+    try {
+      const res = await fetch('/api/gallery/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: img.path, new_name: newName }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        showNotification(err.detail ?? 'Rename failed')
+        return
+      }
+      const { new_path, name } = await res.json()
+      setImages(prev => prev.map(i => i.path === img.path ? { ...i, path: new_path, name } : i))
+    } catch (e) {
+      showNotification('Rename failed')
+    }
+  }, [showNotification])
 
   const refreshTree = async () => {
     await fetch('/api/gallery/tree/refresh')
@@ -424,6 +454,7 @@ export default function Gallery() {
               onToggleFavorite={toggleFavorite}
               onDeleteImage={confirmDeleteImage}
               onDeleteFolder={confirmDeleteFolder}
+              onRenameImage={img => setRenameTarget({ img, name: img.name })}
             />
           ) : (
             <GridView
@@ -438,6 +469,7 @@ export default function Gallery() {
               onDeleteImage={confirmDeleteImage}
               onDeleteFolder={confirmDeleteFolder}
               onDeleteSelected={confirmDeleteSelected}
+              onRenameImage={img => setRenameTarget({ img, name: img.name })}
             />
           )}
         </div>
@@ -452,6 +484,50 @@ export default function Gallery() {
           />
         )}
       </div>
+
+      {/* Notification toast */}
+      {notification && (
+        <div className="fixed bottom-5 right-5 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2.5 rounded-lg shadow-lg max-w-sm flex items-center gap-3">
+          <span className="flex-1">{notification}</span>
+          <button onClick={() => setNotification(null)} className="shrink-0 opacity-70 hover:opacity-100 text-lg leading-none">×</button>
+        </div>
+      )}
+
+      {/* Rename dialog */}
+      {renameTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-sm shadow-xl space-y-4">
+            <p className="text-sm font-medium text-foreground">Rename file</p>
+            <Input
+              autoFocus
+              value={renameTarget.name}
+              onChange={e => setRenameTarget(t => t ? { ...t, name: e.target.value } : null)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter') {
+                  const { img, name } = renameTarget
+                  setRenameTarget(null)
+                  await handleRename(img, name)
+                } else if (e.key === 'Escape') {
+                  setRenameTarget(null)
+                }
+              }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setRenameTarget(null)}>Cancel</Button>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  const { img, name } = renameTarget
+                  setRenameTarget(null)
+                  await handleRename(img, name)
+                }}
+              >
+                Rename
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation dialog */}
       {deleteConfirm && (

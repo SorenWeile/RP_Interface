@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch } from 'lucide-react'
+import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
@@ -32,6 +32,7 @@ interface Props {
   onDeleteImage: (img: GalleryImage) => void
   onDeleteFolder: (folder: GalleryFolder) => void
   onDeleteSelected: () => void
+  onRenameImage: (img: GalleryImage) => void
 }
 
 export default function GridView({
@@ -46,6 +47,7 @@ export default function GridView({
   onDeleteImage,
   onDeleteFolder,
   onDeleteSelected,
+  onRenameImage,
 }: Props) {
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -79,6 +81,11 @@ export default function GridView({
           },
         },
         { separator: true as const },
+        {
+          label: 'Rename',
+          icon: <Pencil className="w-4 h-4" />,
+          onClick: () => onRenameImage(img),
+        },
         {
           label: 'Delete image',
           icon: <Trash2 className="w-4 h-4" />,
