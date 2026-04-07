@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export interface ContextMenuItem {
@@ -28,6 +28,7 @@ interface Props {
 
 export default function ContextMenu({ menu, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
   useEffect(() => {
     if (!menu) return
@@ -45,15 +46,24 @@ export default function ContextMenu({ menu, onClose }: Props) {
     }
   }, [menu, onClose])
 
+  // After the menu renders, check if it overflows and flip if needed
+  useEffect(() => {
+    if (!menu) { setPos(null); return }
+    if (!ref.current) return
+    const { offsetWidth: w, offsetHeight: h } = ref.current
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const left = menu.x + w > vw ? menu.x - w : menu.x
+    const top  = menu.y + h > vh ? menu.y - h : menu.y
+    setPos({ top, left })
+  }, [menu])
+
   if (!menu) return null
 
-  // Keep menu on screen
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    top: menu.y,
-    left: menu.x,
-    zIndex: 9999,
-  }
+  // Render off-screen first (opacity-0) so we can measure, then snap into place
+  const style: React.CSSProperties = pos
+    ? { position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 }
+    : { position: 'fixed', top: menu.y, left: menu.x, zIndex: 9999, opacity: 0, pointerEvents: 'none' }
 
   return (
     <div
