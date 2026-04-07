@@ -922,7 +922,7 @@
   "165": {
     "inputs": {
       "string_a": [
-        "164",
+        "168",
         0
       ],
       "string_b": [
@@ -960,6 +960,32 @@
     "class_type": "MetaSaver",
     "_meta": {
       "title": "99_SAVE_IMAGE_OUTPUT"
+    }
+  },
+  "167": {
+    "inputs": {
+      "value": "Pano"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "98_PANORAMAFOLDER"
+    }
+  },
+  "168": {
+    "inputs": {
+      "string_a": [
+        "164",
+        0
+      ],
+      "string_b": [
+        "167",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
     }
   }
 }
