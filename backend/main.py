@@ -488,6 +488,74 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
+# ── Image Edit — batch ────────────────────────────────────────────────────────
+
+class ImageEditBatchParams(BaseModel):
+    filename: str
+    prompt: str
+    count: int = 1             # 1–10 runs
+    client_path: str
+    product_path: str
+    filename_prefix: str
+
+
+@app.post("/api/workflow/image_edit/batch")
+async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optional[str] = Header(None)):
+    if not params.filename:
+        raise HTTPException(422, "filename is required")
+    if not params.prompt:
+        raise HTTPException(422, "prompt is required")
+    if not 1 <= params.count <= 10:
+        raise HTTPException(422, "count must be between 1 and 10")
+
+    username = _resolve_username(x_user_token)
+    batch_id = str(uuid.uuid4())
+    jobs: List[BatchJob] = []
+    errors: List[str] = []
+
+    for run in range(1, params.count + 1):
+        try:
+            client_id = str(uuid.uuid4())
+            # Append run suffix only when count > 1 to keep single-run paths clean
+            prefix = f"{params.filename_prefix}_r{run:02d}_" if params.count > 1 else params.filename_prefix
+            workflow = load_image_edit(
+                filename=params.filename,
+                prompt=params.prompt,
+                client_path=params.client_path,
+                product_path=params.product_path,
+                filename_prefix=prefix,
+                username=username,
+            )
+            prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+            jobs.append(BatchJob(
+                prompt_id=prompt_id,
+                client_id=client_id,
+                model="image_edit",
+                run_index=run,
+            ))
+            print(f"[image_edit_batch:{batch_id}] queued run {run} → {prompt_id}")
+        except Exception as e:
+            msg = f"run {run}: {type(e).__name__}: {e}"
+            print(f"[image_edit_batch:{batch_id}] ERROR: {msg}")
+            errors.append(msg)
+
+    if not jobs:
+        raise HTTPException(422, f"All jobs failed to queue: {errors}")
+
+    _batches[batch_id] = Batch(
+        id=batch_id,
+        filename=params.filename,
+        client_path=params.client_path,
+        product_path=params.product_path,
+        filename_prefix=params.filename_prefix,
+        runs_per_model=params.count,
+        jobs=jobs,
+        created_at=datetime.datetime.utcnow().isoformat() + "Z",
+    )
+
+    return {"batch_id": batch_id, "total": len(jobs), "queuing_errors": errors}
+
+
 # ── Machine monitor ───────────────────────────────────────────────────────────
 
 @app.get("/api/monitor/stats")
