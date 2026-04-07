@@ -196,7 +196,8 @@ def load_panorama(
       Node "160" → value       : 95_CLIENT_PATH
       Node "162" → value       : 96_PRODUCT_PATH
       Node "163" → value       : 97_FILENAME
-      Node "166" → meta_value_5: USER (MetaSaver)
+      Node "167" → value       : 98_USER (injected PrimitiveStringMultiline)
+      Node "166" → meta_value_5: ["167", 0] — wired to user node
       Path chain: 158("ComfyUI")/160/162/163 → concat 159→164→165 → MetaSaver 166
     """
     workflow = copy.deepcopy(_load("Panorama_Workflow_V5_API"))
@@ -214,7 +215,12 @@ def load_panorama(
     workflow["162"]["inputs"]["value"] = product_path
     workflow["163"]["inputs"]["value"] = filename_prefix
 
-    # User metadata in MetaSaver
-    workflow["166"]["inputs"]["meta_value_5"] = username
+    # Inject a PrimitiveStringMultiline node for the username and wire it to MetaSaver
+    workflow["167"] = {
+        "inputs": {"value": username},
+        "class_type": "PrimitiveStringMultiline",
+        "_meta": {"title": "98_USER"},
+    }
+    workflow["166"]["inputs"]["meta_value_5"] = ["167", 0]
 
     return workflow
