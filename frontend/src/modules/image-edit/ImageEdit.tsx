@@ -121,7 +121,7 @@ export default function ImageEdit() {
   const [prompt, setPrompt]         = useState('')
   const [clientPath, setClientPath] = useState('')
   const [productPath, setProductPath] = useState('')
-  const [filePrefix, setFilePrefix] = useState('')
+  const [filePrefix, setFilePrefix] = useState('Shot001')
   const [stage, setStage]           = useState<Stage>({ status: 'idle' })
   const wsCleanupRef                = useRef<(() => void) | null>(null)
 
@@ -187,6 +187,12 @@ export default function ImageEdit() {
   // ── Reset ────────────────────────────────────────────────────────────────────
 
   const reset = () => {
+    wsCleanupRef.current?.()
+    wsCleanupRef.current = null
+    setStage({ status: 'idle' })
+  }
+
+  const resetFull = () => {
     wsCleanupRef.current?.()
     wsCleanupRef.current = null
     setSlot(EMPTY_SLOT)
@@ -257,7 +263,7 @@ export default function ImageEdit() {
             {stage.status === 'submitting' ? 'Queuing…' : 'Generate'}
           </Button>
           {slot.preview && (
-            <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+            <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
       )}
@@ -304,7 +310,7 @@ export default function ImageEdit() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+          <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
         </div>
       )}
     </div>

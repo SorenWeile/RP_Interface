@@ -71,7 +71,7 @@ export default function UpscalerRework() {
   const [runsPerModel, setRunsPerModel] = useState(4)
   const [clientPath, setClientPath]     = useState('')
   const [productPath, setProductPath]   = useState('')
-  const [filePrefix, setFilePrefix]     = useState('')
+  const [filePrefix, setFilePrefix]     = useState('Shot001')
 
   const fileInput  = useRef<HTMLInputElement>(null)
   const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null)

@@ -124,7 +124,7 @@ export default function OutfitSwapping() {
   const [prompt, setPrompt]             = useState('add rider to the Bike, he is wearing a race suit, outfit, helmet, boots and gloves.')
   const [clientPath, setClientPath]     = useState('')
   const [productPath, setProductPath]   = useState('')
-  const [filePrefix, setFilePrefix]     = useState('')
+  const [filePrefix, setFilePrefix]     = useState('Shot001')
   const [stage, setStage]               = useState<Stage>({ status: 'idle' })
   const wsCleanupRef                    = useRef<(() => void) | null>(null)
 
