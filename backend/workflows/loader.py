@@ -196,9 +196,10 @@ def load_panorama(
       Node "160" → value       : 95_CLIENT_PATH
       Node "162" → value       : 96_PRODUCT_PATH
       Node "163" → value       : 97_FILENAME
-      Node "167" → value       : 98_USER (injected PrimitiveStringMultiline)
-      Node "166" → meta_value_5: ["167", 0] — wired to user node
-      Path chain: 158("ComfyUI")/160/162/163 → concat 159→164→165 → MetaSaver 166
+      Node "167" → value       : "Pano" subfolder (fixed in JSON, do NOT patch)
+      Node "998" → value       : 98_USER (injected PrimitiveStringMultiline)
+      Node "166" → meta_value_5: ["998", 0] — wired to user node
+      Path chain: 158("ComfyUI")/160/162/167("Pano")/163 → concat 159→164→168→165 → MetaSaver 166
     """
     workflow = copy.deepcopy(_load("Panorama_Workflow_V5_API"))
 
@@ -215,12 +216,13 @@ def load_panorama(
     workflow["162"]["inputs"]["value"] = product_path
     workflow["163"]["inputs"]["value"] = filename_prefix
 
-    # Inject a PrimitiveStringMultiline node for the username and wire it to MetaSaver
-    workflow["167"] = {
+    # Inject a PrimitiveStringMultiline node for the username and wire it to MetaSaver.
+    # Use a high ID ("998") that will never clash with nodes in the workflow JSON.
+    workflow["998"] = {
         "inputs": {"value": username},
         "class_type": "PrimitiveStringMultiline",
         "_meta": {"title": "98_USER"},
     }
-    workflow["166"]["inputs"]["meta_value_5"] = ["167", 0]
+    workflow["166"]["inputs"]["meta_value_5"] = ["998", 0]
 
     return workflow
