@@ -339,6 +339,11 @@ export default function DetailView({
           <button
             key={img.path}
             data-active={i === selectedIndex}
+            draggable
+            onDragStart={e => {
+              e.dataTransfer.effectAllowed = 'move'
+              e.dataTransfer.setData('gallery/image', img.path)
+            }}
             onClick={() => onSelectIndex(i)}
             onContextMenu={e => openImageMenu(e, img)}
             className={cn(
@@ -351,6 +356,7 @@ export default function DetailView({
               alt={img.name}
               className="w-full h-full object-cover"
               loading="lazy"
+              draggable={false}
             />
             {img.is_favorite && (
               <Star

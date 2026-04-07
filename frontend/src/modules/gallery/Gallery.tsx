@@ -281,6 +281,26 @@ export default function Gallery() {
     })
   }, [])
 
+  const moveImage = useCallback(async (imagePath: string, destFolder: string) => {
+    try {
+      const res = await fetch('/api/gallery/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_path: imagePath, dest_folder: destFolder }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        console.error('Move failed:', err.detail)
+        return
+      }
+      // Remove image from current view immediately
+      setImages(prev => prev.filter(i => i.path !== imagePath))
+      setSelectedImages(prev => { const n = new Set(prev); n.delete(imagePath); return n })
+    } catch (e) {
+      console.error('Move error:', e)
+    }
+  }, [])
+
   const refreshTree = async () => {
     await fetch('/api/gallery/tree/refresh')
     apiTree().then(rawTree => {
@@ -386,6 +406,7 @@ export default function Gallery() {
             onNavigate={navigate}
             showFavoritesOnly={showFavoritesOnly}
             isAdmin={isAdmin && allowedPaths === null}
+            onMove={moveImage}
           />
         )}
 

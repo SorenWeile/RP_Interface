@@ -9,17 +9,20 @@ interface Props {
   onNavigate: (path: string) => void
   showFavoritesOnly: boolean
   isAdmin: boolean
+  onMove?: (imagePath: string, destFolder: string) => void
 }
 
 function TreeNode({
   node,
   currentPath,
   onNavigate,
+  onMove,
   depth,
 }: {
   node: FolderTreeNode
   currentPath: string
   onNavigate: (path: string) => void
+  onMove?: (imagePath: string, destFolder: string) => void
   depth: number
 }) {
   const isActive = currentPath === node.path
@@ -27,6 +30,7 @@ function TreeNode({
   const [expanded, setExpanded] = useState(
     () => currentPath.startsWith(node.path + '/') || currentPath === node.path
   )
+  const [dragOver, setDragOver] = useState(false)
 
   return (
     <div>
@@ -35,9 +39,26 @@ function TreeNode({
           onNavigate(node.path)
           if (hasChildren) setExpanded(v => !v)
         }}
+        onDragOver={e => {
+          if (!e.dataTransfer.types.includes('gallery/image')) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+          setDragOver(true)
+        }}
+        onDragLeave={e => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false)
+        }}
+        onDrop={e => {
+          e.preventDefault()
+          setDragOver(false)
+          const imagePath = e.dataTransfer.getData('gallery/image')
+          if (imagePath && onMove) onMove(imagePath, node.path)
+        }}
         className={cn(
           'w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-left transition-colors',
-          isActive
+          dragOver
+            ? 'bg-primary/30 text-primary ring-1 ring-primary'
+            : isActive
             ? 'bg-primary/15 text-primary'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
         )}
@@ -68,6 +89,7 @@ function TreeNode({
               node={child}
               currentPath={currentPath}
               onNavigate={onNavigate}
+              onMove={onMove}
               depth={depth + 1}
             />
           ))}
@@ -77,7 +99,7 @@ function TreeNode({
   )
 }
 
-export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly, isAdmin }: Props) {
+export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly, isAdmin, onMove }: Props) {
   return (
     <aside className="w-56 shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
       <div className="px-3 py-2 border-b border-border">
@@ -114,6 +136,7 @@ export default function FolderTree({ tree, currentPath, onNavigate, showFavorite
             node={node}
             currentPath={currentPath}
             onNavigate={onNavigate}
+            onMove={onMove}
             depth={0}
           />
         ))}

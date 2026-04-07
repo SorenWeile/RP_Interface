@@ -435,6 +435,11 @@ class DeleteImagesRequest(BaseModel):
     paths: List[str]
 
 
+class MoveRequest(BaseModel):
+    source_path: str   # relative path of image to move
+    dest_folder: str   # relative path of destination folder (empty = output root)
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -678,6 +683,50 @@ def gallery_delete_images(req: DeleteImagesRequest):
         os.remove(full)
         deleted.append(image_path)
     return {"status": "done", "deleted": len(deleted), "errors": errors}
+
+
+@router.post("/move")
+def gallery_move(req: MoveRequest):
+    import shutil
+    src_path = req.source_path.replace("\\", "/")
+    src_full = _safe_path(src_path)
+    if not src_full or not os.path.exists(src_full) or not os.path.isfile(src_full):
+        raise HTTPException(status_code=404, detail="Source image not found")
+
+    dest_dir_full = (
+        _safe_path(req.dest_folder.replace("\\", "/")) if req.dest_folder else _output_dir()
+    )
+    if not dest_dir_full or not os.path.isdir(dest_dir_full):
+        raise HTTPException(status_code=404, detail="Destination folder not found")
+
+    filename = os.path.basename(src_full)
+    dest_full = os.path.join(dest_dir_full, filename)
+
+    if os.path.exists(dest_full):
+        raise HTTPException(
+            status_code=409, detail=f"'{filename}' already exists in destination"
+        )
+
+    shutil.move(src_full, dest_full)
+
+    new_rel = _encode_path(os.path.relpath(dest_full, _output_dir()))
+    new_fid = _file_id(new_rel)
+    old_fid = _file_id(src_path)
+
+    if _DB_FILE:
+        with sqlite3.connect(_DB_FILE) as conn:
+            conn.execute(
+                "UPDATE files SET id=?, path=?, last_synced=? WHERE id=?",
+                (new_fid, new_rel, time.time(), old_fid),
+            )
+            conn.commit()
+
+    # Remove old thumbnail; new one will be generated on demand
+    old_thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(src_path))}.jpg")
+    if os.path.exists(old_thumb):
+        os.remove(old_thumb)
+
+    return {"status": "moved", "old_path": src_path, "new_path": new_rel}
 
 
 @router.get("/health")

@@ -237,6 +237,11 @@ export default function GridView({
             return (
               <button
                 key={img.path}
+                draggable
+                onDragStart={e => {
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('gallery/image', img.path)
+                }}
                 onClick={e => handleImageClick(img, index, e)}
                 onContextMenu={e => openImageMenu(e, img)}
                 className={cn(
@@ -249,6 +254,7 @@ export default function GridView({
                   alt={img.name}
                   className="w-full h-full object-cover"
                   loading="lazy"
+                  draggable={false}
                 />
 
                 {/* Checkbox overlay */}
