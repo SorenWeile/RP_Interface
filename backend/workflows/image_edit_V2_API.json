@@ -1,0 +1,272 @@
+{
+  "11": {
+    "inputs": {
+      "image": "ComfyUI_temp_ahlyn_00001_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "11_INPUT_IMAGE_LATENT"
+    }
+  },
+  "35": {
+    "inputs": {
+      "prompt": [
+        "36",
+        0
+      ],
+      "model": "gemini-3-pro-image-preview",
+      "seed": 120740410478680,
+      "aspect_ratio": "auto",
+      "resolution": "2K",
+      "response_modalities": "IMAGE+TEXT",
+      "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests. Make sure you keep the image as identical as possible.",
+      "images": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "GeminiImage2Node",
+    "_meta": {
+      "title": "Nano Banana Pro (Google Gemini Image)"
+    }
+  },
+  "36": {
+    "inputs": {
+      "value": "changer the color of the bike to bright yellow\n"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "05_PROMPT_INSTRUCTION"
+    }
+  },
+  "37": {
+    "inputs": {
+      "filename_prefix": [
+        "59",
+        0
+      ],
+      "meta_name_0": "Seed",
+      "meta_name_1": "Prompt_Pos",
+      "meta_name_2": "Prompt_Neg",
+      "meta_name_3": "",
+      "meta_name_4": "",
+      "meta_name_5": "USER",
+      "meta_name_6": "",
+      "meta_name_7": "",
+      "meta_name_8": "",
+      "meta_name_9": "",
+      "images": [
+        "35",
+        0
+      ],
+      "meta_value_1": [
+        "36",
+        0
+      ],
+      "meta_value_5": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "MetaSaver",
+    "_meta": {
+      "title": "99_SAVE_IMAGE_OUTPUT"
+    }
+  },
+  "40": {
+    "inputs": {
+      "value": "ComfyUI"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "DEFAULT_PATH"
+    }
+  },
+  "45": {
+    "inputs": {
+      "value": "HD"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "95_CLIENT_PATH"
+    }
+  },
+  "46": {
+    "inputs": {
+      "value": "Deployed"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "98_USER"
+    }
+  },
+  "55": {
+    "inputs": {
+      "value": "PanAmerica_RA1250S"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "96_PRODUCT_PATH"
+    }
+  },
+  "56": {
+    "inputs": {
+      "value": "PanAmerica_RA1250S_"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "97_FILENAME"
+    }
+  },
+  "57": {
+    "inputs": {
+      "string_a": [
+        "40",
+        0
+      ],
+      "string_b": [
+        "45",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "58": {
+    "inputs": {
+      "string_a": [
+        "57",
+        0
+      ],
+      "string_b": [
+        "55",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "59": {
+    "inputs": {
+      "string_a": [
+        "58",
+        0
+      ],
+      "string_b": [
+        "56",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "61": {
+    "inputs": {
+      "image": "ComfyUI_temp_ahlyn_00001_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "12_INPUT_IMAGE_REFERENCE_01"
+    }
+  },
+  "62": {
+    "inputs": {
+      "image": "ComfyUI_temp_ahlyn_00001_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "13_INPUT_IMAGE_REFERENCE_02"
+    }
+  },
+  "63": {
+    "inputs": {
+      "image": "ComfyUI_temp_ahlyn_00001_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "14_INPUT_IMAGE_REFERENCE_03"
+    }
+  },
+  "65": {
+    "inputs": {
+      "images.image0": [
+        "66",
+        0
+      ],
+      "images.image1": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "BatchImagesNode",
+    "_meta": {
+      "title": "Batch Images"
+    }
+  },
+  "66": {
+    "inputs": {
+      "images.image0": [
+        "11",
+        0
+      ],
+      "images.image1": [
+        "61",
+        0
+      ]
+    },
+    "class_type": "BatchImagesNode",
+    "_meta": {
+      "title": "Batch Images"
+    }
+  },
+  "67": {
+    "inputs": {
+      "images.image0": [
+        "65",
+        0
+      ],
+      "images.image1": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "BatchImagesNode",
+    "_meta": {
+      "title": "Batch Images"
+    }
+  },
+  "68": {
+    "inputs": {
+      "image": "ComfyUI_temp_ahlyn_00001_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "15_INPUT_IMAGE_REFERENCE_04"
+    }
+  },
+  "69": {
+    "inputs": {
+      "images.image0": [
+        "67",
+        0
+      ],
+      "images.image1": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "BatchImagesNode",
+    "_meta": {
+      "title": "Batch Images"
+    }
+  }
+}

@@ -17,6 +17,7 @@ interface ImageSlot {
 }
 
 const EMPTY_SLOT: ImageSlot = { preview: null, filename: null, state: 'empty' }
+const REF_COUNT = 4  // Number of reference image slots
 
 interface BatchInfo {
   batchId: string
@@ -58,12 +59,14 @@ function DropZone({
   disabled,
   onFile,
   onClear,
+  size = 'lg',
 }: {
   slot: ImageSlot
   label: string
   disabled?: boolean
   onFile: (file: File) => void
   onClear: () => void
+  size?: 'lg' | 'sm'
 }) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -86,7 +89,8 @@ function DropZone({
         onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         className={cn(
-          'relative border-2 border-dashed rounded transition-colors select-none flex flex-col items-center justify-center min-h-40',
+          'relative border-2 border-dashed rounded transition-colors select-none flex flex-col items-center justify-center',
+          size === 'lg' ? 'min-h-40' : 'min-h-20',
           disabled ? 'cursor-default opacity-60' : 'cursor-pointer',
           dragging
             ? 'border-primary bg-comfy-canvas'
@@ -94,11 +98,14 @@ function DropZone({
         )}
       >
         {slot.preview ? (
-          <img src={slot.preview} alt={label} className="max-h-48 max-w-full object-contain rounded opacity-80" />
+          <img src={slot.preview} alt={label} className={cn(
+            'object-contain rounded opacity-80',
+            size === 'lg' ? 'max-h-48 max-w-full' : 'max-h-16 max-w-full'
+          )} />
         ) : (
-          <div className="text-center p-6">
-            <div className="text-muted-foreground text-3xl mb-2">↓</div>
-            <p className="text-muted-foreground text-sm">{label}</p>
+          <div className={cn('text-center', size === 'lg' ? 'p-6' : 'p-2')}>
+            {size === 'lg' && <div className="text-muted-foreground text-3xl mb-2">↓</div>}
+            <p className="text-muted-foreground text-xs">{label}</p>
           </div>
         )}
         {slot.state === 'uploading' && (
@@ -144,6 +151,7 @@ function DropZone({
 
 export default function ImageEdit() {
   const [slot, setSlot]               = useState<ImageSlot>(EMPTY_SLOT)
+  const [refSlots, setRefSlots]       = useState<ImageSlot[]>(Array(REF_COUNT).fill(EMPTY_SLOT))
   const [prompt, setPrompt]           = useState('')
   const [count, setCount]             = useState(1)
   const [clientPath, setClientPath]   = useState('')
@@ -154,13 +162,33 @@ export default function ImageEdit() {
 
   // ── Upload ───────────────────────────────────────────────────────────────────
 
+  const uploadSlot = useCallback(
+    async (file: File, setSlot: (fn: (prev: ImageSlot) => ImageSlot) => void) => {
+      const preview = URL.createObjectURL(file)
+      setSlot(() => ({ preview, filename: null, state: 'uploading' }))
+      try {
+        const { filename } = await uploadImage(file)
+        setSlot(() => ({ preview, filename, state: 'ready' }))
+      } catch {
+        setSlot(() => ({ preview, filename: null, state: 'error' }))
+      }
+    },
+    [],
+  )
+
   const handleFile = useCallback((file: File) => {
-    const preview = URL.createObjectURL(file)
-    setSlot({ preview, filename: null, state: 'uploading' })
-    uploadImage(file)
-      .then(({ filename }) => setSlot({ preview, filename, state: 'ready' }))
-      .catch(() => setSlot({ preview, filename: null, state: 'error' }))
-  }, [])
+    uploadSlot(file, setSlot)
+  }, [uploadSlot])
+
+  const handleRefFile = useCallback((index: number, file: File) => {
+    uploadSlot(file, (fn) =>
+      setRefSlots((prev) => prev.map((s, i) => (i === index ? fn(s) : s)))
+    )
+  }, [uploadSlot])
+
+  const clearMain = () => setSlot(EMPTY_SLOT)
+  const clearRef = (index: number) =>
+    setRefSlots((prev) => prev.map((s, i) => (i === index ? EMPTY_SLOT : s)))
 
   // ── Polling ──────────────────────────────────────────────────────────────────
 
@@ -197,10 +225,16 @@ export default function ImageEdit() {
   const submit = async () => {
     if (!slot.filename) return
     setStage({ status: 'submitting' })
+    
+    const readyRefs = refSlots
+      .filter((s) => s.state === 'ready' && s.filename)
+      .map((s) => s.filename!)
+    
     try {
       const { batch_id, total } = await createImageEditBatch({
         filename: slot.filename,
         prompt,
+        ref_images: readyRefs,
         count,
         client_path: clientPath,
         product_path: productPath,
@@ -258,8 +292,29 @@ export default function ImageEdit() {
           label="Drop image here or click to browse"
           disabled={isBusy}
           onFile={handleFile}
-          onClear={() => setSlot(EMPTY_SLOT)}
+          onClear={clearMain}
         />
+      </div>
+
+      {/* Reference images */}
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground uppercase tracking-widest">Reference Images (Optional)</label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {refSlots.map((refSlot, index) => (
+            <DropZone
+              key={index}
+              slot={refSlot}
+              label={`Ref ${index + 1}`}
+              disabled={isBusy}
+              onFile={(file) => handleRefFile(index, file)}
+              onClear={() => clearRef(index)}
+              size="sm"
+            />
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Upload up to 4 reference images to guide the editing process
+        </p>
       </div>
 
       <Separator />

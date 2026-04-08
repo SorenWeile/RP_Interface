@@ -486,6 +486,7 @@ async def run_panorama(params: PanoramaParams, x_user_token: Optional[str] = Hea
 class ImageEditParams(BaseModel):
     filename: str             # 11_INPUT_IMAGE_LATENT
     prompt: str               # 05_PROMPT_INSTRUCTION
+    ref_images: List[str] = []  # Up to 4 reference image filenames
     client_path: str          # 95_CLIENT_PATH
     product_path: str         # 96_PRODUCT_PATH
     filename_prefix: str      # 97_FILENAME
@@ -497,11 +498,23 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
         raise HTTPException(422, "filename is required")
     if not params.prompt:
         raise HTTPException(422, "prompt is required")
+    if len(params.ref_images) > 4:
+        raise HTTPException(422, "At most 4 reference images are supported")
+    
+    # Validate all image filenames
+    all_images = [params.filename] + params.ref_images
+    for img_filename in all_images:
+        if not img_filename or not isinstance(img_filename, str):
+            raise HTTPException(422, f"Invalid image filename: {img_filename}")
+        if not img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+    
     try:
         client_id = str(uuid.uuid4())
         workflow = load_image_edit(
             filename=params.filename,
             prompt=params.prompt,
+            ref_images=params.ref_images,
             client_path=params.client_path,
             product_path=params.product_path,
             filename_prefix=params.filename_prefix,
@@ -511,7 +524,21 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
         print(f"[image_edit] queued → {prompt_id}")
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
+        error_msg = str(e)
         print(f"[image_edit] ERROR: {type(e).__name__}: {e}")
+        
+        # Provide more specific error messages for common issues
+        if "Invalid image file" in error_msg:
+            # Extract filenames from the error message
+            import re
+            invalid_files = re.findall(r'Invalid image file: ([^\']+)', error_msg)
+            if invalid_files:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The following images could not be loaded by ComfyUI. "
+                          f"Please ensure these files were uploaded successfully: {', '.join(invalid_files)}"
+                )
+        
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
@@ -520,6 +547,7 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
 class ImageEditBatchParams(BaseModel):
     filename: str
     prompt: str
+    ref_images: List[str] = []  # Up to 4 reference image filenames
     count: int = 1             # 1–10 runs
     client_path: str
     product_path: str
@@ -532,8 +560,18 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
         raise HTTPException(422, "filename is required")
     if not params.prompt:
         raise HTTPException(422, "prompt is required")
+    if len(params.ref_images) > 4:
+        raise HTTPException(422, "At most 4 reference images are supported")
     if not 1 <= params.count <= 10:
         raise HTTPException(422, "count must be between 1 and 10")
+
+    # Validate all image filenames
+    all_images = [params.filename] + params.ref_images
+    for img_filename in all_images:
+        if not img_filename or not isinstance(img_filename, str):
+            raise HTTPException(422, f"Invalid image filename: {img_filename}")
+        if not img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            raise HTTPException(422, f"Unsupported image format: {img_filename}")
 
     username = _resolve_username(x_user_token)
     batch_id = str(uuid.uuid4())
@@ -548,6 +586,7 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
             workflow = load_image_edit(
                 filename=params.filename,
                 prompt=params.prompt,
+                ref_images=params.ref_images,
                 client_path=params.client_path,
                 product_path=params.product_path,
                 filename_prefix=prefix,

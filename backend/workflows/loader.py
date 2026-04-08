@@ -104,6 +104,9 @@ def load_upscale_rework(
 # Ref image node IDs in order (titles 12→18_INPUT_IMAGE_REF)
 _OUTFIT_REF_NODES = ["11", "2", "3", "4", "5", "6", "7"]
 
+# Image edit reference image node IDs
+_IMAGE_EDIT_REF_NODES = ["12", "13", "14", "15"]  # 12_INPUT_IMAGE_REFERENCE_01 → 15_INPUT_IMAGE_REFERENCE_04
+
 
 def load_outfit_swapping(
     main_image: str,
@@ -145,6 +148,7 @@ def load_outfit_swapping(
 def load_image_edit(
     filename: str,
     prompt: str,
+    ref_images: list[str],
     client_path: str,
     product_path: str,
     filename_prefix: str,
@@ -156,15 +160,27 @@ def load_image_edit(
     image_edit_V1_API.json patch points:
       Node "11"  → inputs.image   : input image (LoadImage)
       Node "36"  → inputs.value   : prompt instruction (05_PROMPT_INSTRUCTION)
+      Node "12"  → inputs.image   : reference image 1 (LoadImage)
+      Node "13"  → inputs.image   : reference image 2 (LoadImage)
+      Node "14"  → inputs.image   : reference image 3 (LoadImage)
+      Node "15"  → inputs.image   : reference image 4 (LoadImage)
       Node "45"  → inputs.value   : client path  (95_CLIENT_PATH)
       Node "55"  → inputs.value   : product path (96_PRODUCT_PATH)
       Node "56"  → inputs.value   : filename prefix (97_FILENAME)
+      Node "46"  → inputs.value   : username (98_USER)
       Node "35"  → inputs.seed    : randomised Gemini seed
       Path chain: 40("ComfyUI")/45/55/56 → concat 57→58→59 → MetaSaver 37
     """
     workflow = copy.deepcopy(_load("image_edit_V1_API"))
 
+    # Main image
     workflow["11"]["inputs"]["image"] = filename
+    
+    # Reference images — patch only the slots the caller supplied
+    for node_id, ref_filename in zip(_IMAGE_EDIT_REF_NODES, ref_images):
+        workflow[node_id]["inputs"]["image"] = ref_filename
+    
+    # Prompt and paths
     workflow["36"]["inputs"]["value"] = prompt
     workflow["45"]["inputs"]["value"] = client_path
     workflow["55"]["inputs"]["value"] = product_path

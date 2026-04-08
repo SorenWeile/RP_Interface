@@ -171,6 +171,7 @@ export async function runImageEdit(params: {
 export async function createImageEditBatch(params: {
   filename: string
   prompt: string
+  ref_images: string[]
   count: number
   client_path: string
   product_path: string
