@@ -155,15 +155,16 @@ def load_image_edit(
     username: str = "",
 ) -> dict:
     """
-    Patch image_edit_V2_API.json for a single run.
+    Patch image_edit_V3_API.json for a single run.
 
-    image_edit_V2_API.json patch points:
+    image_edit_V3_API.json patch points:
       Node "11"  → inputs.image   : input image (LoadImage)
       Node "36"  → inputs.value   : prompt instruction (05_PROMPT_INSTRUCTION)
       Node "61"  → inputs.image   : reference image 1 (12_INPUT_IMAGE_REFERENCE_01)
       Node "62"  → inputs.image   : reference image 2 (13_INPUT_IMAGE_REFERENCE_02)
       Node "63"  → inputs.image   : reference image 3 (14_INPUT_IMAGE_REFERENCE_03)
       Node "68"  → inputs.image   : reference image 4 (15_INPUT_IMAGE_REFERENCE_04)
+      Node "66"  → inputs        : BatchImagesNode that collects main + reference images
       Node "45"  → inputs.value   : client path  (95_CLIENT_PATH)
       Node "55"  → inputs.value   : product path (96_PRODUCT_PATH)
       Node "56"  → inputs.value   : filename prefix (97_FILENAME)
@@ -171,28 +172,39 @@ def load_image_edit(
       Node "35"  → inputs.seed    : randomised Gemini seed
       Path chain: 40("ComfyUI")/45/55/56 → concat 57→58→59 → MetaSaver 37
     """
-    workflow = copy.deepcopy(_load("image_edit_V2_API"))
+    workflow = copy.deepcopy(_load("image_edit_V3_API"))
 
     # Main image
     workflow["11"]["inputs"]["image"] = filename
     
-    # Reference images — patch only the slots the caller supplied
-    # Clear placeholder images for unused slots to avoid validation errors
-    all_ref_nodes = list(zip(_IMAGE_EDIT_REF_NODES, ref_images))
+    # Reference images — add to BatchImagesNode only if provided
+    # The BatchImagesNode (66) should only include images that actually exist
+    batch_images_inputs = workflow["66"]["inputs"]
     
-    for node_id, ref_filename in all_ref_nodes:
+    # Build the images list dynamically based on what's provided
+    images_list = []
+    if filename:
+        images_list.append(["11", 0])  # Main image
+    
+    # Add reference images only if they exist
+    ref_node_mapping = ["61", "62", "63", "68"]  # Reference image nodes
+    for i, ref_filename in enumerate(ref_images):
         if ref_filename:
-            # Use the provided reference image
-            workflow[node_id]["inputs"]["image"] = ref_filename
-        else:
-            # Clear the placeholder to avoid "Invalid image file" errors
-            # Set to empty string so the node doesn't try to load a non-existent file
-            workflow[node_id]["inputs"]["image"] = ""
+            # Only add reference images that were actually provided
+            ref_node_id = ref_node_mapping[i]
+            workflow[ref_node_id]["inputs"]["image"] = ref_filename
+            images_list.append([ref_node_id, 0])
     
-    # Clear any remaining reference nodes that weren't covered by the input list
-    for i in range(len(all_ref_nodes), len(_IMAGE_EDIT_REF_NODES)):
-        node_id = _IMAGE_EDIT_REF_NODES[i]
-        workflow[node_id]["inputs"]["image"] = ""
+    # Update the BatchImagesNode with only the images we have
+    # The node expects a specific structure, so we need to update it carefully
+    for key in list(batch_images_inputs.keys()):
+        if key.startswith("images.image"):
+            # Remove existing image references
+            del batch_images_inputs[key]
+    
+    # Add back only the images we actually have
+    for i, image_ref in enumerate(images_list):
+        batch_images_inputs[f"images.image{i}"] = image_ref
     
     # Prompt and paths
     workflow["36"]["inputs"]["value"] = prompt
