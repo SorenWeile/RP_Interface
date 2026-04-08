@@ -112,18 +112,20 @@ def load_outfit_swapping(
     main_image: str,
     ref_images: list[str],
     prompt: str,
+    positive_prompt: str = "",
     client_path: str,
     product_path: str,
     filename_prefix: str,
     username: str = "",
 ) -> dict:
     """
-    Patch Outfit_Swapping.json for a single run.
+    Patch Outfit_Swapping_V1_API.json for a single run.
 
     ref_images: list of up to 7 filenames; only provided slots are patched.
     The remaining ref nodes keep whatever default filename is in the JSON.
+    positive_prompt: optional positive prompt for node 30 (102_POSITIVE_PROMPT_INPUT)
     """
-    workflow = copy.deepcopy(_load("Outfit_Swapping"))
+    workflow = copy.deepcopy(_load("Outfit_Swapping_V1_API"))
 
     # Main subject image
     workflow["1"]["inputs"]["image"] = main_image

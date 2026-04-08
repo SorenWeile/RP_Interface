@@ -396,6 +396,7 @@ class OutfitSwappingParams(BaseModel):
     main_image: str           # 11_INPUT_IMAGE_LATENT
     ref_images: List[str]     # up to 7 reference image filenames
     prompt: str               # 05_PROMPT_POSITIVE_INSTRUCTION
+    positive_prompt: str = ""  # 102_POSITIVE_PROMPT_INPUT (optional)
     client_path: str          # 95_CLIENT_PATH
     product_path: str         # 96_PRODUCT_PATH
     filename_prefix: str      # 97_FILENAME
@@ -422,6 +423,7 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
             main_image=params.main_image,
             ref_images=params.ref_images,
             prompt=params.prompt,
+            positive_prompt=params.positive_prompt,
             client_path=params.client_path,
             product_path=params.product_path,
             filename_prefix=params.filename_prefix,

@@ -1,0 +1,271 @@
+{
+  "1": {
+    "inputs": {
+      "image": "ktm_empty.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "11_INPUT_IMAGE_LATENT"
+    }
+  },
+  "2": {
+    "inputs": {
+      "image": "652707_MY26_KTM 990 RC R_STATIC_STATICS_STATICS copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "13_INPUT_IMAGE_REF"
+    }
+  },
+  "3": {
+    "inputs": {
+      "image": "727723_3PW26000150X_GP PRO R4 GLOVES_Composing copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "14_INPUT_IMAGE_REF"
+    }
+  },
+  "4": {
+    "inputs": {
+      "image": "727719_3PW26000140X_KTM RADIUS V3 1PCS LEATHER SUIT_DETAIL 3 copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "15_INPUT_IMAGE_REF"
+    }
+  },
+  "5": {
+    "inputs": {
+      "image": "727726_3PW26000160X_SUPERTECH R VENT BLK-ORANGE_FRONT copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "16_INPUT_IMAGE_REF"
+    }
+  },
+  "6": {
+    "inputs": {
+      "image": "727721_3PW26000140X_KTM RADIUS V3 1PCS LEATHER SUIT_FRONT copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "17_INPUT_IMAGE_REF"
+    }
+  },
+  "7": {
+    "inputs": {
+      "image": "727717_3PW26000140X_KTM RADIUS V3 1PCS LEATHER SUIT_DETAIL 1 copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "18_INPUT_IMAGE_REF"
+    }
+  },
+  "10": {
+    "inputs": {
+      "images.image0": [
+        "1",
+        0
+      ],
+      "images.image1": [
+        "2",
+        0
+      ],
+      "images.image2": [
+        "3",
+        0
+      ],
+      "images.image3": [
+        "4",
+        0
+      ],
+      "images.image4": [
+        "5",
+        0
+      ],
+      "images.image5": [
+        "6",
+        0
+      ],
+      "images.image6": [
+        "7",
+        0
+      ],
+      "images.image7": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "BatchImagesNode",
+    "_meta": {
+      "title": "Batch Images"
+    }
+  },
+  "11": {
+    "inputs": {
+      "image": "647993_3PW25002690X_KTM S-R10 HELMET_STREET Equipment copy.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "12_INPUT_IMAGE_REF"
+    }
+  },
+  "13": {
+    "inputs": {
+      "value": "ComfyUI"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "DEFAULT_PATH"
+    }
+  },
+  "14": {
+    "inputs": {
+      "value": "HD"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "95_CLIENT_PATH"
+    }
+  },
+  "15": {
+    "inputs": {
+      "value": "Outfit"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "96_PRODUCT_PATH"
+    }
+  },
+  "16": {
+    "inputs": {
+      "value": "Outfitswap_"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "97_FILENAME"
+    }
+  },
+  "20": {
+    "inputs": {
+      "value": "Deployed"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "98_USER"
+    }
+  },
+  "22": {
+    "inputs": {
+      "prompt": [
+        "30",
+        0
+      ],
+      "model": "gemini-3-pro-image-preview",
+      "seed": 562204549747800,
+      "aspect_ratio": "auto",
+      "resolution": "2K",
+      "response_modalities": "IMAGE",
+      "system_prompt": "Status: Completed\nPrice: $0.1445\nTime elapsed: 64s",
+      "images": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "GeminiImage2Node",
+    "_meta": {
+      "title": "Nano Banana Pro (Google Gemini Image)"
+    }
+  },
+  "26": {
+    "inputs": {
+      "filename_prefix": [
+        "29",
+        0
+      ],
+      "meta_name_0": "Seed",
+      "meta_name_1": "Prompt_Pos",
+      "meta_name_2": "Prompt_Neg",
+      "meta_name_3": "Steps",
+      "meta_name_4": "LatentSize",
+      "meta_name_5": "USER",
+      "meta_name_6": "",
+      "meta_name_7": "",
+      "meta_name_8": "",
+      "meta_name_9": "",
+      "images": [
+        "22",
+        0
+      ],
+      "meta_value_5": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "MetaSaver",
+    "_meta": {
+      "title": "99_SAVE_IMAGE_OUTPUT"
+    }
+  },
+  "27": {
+    "inputs": {
+      "string_a": [
+        "13",
+        0
+      ],
+      "string_b": [
+        "14",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "28": {
+    "inputs": {
+      "string_a": [
+        "27",
+        0
+      ],
+      "string_b": [
+        "15",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "29": {
+    "inputs": {
+      "string_a": [
+        "28",
+        0
+      ],
+      "string_b": [
+        "16",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "30": {
+    "inputs": {
+      "value": "Add rider to the Bike, he is wearing a race suit,outfit, helmet, boots and gloves."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "102_POSITIVE_PROMPT_INPUT"
+    }
+  }
+}

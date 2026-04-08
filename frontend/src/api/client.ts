@@ -105,6 +105,7 @@ export async function runOutfitSwapping(params: {
   main_image: string
   ref_images: string[]
   prompt: string
+  positive_prompt: string
   client_path: string
   product_path: string
   filename_prefix: string
