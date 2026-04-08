@@ -104,8 +104,8 @@ def load_upscale_rework(
 # Ref image node IDs in order (titles 12→18_INPUT_IMAGE_REF)
 _OUTFIT_REF_NODES = ["11", "2", "3", "4", "5", "6", "7"]
 
-# Image edit reference image node IDs
-_IMAGE_EDIT_REF_NODES = ["12", "13", "14", "15"]  # 12_INPUT_IMAGE_REFERENCE_01 → 15_INPUT_IMAGE_REFERENCE_04
+# Image edit reference image node IDs (actual IDs in the JSON file)
+_IMAGE_EDIT_REF_NODES = ["61", "62", "63", "68"]  # 12_INPUT_IMAGE_REFERENCE_01 → 15_INPUT_IMAGE_REFERENCE_04
 
 
 def load_outfit_swapping(
@@ -155,15 +155,15 @@ def load_image_edit(
     username: str = "",
 ) -> dict:
     """
-    Patch image_edit_V1_API.json for a single run.
+    Patch image_edit_V2_API.json for a single run.
 
-    image_edit_V1_API.json patch points:
+    image_edit_V2_API.json patch points:
       Node "11"  → inputs.image   : input image (LoadImage)
       Node "36"  → inputs.value   : prompt instruction (05_PROMPT_INSTRUCTION)
-      Node "12"  → inputs.image   : reference image 1 (LoadImage)
-      Node "13"  → inputs.image   : reference image 2 (LoadImage)
-      Node "14"  → inputs.image   : reference image 3 (LoadImage)
-      Node "15"  → inputs.image   : reference image 4 (LoadImage)
+      Node "61"  → inputs.image   : reference image 1 (12_INPUT_IMAGE_REFERENCE_01)
+      Node "62"  → inputs.image   : reference image 2 (13_INPUT_IMAGE_REFERENCE_02)
+      Node "63"  → inputs.image   : reference image 3 (14_INPUT_IMAGE_REFERENCE_03)
+      Node "68"  → inputs.image   : reference image 4 (15_INPUT_IMAGE_REFERENCE_04)
       Node "45"  → inputs.value   : client path  (95_CLIENT_PATH)
       Node "55"  → inputs.value   : product path (96_PRODUCT_PATH)
       Node "56"  → inputs.value   : filename prefix (97_FILENAME)
@@ -171,7 +171,7 @@ def load_image_edit(
       Node "35"  → inputs.seed    : randomised Gemini seed
       Path chain: 40("ComfyUI")/45/55/56 → concat 57→58→59 → MetaSaver 37
     """
-    workflow = copy.deepcopy(_load("image_edit_V1_API"))
+    workflow = copy.deepcopy(_load("image_edit_V2_API"))
 
     # Main image
     workflow["11"]["inputs"]["image"] = filename
