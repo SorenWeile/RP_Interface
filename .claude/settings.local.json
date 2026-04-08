@@ -17,7 +17,11 @@
       "WebFetch(domain:medium.com)",
       "Bash(python3 -c \":*)",
       "Bash(python -c \":*)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k, d[k].get\\('_meta',{}\\).get\\('title',''\\), list\\(d[k]['inputs'].keys\\(\\)\\)[:5]\\) for k in d]\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k, d[k].get\\('_meta',{}\\).get\\('title',''\\), list\\(d[k]['inputs'].keys\\(\\)\\)[:5]\\) for k in d]\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping_V1_API.json'\\)\\); print\\(sorted\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping_V1_API.json'\\)\\); print\\(json.dumps\\(d.get\\('30', 'NOT FOUND'\\), indent=2\\)\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping_V1_API.json'\\)\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping.json'\\)\\); print\\(json.dumps\\(d.get\\('23', 'NOT FOUND'\\), indent=2\\)\\); print\\('All nodes:', sorted\\(d.keys\\(\\)\\)\\)\")"
     ]
   }
 }

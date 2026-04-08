@@ -123,7 +123,7 @@ def load_outfit_swapping(
 
     ref_images: list of up to 7 filenames; only provided slots are patched.
     The remaining ref nodes keep whatever default filename is in the JSON.
-    positive_prompt: optional positive prompt for node 30 (102_POSITIVE_PROMPT_INPUT)
+    Prompt goes to node 30 (102_POSITIVE_PROMPT_INPUT).
     """
     workflow = copy.deepcopy(_load("Outfit_Swapping_V1_API"))
 
@@ -134,8 +134,8 @@ def load_outfit_swapping(
     for node_id, filename in zip(_OUTFIT_REF_NODES, ref_images):
         workflow[node_id]["inputs"]["image"] = filename
 
-    # Prompt
-    workflow["23"]["inputs"]["text"] = prompt
+    # Prompt → node 30 (102_POSITIVE_PROMPT_INPUT)
+    workflow["30"]["inputs"]["value"] = prompt
 
     # Output path nodes — concat chain 13/14/15/16 → nodes 27→28→29 → MetaSaver 26
     workflow["13"]["inputs"]["value"] = "ComfyUI"      # base path (always fixed)
