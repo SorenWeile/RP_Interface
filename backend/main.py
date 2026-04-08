@@ -395,8 +395,7 @@ async def download_batch_zip(batch_id: str):
 class OutfitSwappingParams(BaseModel):
     main_image: str           # 11_INPUT_IMAGE_LATENT
     ref_images: List[str]     # up to 7 reference image filenames
-    prompt: str               # 05_PROMPT_POSITIVE_INSTRUCTION
-    positive_prompt: str = ""  # 102_POSITIVE_PROMPT_INPUT (optional)
+    prompt: str               # 05_PROMPT_POSITIVE_INSTRUCTION (goes to node 30)
     client_path: str          # 95_CLIENT_PATH
     product_path: str         # 96_PRODUCT_PATH
     filename_prefix: str      # 97_FILENAME
