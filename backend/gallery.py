@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -312,6 +312,48 @@ def _generate_thumbnails_bg(paths: list) -> None:
 
 
 # ---------------------------------------------------------------------------
+# PNG metadata stripping
+# ---------------------------------------------------------------------------
+
+def _strip_png_metadata(image_data: bytes) -> bytes:
+    """
+    Strip all metadata (including prompt/workflow) from a PNG image.
+    Returns a new PNG with identical visual content but no metadata.
+    """
+    if not PIL_AVAILABLE:
+        return image_data
+    
+    try:
+        # Open the image from bytes
+        img = Image.open(io.BytesIO(image_data))
+        
+        # Convert to RGB if needed (PNG with alpha → RGB with white background)
+        if img.mode in ('RGBA', 'LA', 'P'):
+            if img.mode == 'P':  # Palette mode
+                img = img.convert('RGBA')
+            # Create white background
+            bg = Image.new('RGB', img.size, (255, 255, 255))
+            # Paste with alpha channel as mask
+            if img.mode == 'RGBA':
+                mask = img.split()[-1]  # Alpha channel
+                bg.paste(img, mask=mask)
+            else:
+                bg.paste(img)
+            img = bg
+        elif img.mode == 'L':  # Grayscale
+            img = img.convert('RGB')
+        
+        # Save to bytes without metadata - create new PNG without pnginfo
+        output = io.BytesIO()
+        img.save(output, format='PNG')
+        return output.getvalue()
+        
+    except Exception as e:
+        print(f"[gallery] Error stripping metadata: {e}")
+        return image_data
+
+
+# ---------------------------------------------------------------------------
 # Metadata / workflow parsing
 # ---------------------------------------------------------------------------
 
@@ -423,6 +465,10 @@ class FavoriteBatchRequest(BaseModel):
     is_favorite: bool
 
 
+class DownloadOptions(BaseModel):
+    strip_metadata: bool = True
+
+
 class DownloadMultipleRequest(BaseModel):
     paths: List[str]
 
@@ -506,15 +552,28 @@ def gallery_serve_thumbnail(filename: str):
 
 
 @router.get("/download/{filename:path}")
-def gallery_download(filename: str):
+def gallery_download(filename: str, strip_metadata: bool = True):
     full = _safe_path(filename)
     if not full or not os.path.exists(full):
         raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(full, filename=os.path.basename(filename))
+    
+    if strip_metadata and filename.lower().endswith('.png'):
+        # Read the original file, strip metadata, serve the cleaned version
+        with open(full, 'rb') as f:
+            original_data = f.read()
+        cleaned_data = _strip_png_metadata(original_data)
+        return StreamingResponse(
+            io.BytesIO(cleaned_data),
+            media_type="image/png",
+            headers={"Content-Disposition": f'attachment; filename="{os.path.basename(filename)}"'}
+        )
+    else:
+        # Serve original file for non-PNG or when metadata stripping is disabled
+        return FileResponse(full, filename=os.path.basename(filename))
 
 
 @router.get("/download-folder/{folder_path:path}")
-def gallery_download_folder(folder_path: str):
+def gallery_download_folder(folder_path: str, strip_metadata: bool = True):
     full = _safe_path(folder_path)
     if not full or not os.path.exists(full):
         raise HTTPException(status_code=404, detail="Folder not found")
@@ -523,7 +582,17 @@ def gallery_download_folder(folder_path: str):
         for root, _dirs, files in os.walk(full):
             for f in files:
                 fp = os.path.join(root, f)
-                zf.write(fp, os.path.relpath(fp, full))
+                rel_path = os.path.relpath(fp, full)
+                
+                if strip_metadata and f.lower().endswith('.png'):
+                    # Strip metadata for PNG files
+                    with open(fp, 'rb') as file:
+                        original_data = file.read()
+                    cleaned_data = _strip_png_metadata(original_data)
+                    zf.writestr(rel_path, cleaned_data)
+                else:
+                    # Add original file for non-PNG or when metadata stripping is disabled
+                    zf.write(fp, rel_path)
     buf.seek(0)
     name = os.path.basename(folder_path) or "output"
     return StreamingResponse(
@@ -534,14 +603,22 @@ def gallery_download_folder(folder_path: str):
 
 
 @router.post("/download-multiple")
-def gallery_download_multiple(req: DownloadMultipleRequest):
+def gallery_download_multiple(req: DownloadMultipleRequest, options: DownloadOptions = Depends()):
     buf = io.BytesIO()
     added = 0
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in req.paths:
             full = _safe_path(path.replace("\\", "/"))
             if full and os.path.exists(full):
-                zf.write(full, os.path.basename(path))
+                if options.strip_metadata and path.lower().endswith('.png'):
+                    # Strip metadata for PNG files
+                    with open(full, 'rb') as f:
+                        original_data = f.read()
+                    cleaned_data = _strip_png_metadata(original_data)
+                    zf.writestr(os.path.basename(path), cleaned_data)
+                else:
+                    # Add original file for non-PNG or when metadata stripping is disabled
+                    zf.write(full, os.path.basename(path))
                 added += 1
     buf.seek(0)
     return StreamingResponse(

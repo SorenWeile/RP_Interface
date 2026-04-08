@@ -372,6 +372,10 @@ async def download_batch_zip(batch_id: str):
                 data = await comfy_client.get_image(
                     img["filename"], img.get("subfolder", ""), img.get("type", "output")
                 )
+                # Strip metadata from PNG files
+                if img["filename"].lower().endswith('.png'):
+                    from backend.gallery import _strip_png_metadata
+                    data = _strip_png_metadata(data)
                 zf.writestr(img["filename"], data)
             except Exception as e:
                 print(f"[download:{batch_id}] WARNING: could not fetch {img['filename']}: {e}")
