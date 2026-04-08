@@ -130,9 +130,24 @@ def load_outfit_swapping(
     # Main subject image
     workflow["1"]["inputs"]["image"] = main_image
 
-    # Reference images — patch only the slots the caller supplied
+    # Reference images — patch only slots the caller supplied; track which node IDs
+    # are actually populated so we can rebuild the BatchImagesNode accurately.
+    populated_ref_nodes: list[str] = []
     for node_id, filename in zip(_OUTFIT_REF_NODES, ref_images):
-        workflow[node_id]["inputs"]["image"] = filename
+        if filename:
+            workflow[node_id]["inputs"]["image"] = filename
+            populated_ref_nodes.append(node_id)
+
+    # Rebuild BatchImagesNode (10) from scratch — only include images we actually have.
+    # The JSON default wires all 8 slots to placeholder filenames; any unpopulated slot
+    # would cause ComfyUI to error with "Invalid image file".
+    batch_inputs = workflow["10"]["inputs"]
+    for key in list(batch_inputs.keys()):
+        if key.startswith("images.image"):
+            del batch_inputs[key]
+    batch_inputs["images.image0"] = ["1", 0]          # main image always first
+    for i, node_id in enumerate(populated_ref_nodes, start=1):
+        batch_inputs[f"images.image{i}"] = [node_id, 0]
 
     # Prompt → node 30 (102_POSITIVE_PROMPT_INPUT)
     workflow["30"]["inputs"]["value"] = prompt
