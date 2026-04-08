@@ -425,7 +425,6 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
             client_path=params.client_path,
             product_path=params.product_path,
             filename_prefix=params.filename_prefix,
-            positive_prompt=params.positive_prompt,
             username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
