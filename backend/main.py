@@ -407,6 +407,15 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
         raise HTTPException(422, "main_image is required")
     if len(params.ref_images) > 7:
         raise HTTPException(422, "At most 7 reference images are supported")
+    
+    # Validate all image filenames
+    all_images = [params.main_image] + params.ref_images
+    for img_filename in all_images:
+        if not img_filename or not isinstance(img_filename, str):
+            raise HTTPException(422, f"Invalid image filename: {img_filename}")
+        if not img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+    
     try:
         client_id = str(uuid.uuid4())
         workflow = load_outfit_swapping(
@@ -422,7 +431,21 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
         print(f"[outfit_swapping] queued → {prompt_id}")
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
+        error_msg = str(e)
         print(f"[outfit_swapping] ERROR: {type(e).__name__}: {e}")
+        
+        # Provide more specific error messages for common issues
+        if "Invalid image file" in error_msg:
+            # Extract filenames from the error message
+            import re
+            invalid_files = re.findall(r'Invalid image file: ([^\']+)', error_msg)
+            if invalid_files:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The following images could not be loaded by ComfyUI. "
+                          f"Please ensure these files were uploaded successfully: {', '.join(invalid_files)}"
+                )
+        
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 

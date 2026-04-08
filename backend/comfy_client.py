@@ -40,14 +40,34 @@ def _ws_uri(client_id: str) -> str:
 
 async def upload_image(image_bytes: bytes, filename: str) -> str:
     """POST image to ComfyUI /upload/image. Returns the filename ComfyUI assigned."""
+    # Determine content type based on file extension
+    content_type = "image/jpeg" if filename.lower().endswith(('.jpg', '.jpeg')) else "image/png"
+    
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{COMFYUI_HTTP}/upload/image",
-            files={"image": (filename, image_bytes, "image/png")},
+            files={"image": (filename, image_bytes, content_type)},
             data={"overwrite": "true"},
             headers=_auth_headers(),
         )
-        response.raise_for_status()
+        if response.status_code != 200:
+            error_detail = f"ComfyUI upload failed for '{filename}': {response.status_code} - {response.text}"
+            print(f"[upload_image] {error_detail}")
+            raise RuntimeError(error_detail)
+        
+        # Parse the response to get the assigned filename
+        try:
+            result = response.json()
+            assigned_name = result.get("name")
+            if not assigned_name:
+                error_detail = f"ComfyUI upload response missing filename: {result}"
+                print(f"[upload_image] {error_detail}")
+                raise RuntimeError(error_detail)
+            return assigned_name
+        except Exception as e:
+            error_detail = f"Failed to parse ComfyUI upload response: {e}"
+            print(f"[upload_image] {error_detail}")
+            raise RuntimeError(error_detail)
         data = response.json()
         return data["name"]
 
