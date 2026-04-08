@@ -177,8 +177,22 @@ def load_image_edit(
     workflow["11"]["inputs"]["image"] = filename
     
     # Reference images — patch only the slots the caller supplied
-    for node_id, ref_filename in zip(_IMAGE_EDIT_REF_NODES, ref_images):
-        workflow[node_id]["inputs"]["image"] = ref_filename
+    # Clear placeholder images for unused slots to avoid validation errors
+    all_ref_nodes = list(zip(_IMAGE_EDIT_REF_NODES, ref_images))
+    
+    for node_id, ref_filename in all_ref_nodes:
+        if ref_filename:
+            # Use the provided reference image
+            workflow[node_id]["inputs"]["image"] = ref_filename
+        else:
+            # Clear the placeholder to avoid "Invalid image file" errors
+            # Set to empty string so the node doesn't try to load a non-existent file
+            workflow[node_id]["inputs"]["image"] = ""
+    
+    # Clear any remaining reference nodes that weren't covered by the input list
+    for i in range(len(all_ref_nodes), len(_IMAGE_EDIT_REF_NODES)):
+        node_id = _IMAGE_EDIT_REF_NODES[i]
+        workflow[node_id]["inputs"]["image"] = ""
     
     # Prompt and paths
     workflow["36"]["inputs"]["value"] = prompt
