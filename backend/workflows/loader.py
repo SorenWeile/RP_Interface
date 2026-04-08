@@ -112,10 +112,10 @@ def load_outfit_swapping(
     main_image: str,
     ref_images: list[str],
     prompt: str,
-    positive_prompt: str = "",
     client_path: str,
     product_path: str,
     filename_prefix: str,
+    positive_prompt: str = "",
     username: str = "",
 ) -> dict:
     """
