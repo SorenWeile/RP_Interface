@@ -230,6 +230,12 @@ export default function OutfitSwapping() {
     setStage({ status: 'idle' })
   }
 
+  const newRun = () => {
+    wsCleanupRef.current?.()
+    wsCleanupRef.current = null
+    setStage({ status: 'idle' })
+  }
+
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   const isBusy    = stage.status === 'submitting' || stage.status === 'running'
@@ -358,7 +364,7 @@ export default function OutfitSwapping() {
               })}
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+          <Button variant="outline" size="sm" onClick={newRun}>New run</Button>
         </div>
       )}
 
