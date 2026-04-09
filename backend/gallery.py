@@ -104,31 +104,36 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
             
             # Check if image path starts with any allowed prefix
             if not allowed_prefixes:
+                print(f"[gallery] Access denied: user has no assigned prefixes")
                 return False
-            
+
             # Normalize path for comparison (case-insensitive)
             norm_path = image_path.replace("\\", "/").lower()
-            
+
             # Debug: Log what we're checking
             print(f"[gallery] Checking access for user {username} to path: {image_path}")
             print(f"[gallery] Normalized path: {norm_path}")
             print(f"[gallery] Allowed prefixes: {allowed_prefixes}")
-            
-            # Also check original prefixes in lowercase for case-insensitive matching
+
+            # First check: does the path match the user's assigned projects?
+            # This determines if the user can even SEE this folder
             lower_prefixes = [p.lower() for p in allowed_prefixes]
-            
+            path_matches_project = False
+
             for prefix, lower_prefix in zip(allowed_prefixes, lower_prefixes):
-                # Check multiple ways:
-                # 1. Exact prefix match (case-sensitive)
-                # 2. Case-insensitive prefix match
-                # 3. Path contains the prefix anywhere
-                if (norm_path.startswith(lower_prefix + "/") or 
+                if (norm_path.startswith(lower_prefix + "/") or
                     norm_path == lower_prefix or
                     lower_prefix in norm_path):
-                    print(f"[gallery] Access granted: path matches {prefix}")
-                    return True
-            
-            # If path checking fails, try to extract metadata to find owner
+                    print(f"[gallery] Path matches user's project: {prefix}")
+                    path_matches_project = True
+                    break
+
+            # If path doesn't match user's projects, deny access immediately
+            if not path_matches_project:
+                print(f"[gallery] Access denied: path not in user's assigned projects")
+                return False
+
+            # Path matches user's project - now check if they created this image
             full_path = _safe_path(image_path)
             if full_path and os.path.exists(full_path) and PIL_AVAILABLE:
                 try:
