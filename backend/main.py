@@ -16,7 +16,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import comfy_client
-from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama, load_image_edit
+from workflows.upscale.upscale import load_upscale
+from workflows.upscale_rework.upscale_rework import load_upscale_rework
+from workflows.outfit_swapping.outfit_swapping import load_outfit_swapping
+from workflows.panorama.panorama import load_panorama
+from workflows.image_edit.image_edit import load_image_edit
 import gallery as gallery_module
 import user_management as user_mgmt_module
 from config import (

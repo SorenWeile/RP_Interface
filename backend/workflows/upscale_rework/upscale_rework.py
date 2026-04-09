@@ -3,9 +3,10 @@ Upscale rework (batch) workflow loader.
 """
 
 import copy
+from pathlib import Path
 from typing import Dict
 
-from .base import _load_workflow, _random_seed
+from ..base import _load_workflow, _random_seed
 
 
 def load_upscale_rework(
@@ -34,7 +35,8 @@ def load_upscale_rework(
     Returns:
         The patched workflow dictionary.
     """
-    workflow = copy.deepcopy(_load_workflow("Upscaler_Batch_V2_API"))
+    workflow_dir = Path(__file__).parent
+    workflow = copy.deepcopy(_load_workflow("Upscaler_Batch_V2_API", workflow_dir))
 
     # Image input
     workflow["18"]["inputs"]["image"] = filename

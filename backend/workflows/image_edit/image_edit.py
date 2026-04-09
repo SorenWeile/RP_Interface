@@ -3,9 +3,10 @@ Image edit workflow loader.
 """
 
 import copy
+from pathlib import Path
 from typing import Dict, List
 
-from .base import _load_workflow, _random_seed
+from ..base import _load_workflow, _random_seed
 
 
 # Image edit reference image node IDs (actual IDs in the JSON file)
@@ -50,7 +51,8 @@ def load_image_edit(
     Returns:
         The patched workflow dictionary.
     """
-    workflow = copy.deepcopy(_load_workflow("image_edit_V3_API"))
+    workflow_dir = Path(__file__).parent
+    workflow = copy.deepcopy(_load_workflow("image_edit_V3_API", workflow_dir))
 
     # Main image
     workflow["11"]["inputs"]["image"] = filename

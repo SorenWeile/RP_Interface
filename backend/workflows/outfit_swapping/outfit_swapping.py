@@ -3,9 +3,10 @@ Outfit swapping workflow loader.
 """
 
 import copy
+from pathlib import Path
 from typing import Dict, List
 
-from .base import _load_workflow
+from ..base import _load_workflow
 
 
 # Ref image node IDs in order (titles 12→18_INPUT_IMAGE_REF)
@@ -41,7 +42,8 @@ def load_outfit_swapping(
     Returns:
         The patched workflow dictionary.
     """
-    workflow = copy.deepcopy(_load_workflow("Outfit_Swapping_V1_API"))
+    workflow_dir = Path(__file__).parent
+    workflow = copy.deepcopy(_load_workflow("Outfit_Swapping_V1_API", workflow_dir))
 
     # Main subject image
     workflow["1"]["inputs"]["image"] = main_image

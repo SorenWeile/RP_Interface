@@ -3,9 +3,10 @@ Panorama outpainting workflow loader.
 """
 
 import copy
+from pathlib import Path
 from typing import Dict
 
-from .base import _load_workflow, _random_seed
+from ..base import _load_workflow, _random_seed
 
 
 def load_panorama(
@@ -45,7 +46,8 @@ def load_panorama(
     Returns:
         The patched workflow dictionary.
     """
-    workflow = copy.deepcopy(_load_workflow("Panorama_Workflow_V5_API"))
+    workflow_dir = Path(__file__).parent
+    workflow = copy.deepcopy(_load_workflow("Panorama_Workflow_V5_API", workflow_dir))
 
     workflow["56"]["inputs"]["state_json"] = state_json
     workflow["6"]["inputs"]["text"] = prompt
