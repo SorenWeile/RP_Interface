@@ -81,14 +81,16 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
             
             # Get user's assigned clients
             clients = conn.execute(
-                "SELECT c.client_id FROM user_clients uc "
+                "SELECT c.id, c.client_id FROM user_clients uc "
                 "JOIN clients c ON c.id = uc.client_id WHERE uc.user_id = ?",
                 (user_id,),
             ).fetchall()
-            
+
             # Build list of allowed path prefixes: "client_id/project_id"
             allowed_prefixes = set()
             client_map = {c["id"]: c["client_id"] for c in clients}
+            print(f"[gallery] Client map: {client_map}")
+            print(f"[gallery] Projects: {[dict(p) for p in projects]}")
             
             for project in projects:
                 client_id = project["client_id"]
