@@ -365,7 +365,8 @@ export default function Gallery() {
           setImages(prev => prev.filter(i => i.path !== img.path))
           setSelectedImages(prev => { const n = new Set(prev); n.delete(img.path); return n })
         } catch (error) {
-          setNotification(error.message)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          setNotification(errorMessage)
           // Auto-dismiss notification after 5 seconds
           if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
           notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
@@ -401,7 +402,8 @@ export default function Gallery() {
           await fetch('/api/gallery/tree/refresh')
           apiTree().then(rawTree => setTree(allowedPaths ? filterTree(rawTree, allowedPaths) : rawTree))
         } catch (error) {
-          setNotification(error.message)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          setNotification(errorMessage)
           // Auto-dismiss notification after 5 seconds
           if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
           notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
@@ -452,7 +454,8 @@ export default function Gallery() {
           setImages(prev => prev.filter(i => !selectedImages.has(i.path)))
           setSelectedImages(new Set())
         } catch (error) {
-          setNotification(error.message)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          setNotification(errorMessage)
           // Auto-dismiss notification after 5 seconds
           if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
           notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
