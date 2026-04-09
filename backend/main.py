@@ -5,6 +5,7 @@ import zipfile
 import datetime
 import asyncio
 import httpx
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -18,6 +19,24 @@ import comfy_client
 from workflows.loader import load_upscale, load_upscale_rework, load_outfit_swapping, load_panorama, load_image_edit
 import gallery as gallery_module
 import user_management as user_mgmt_module
+from config import (
+    UPSCALE_REWORK_MODELS,
+    DEFAULT_PANORAMA_PROMPT,
+    DEFAULT_CLIENT_PATH,
+    DEFAULT_PRODUCT_PATH,
+    DEFAULT_FILENAME_PREFIX,
+    MIN_RUNS_PER_MODEL,
+    MAX_RUNS_PER_MODEL,
+    MIN_BATCH_COUNT,
+    MAX_BATCH_COUNT,
+    COMFYUI_HOST,
+    COMFYUI_TIMEOUT,
+    ALLOWED_IMAGE_EXTENSIONS,
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="ComfyUI Workflow UI")
 app.include_router(gallery_module.router)
@@ -39,29 +58,29 @@ app.add_middleware(
 @app.on_event("startup")
 async def on_startup():
     # ComfyUI reachability check
-    host = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
+    host = os.getenv("COMFYUI_HOST", COMFYUI_HOST)
     url = f"http://{host}"
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.get(url, timeout=3.0)
+            r = await client.get(url, timeout=COMFYUI_TIMEOUT)
             if r.status_code < 500:
-                print(f"[startup] ComfyUI reachable at {url}")
+                logger.info(f"ComfyUI reachable at {url}")
             else:
-                print(f"[startup] WARNING: ComfyUI returned {r.status_code}")
+                logger.warning(f"ComfyUI returned {r.status_code}")
     except Exception as e:
-        print(f"[startup] WARNING: Could not reach ComfyUI at {url}: {e}")
+        logger.warning(f"Could not reach ComfyUI at {url}: {e}")
 
     # Initialise gallery DB
     try:
         gallery_module.init_gallery_db()
     except Exception as e:
-        print(f"[startup] WARNING: Gallery DB init failed: {e}")
+        logger.warning(f"Gallery DB init failed: {e}")
 
     # Initialise user management DB
     try:
         user_mgmt_module.init_user_db()
     except Exception as e:
-        print(f"[startup] WARNING: User DB init failed: {e}")
+        logger.warning(f"User DB init failed: {e}")
 
 
 
@@ -167,16 +186,6 @@ async def run_upscale(params: WorkflowParams):
 
 # ── Upscale Rework — batch creation ───────────────────────────────────────────
 
-UPSCALE_REWORK_MODELS = [
-    "4xUltrasharp_4xUltrasharpV10.pt",
-    "4xLexicaDAT2_otf.pth",
-    "4xRealWebPhoto_v4.pth",
-    "4xPurePhoto-RealPLSKR.pth",
-    "4xRealWebPhoto_v3_atd.pth",
-    "4xNomos8kSCHAT-L.pth",
-]
-
-
 class UpscaleReworkParams(BaseModel):
     filename: str
     models: List[str]           # subset of UPSCALE_REWORK_MODELS
@@ -194,7 +203,7 @@ async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional
         raise HTTPException(422, f"Unknown model(s): {invalid}")
     if not params.models:
         raise HTTPException(422, "Select at least one model")
-    if not 1 <= params.runs_per_model <= 10:
+    if not MIN_RUNS_PER_MODEL <= params.runs_per_model <= MAX_RUNS_PER_MODEL:
         raise HTTPException(422, "runs_per_model must be between 1 and 10")
 
     username = _resolve_username(x_user_token)
@@ -222,10 +231,10 @@ async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional
                     model=model,
                     run_index=run,
                 ))
-                print(f"[batch:{batch_id}] queued {model} run {run} → {prompt_id}")
+                logger.info(f"[batch:{batch_id}] queued {model} run {run} → {prompt_id}")
             except Exception as e:
                 msg = f"{model} run {run}: {type(e).__name__}: {e}"
-                print(f"[batch:{batch_id}] ERROR queuing {msg}")
+                logger.error(f"[batch:{batch_id}] ERROR queuing {msg}")
                 errors.append(msg)
 
     if not jobs:
@@ -338,7 +347,7 @@ async def cancel_batch(batch_id: str):
     to_cancel = [j.prompt_id for j in batch.jobs if j.prompt_id in pending_ids]
     await comfy_client.cancel_queue_items(to_cancel)
 
-    print(f"[batch:{batch_id}] cancelled {len(to_cancel)} pending job(s)")
+    logger.info(f"[batch:{batch_id}] cancelled {len(to_cancel)} pending job(s)")
     return {"batch_id": batch_id, "cancelled": len(to_cancel)}
 
 
@@ -413,7 +422,7 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
     for img_filename in all_images:
         if not img_filename or not isinstance(img_filename, str):
             raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
             raise HTTPException(422, f"Unsupported image format: {img_filename}")
     
     try:
@@ -428,7 +437,7 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
             username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
-        print(f"[outfit_swapping] queued → {prompt_id}")
+        logger.info(f"[outfit_swapping] queued → {prompt_id}")
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
         error_msg = str(e)
@@ -453,10 +462,10 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
 
 class PanoramaParams(BaseModel):
     state_json: str           # full PanoramaStickers editor state from the frontend
-    prompt: str = "Fill the green spaces according to the image. Outpaint as a seamless 360 equirectangular panorama (2:1). Keep the horizon level. Match left and right edges."
-    client_path: str = "HD"          # 95_CLIENT_PATH
-    product_path: str = "Panorama"   # 96_PRODUCT_PATH
-    filename_prefix: str = "Shot001" # 97_FILENAME
+    prompt: str = DEFAULT_PANORAMA_PROMPT
+    client_path: str = DEFAULT_CLIENT_PATH
+    product_path: str = DEFAULT_PRODUCT_PATH
+    filename_prefix: str = DEFAULT_FILENAME_PREFIX
 
 
 @app.post("/api/workflow/panorama")
@@ -474,10 +483,10 @@ async def run_panorama(params: PanoramaParams, x_user_token: Optional[str] = Hea
             username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
-        print(f"[panorama] queued → {prompt_id}")
+        logger.info(f"[panorama] queued → {prompt_id}")
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
-        print(f"[panorama] ERROR: {type(e).__name__}: {e}")
+        logger.error(f"[panorama] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
@@ -506,7 +515,7 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
     for img_filename in all_images:
         if not img_filename or not isinstance(img_filename, str):
             raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
             raise HTTPException(422, f"Unsupported image format: {img_filename}")
     
     try:
@@ -521,11 +530,11 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
             username=_resolve_username(x_user_token),
         )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
-        print(f"[image_edit] queued → {prompt_id}")
+        logger.info(f"[image_edit] queued → {prompt_id}")
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
         error_msg = str(e)
-        print(f"[image_edit] ERROR: {type(e).__name__}: {e}")
+        logger.error(f"[image_edit] ERROR: {type(e).__name__}: {e}")
         
         # Provide more specific error messages for common issues
         if "Invalid image file" in error_msg:
@@ -562,7 +571,7 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
         raise HTTPException(422, "prompt is required")
     if len(params.ref_images) > 4:
         raise HTTPException(422, "At most 4 reference images are supported")
-    if not 1 <= params.count <= 10:
+    if not MIN_BATCH_COUNT <= params.count <= MAX_BATCH_COUNT:
         raise HTTPException(422, "count must be between 1 and 10")
 
     # Validate all image filenames
@@ -599,10 +608,10 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
                 model="image_edit",
                 run_index=run,
             ))
-            print(f"[image_edit_batch:{batch_id}] queued run {run} → {prompt_id}")
+            logger.info(f"[image_edit_batch:{batch_id}] queued run {run} → {prompt_id}")
         except Exception as e:
             msg = f"run {run}: {type(e).__name__}: {e}"
-            print(f"[image_edit_batch:{batch_id}] ERROR: {msg}")
+            logger.error(f"[image_edit_batch:{batch_id}] ERROR: {msg}")
             errors.append(msg)
 
     if not jobs:

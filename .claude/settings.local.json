@@ -21,7 +21,19 @@
       "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping_V1_API.json'\\)\\); print\\(sorted\\(d.keys\\(\\)\\)\\)\")",
       "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping_V1_API.json'\\)\\); print\\(json.dumps\\(d.get\\('30', 'NOT FOUND'\\), indent=2\\)\\)\")",
       "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping_V1_API.json'\\)\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
-      "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping.json'\\)\\); print\\(json.dumps\\(d.get\\('23', 'NOT FOUND'\\), indent=2\\)\\); print\\('All nodes:', sorted\\(d.keys\\(\\)\\)\\)\")"
+      "Bash(python -c \"import json; d=json.load\\(open\\('c:/GitHub_Repos/RP_Interface/backend/workflows/Outfit_Swapping.json'\\)\\); print\\(json.dumps\\(d.get\\('23', 'NOT FOUND'\\), indent=2\\)\\); print\\('All nodes:', sorted\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(ls -la c:/GitHub_Repos/RP_Interface/backend/workflows/*.json)",
+      "Bash(grep -E \"^\\\\s*#.*\\\\{|^\\\\s*//.*\\\\{\" -A 10 c:/GitHub_Repos/RP_Interface/backend/main.py)",
+      "Bash(find c:/GitHub_Repos/RP_Interface/frontend/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec basename {} \\\\;)",
+      "Bash(find c:/GitHub_Repos/RP_Interface/backend -type f -name \"*.py\" -exec basename {} \\\\;)",
+      "Bash(grep -n \"^[[:space:]]*#\\\\|^[[:space:]]*//\" c:/GitHub_Repos/RP_Interface/backend/main.py)",
+      "Bash(grep -n \"^[[:space:]]*#\\\\|^[[:space:]]*//\" c:/GitHub_Repos/RP_Interface/backend/comfy_client.py)",
+      "Bash(ls -la c:/GitHub_Repos/RP_Interface/frontend/src/modules/*/)",
+      "Bash(grep -r \"class_type\\\\|inputs\" c:/GitHub_Repos/RP_Interface/backend/workflows/*.json)",
+      "Bash(ls -1 c:/GitHub_Repos/RP_Interface/backend/workflows/*.json)",
+      "Bash(xargs grep:*)",
+      "Bash(wc -l c:/GitHub_Repos/RP_Interface/backend/workflows/*.json)",
+      "Bash(grep -n \"import re$\" c:/GitHub_Repos/RP_Interface/backend/main.py)"
     ]
   }
 }
