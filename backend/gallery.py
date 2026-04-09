@@ -51,6 +51,17 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
         from user_management import _get_conn
         conn = _get_conn()
         try:
+            # Get user's username
+            username_row = conn.execute(
+                "SELECT username FROM users WHERE id = ?",
+                (user_id,),
+            ).fetchone()
+            
+            if not username_row:
+                return False
+            
+            username = username_row["username"]
+            
             # Get user's assigned projects
             projects = conn.execute(
                 "SELECT p.project_id, p.client_id FROM user_projects up "
@@ -86,11 +97,35 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
             # Normalize path for comparison
             norm_path = image_path.replace("\\", "/")
             
+            # Debug: Log what we're checking
+            print(f"[gallery] Checking access for user {username} to path: {norm_path}")
+            print(f"[gallery] Allowed prefixes: {allowed_prefixes}")
+            
             for prefix in allowed_prefixes:
                 # Check if path starts with prefix (with proper path separators)
                 if norm_path.startswith(prefix + "/") or norm_path == prefix:
+                    print(f"[gallery] Access granted: path starts with {prefix}")
                     return True
             
+            # If path checking fails, try to extract metadata to find owner
+            full_path = _safe_path(image_path)
+            if full_path and os.path.exists(full_path) and PIL_AVAILABLE:
+                try:
+                    meta = _get_image_metadata(full_path)
+                    # Check if this image was created by the current user
+                    workflow = meta.get("workflow", {})
+                    if isinstance(workflow, dict):
+                        # Look for user metadata in workflow
+                        user_field = workflow.get("98_USER", "") or workflow.get("user", "") or workflow.get("username", "")
+                        if user_field and str(user_field).strip():
+                            print(f"[gallery] Image metadata user: {user_field}")
+                            if str(user_field).strip().lower() == username.lower():
+                                print(f"[gallery] Access granted: image belongs to user {username}")
+                                return True
+                except Exception as e:
+                    print(f"[gallery] Error reading metadata for permission check: {e}")
+            
+            print(f"[gallery] Access denied for user {username} to path: {norm_path}")
             return False
             
         finally:
