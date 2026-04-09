@@ -1034,6 +1034,36 @@ def gallery_health():
 @router.get("/debug-permissions")
 def debug_permissions(request: Request):
     """Debug endpoint to check user permissions - for testing only"""
+
+@router.get("/debug-image-metadata/{image_path:path}")
+def debug_image_metadata(image_path: str):
+    """Debug endpoint to read image metadata - for testing only"""
+    full_path = _safe_path(image_path)
+    if not full_path or not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    if not PIL_AVAILABLE:
+        return {"error": "PIL not available"}
+    
+    try:
+        meta = _get_image_metadata(full_path)
+        workflow = meta.get("workflow", {})
+        
+        # Extract user information
+        user_info = {}
+        if isinstance(workflow, dict):
+            for key in ["98_USER", "user", "username"]:
+                if key in workflow:
+                    user_info[key] = workflow[key]
+        
+        return {
+            "path": image_path,
+            "metadata": meta,
+            "user_info": user_info,
+            "workflow_keys": list(workflow.keys()) if isinstance(workflow, dict) else []
+        }
+    except Exception as e:
+        return {"error": str(e)}
     user_id = _get_current_user_id(request)
     if user_id is None:
         return {"user": None, "error": "Not authenticated"}
