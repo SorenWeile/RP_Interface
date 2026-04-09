@@ -32,12 +32,13 @@ router = APIRouter(prefix="/api/gallery", tags=["gallery"])
 # User Permission Helpers
 # ---------------------------------------------------------------------------
 
-def _get_current_user_id(request: Request) -> Optional[int]:
+def _get_current_user_id(x_user_token: Optional[str] = Header(None)) -> Optional[int]:
     """Extract and validate user token from request headers."""
     try:
         from user_management import _validate_user_token
-        token = request.headers.get('X-User-Token', '')
-        return _validate_user_token(token)
+        if x_user_token is None:
+            return None
+        return _validate_user_token(x_user_token)
     except Exception:
         return None
 
@@ -806,9 +807,9 @@ def gallery_get_favorites():
 
 
 @router.delete("/image/{image_path:path}")
-def gallery_delete_image(image_path: str, request: Request):
+def gallery_delete_image(image_path: str, x_user_token: Optional[str] = Header(None)):
     # Check user authentication and permissions
-    user_id = _get_current_user_id(request)
+    user_id = _get_current_user_id(x_user_token)
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -835,9 +836,9 @@ def gallery_delete_image(image_path: str, request: Request):
 
 
 @router.delete("/folder/{folder_path:path}")
-def gallery_delete_folder(folder_path: str, request: Request):
+def gallery_delete_folder(folder_path: str, x_user_token: Optional[str] = Header(None)):
     # Check user authentication and permissions
-    user_id = _get_current_user_id(request)
+    user_id = _get_current_user_id(x_user_token)
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -880,10 +881,10 @@ def gallery_delete_folder(folder_path: str, request: Request):
 
 
 @router.post("/delete-images")
-def gallery_delete_images(req: DeleteImagesRequest, request: Request):
+def gallery_delete_images(req: DeleteImagesRequest, x_user_token: Optional[str] = Header(None)):
     """Batch delete multiple images."""
     # Check user authentication
-    user_id = _get_current_user_id(request)
+    user_id = _get_current_user_id(x_user_token)
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -920,11 +921,11 @@ def gallery_delete_images(req: DeleteImagesRequest, request: Request):
 
 
 @router.post("/move")
-def gallery_move(req: MoveRequest, request: Request):
+def gallery_move(req: MoveRequest, x_user_token: Optional[str] = Header(None)):
     import shutil
     
     # Check user authentication and permissions
-    user_id = _get_current_user_id(request)
+    user_id = _get_current_user_id(x_user_token)
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -979,9 +980,9 @@ def gallery_move(req: MoveRequest, request: Request):
 
 
 @router.post("/rename")
-def gallery_rename(req: RenameRequest, request: Request):
+def gallery_rename(req: RenameRequest, x_user_token: Optional[str] = Header(None)):
     # Check user authentication and permissions
-    user_id = _get_current_user_id(request)
+    user_id = _get_current_user_id(x_user_token)
     if user_id is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -1032,7 +1033,7 @@ def gallery_health():
     return {"status": "healthy", "output_dir": _output_dir(), "db": _DB_FILE}
 
 @router.get("/debug-permissions")
-def debug_permissions(request: Request):
+def debug_permissions(x_user_token: Optional[str] = Header(None)):
     """Debug endpoint to check user permissions - for testing only"""
 
 @router.get("/debug-image-metadata/{image_path:path}")
