@@ -1035,6 +1035,36 @@ def gallery_health():
 @router.get("/debug-permissions")
 def debug_permissions(x_user_token: Optional[str] = Header(None)):
     """Debug endpoint to check user permissions - for testing only"""
+    print(f"[gallery] Debug permissions called with token: {x_user_token}")
+    
+    # Test basic token validation
+    try:
+        from user_management import _validate_user_token
+        if x_user_token is None:
+            print("[gallery] No token provided")
+            return {"user": None, "error": "No token provided"}
+        
+        user_id = _validate_user_token(x_user_token)
+        print(f"[gallery] Token validated, user_id: {user_id}")
+        
+        if user_id is None:
+            print("[gallery] Token validation failed")
+            return {"user": None, "error": "Token validation failed"}
+        
+        # Get username
+        from user_management import _get_conn
+        conn = _get_conn()
+        try:
+            row = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
+            username = row["username"] if row else "unknown"
+            print(f"[gallery] User found: {username}")
+            return {"user_id": user_id, "username": username, "error": None}
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        print(f"[gallery] Debug error: {e}")
+        return {"user": None, "error": str(e)}
 
 @router.get("/debug-image-metadata/{image_path:path}")
 def debug_image_metadata(image_path: str):
