@@ -343,10 +343,33 @@ export default function Gallery() {
     setDeleteConfirm({
       label: `Delete "${img.name}"?`,
       onConfirm: async () => {
+        const token = localStorage.getItem('user_token') ?? ''
         const encoded = img.path.split('/').map(encodeURIComponent).join('/')
-        await fetch(`/api/gallery/image/${encoded}`, { method: 'DELETE' })
-        setImages(prev => prev.filter(i => i.path !== img.path))
-        setSelectedImages(prev => { const n = new Set(prev); n.delete(img.path); return n })
+        
+        try {
+          const response = await fetch(`/api/gallery/image/${encoded}`, {
+            method: 'DELETE',
+            headers: { 'X-User-Token': token }
+          })
+          
+          if (!response.ok) {
+            if (response.status === 403) {
+              throw new Error('You are not authorized to delete this image')
+            } else if (response.status === 401) {
+              throw new Error('Please login to delete images')
+            } else {
+              throw new Error('Failed to delete image')
+            }
+          }
+          
+          setImages(prev => prev.filter(i => i.path !== img.path))
+          setSelectedImages(prev => { const n = new Set(prev); n.delete(img.path); return n })
+        } catch (error) {
+          setNotification(error.message)
+          // Auto-dismiss notification after 5 seconds
+          if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+          notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+        }
       },
     })
   }, [])
@@ -355,11 +378,34 @@ export default function Gallery() {
     setDeleteConfirm({
       label: `Delete folder "${folder.name}" and all its images?`,
       onConfirm: async () => {
+        const token = localStorage.getItem('user_token') ?? ''
         const encoded = folder.path.split('/').map(encodeURIComponent).join('/')
-        await fetch(`/api/gallery/folder/${encoded}`, { method: 'DELETE' })
-        setFolders(prev => prev.filter(f => f.path !== folder.path))
-        await fetch('/api/gallery/tree/refresh')
-        apiTree().then(rawTree => setTree(allowedPaths ? filterTree(rawTree, allowedPaths) : rawTree))
+        
+        try {
+          const response = await fetch(`/api/gallery/folder/${encoded}`, {
+            method: 'DELETE',
+            headers: { 'X-User-Token': token }
+          })
+          
+          if (!response.ok) {
+            if (response.status === 403) {
+              throw new Error('You are not authorized to delete this folder')
+            } else if (response.status === 401) {
+              throw new Error('Please login to delete folders')
+            } else {
+              throw new Error('Failed to delete folder')
+            }
+          }
+          
+          setFolders(prev => prev.filter(f => f.path !== folder.path))
+          await fetch('/api/gallery/tree/refresh')
+          apiTree().then(rawTree => setTree(allowedPaths ? filterTree(rawTree, allowedPaths) : rawTree))
+        } catch (error) {
+          setNotification(error.message)
+          // Auto-dismiss notification after 5 seconds
+          if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+          notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+        }
       },
     })
   }, [allowedPaths])
@@ -370,13 +416,47 @@ export default function Gallery() {
     setDeleteConfirm({
       label: `Delete ${count} selected image${count !== 1 ? 's' : ''}?`,
       onConfirm: async () => {
-        await fetch('/api/gallery/delete-images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paths: Array.from(selectedImages) }),
-        })
-        setImages(prev => prev.filter(i => !selectedImages.has(i.path)))
-        setSelectedImages(new Set())
+        const token = localStorage.getItem('user_token') ?? ''
+        
+        try {
+          const response = await fetch('/api/gallery/delete-images', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'X-User-Token': token 
+            },
+            body: JSON.stringify({ paths: Array.from(selectedImages) }),
+          })
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            if (response.status === 403) {
+              const unauthorizedCount = errorData.unauthorized?.length || 0
+              throw new Error(`Not authorized to delete ${unauthorizedCount} image${unauthorizedCount !== 1 ? 's' : ''}`)
+            } else if (response.status === 401) {
+              throw new Error('Please login to delete images')
+            } else {
+              const errorCount = errorData.errors?.length || 0
+              throw new Error(`Failed to delete ${errorCount} image${errorCount !== 1 ? 's' : ''}`)
+            }
+          }
+          
+          const result = await response.json()
+          if (result.unauthorized && result.unauthorized.length > 0) {
+            // Some images were unauthorized, show warning but still remove authorized ones
+            setNotification(`Deleted ${result.deleted} images, but ${result.unauthorized.length} were not authorized`)
+            if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+            notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+          }
+          
+          setImages(prev => prev.filter(i => !selectedImages.has(i.path)))
+          setSelectedImages(new Set())
+        } catch (error) {
+          setNotification(error.message)
+          // Auto-dismiss notification after 5 seconds
+          if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
+          notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+        }
       },
     })
   }, [selectedImages])

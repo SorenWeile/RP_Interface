@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -27,6 +27,78 @@ except ImportError:
     print("WARNING: Pillow not installed — thumbnails and metadata extraction disabled.")
 
 router = APIRouter(prefix="/api/gallery", tags=["gallery"])
+
+# ---------------------------------------------------------------------------
+# User Permission Helpers
+# ---------------------------------------------------------------------------
+
+def _get_current_user_id(request: Request) -> Optional[int]:
+    """Extract and validate user token from request headers."""
+    try:
+        from user_management import _validate_user_token
+        token = request.headers.get('X-User-Token', '')
+        return _validate_user_token(token)
+    except Exception:
+        return None
+
+
+def _user_has_path_access(user_id: int, image_path: str) -> bool:
+    """Check if user has access to the given image path based on their assigned clients/projects."""
+    if user_id == 0:  # Admin can access everything
+        return True
+    
+    try:
+        from user_management import _get_conn
+        conn = _get_conn()
+        try:
+            # Get user's assigned projects
+            projects = conn.execute(
+                "SELECT p.project_id, p.client_id FROM user_projects up "
+                "JOIN projects p ON p.id = up.project_id WHERE up.user_id = ?",
+                (user_id,),
+            ).fetchall()
+            
+            # Get user's assigned clients
+            clients = conn.execute(
+                "SELECT c.client_id FROM user_clients uc "
+                "JOIN clients c ON c.id = uc.client_id WHERE uc.user_id = ?",
+                (user_id,),
+            ).fetchall()
+            
+            # Build list of allowed path prefixes: "client_id/project_id"
+            allowed_prefixes = set()
+            client_map = {c["id"]: c["client_id"] for c in clients}
+            
+            for project in projects:
+                client_id = project["client_id"]
+                project_id = project["project_id"]
+                if client_id:
+                    client_str = client_map.get(client_id)
+                    if client_str:
+                        allowed_prefixes.add(f"{client_str}/{project_id}")
+                else:
+                    allowed_prefixes.add(project_id)
+            
+            # Check if image path starts with any allowed prefix
+            if not allowed_prefixes:
+                return False
+            
+            # Normalize path for comparison
+            norm_path = image_path.replace("\\", "/")
+            
+            for prefix in allowed_prefixes:
+                # Check if path starts with prefix (with proper path separators)
+                if norm_path.startswith(prefix + "/") or norm_path == prefix:
+                    return True
+            
+            return False
+            
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[gallery] Error checking path access: {e}")
+        return False
+
 
 # ---------------------------------------------------------------------------
 # Config
@@ -690,7 +762,16 @@ def gallery_get_favorites():
 
 
 @router.delete("/image/{image_path:path}")
-def gallery_delete_image(image_path: str):
+def gallery_delete_image(image_path: str, request: Request):
+    # Check user authentication and permissions
+    user_id = _get_current_user_id(request)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Check if user has access to this image path
+    if not _user_has_path_access(user_id, image_path):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this image")
+    
     full = _safe_path(image_path)
     if not full or not os.path.exists(full):
         raise HTTPException(status_code=404, detail="Image not found")
@@ -710,7 +791,16 @@ def gallery_delete_image(image_path: str):
 
 
 @router.delete("/folder/{folder_path:path}")
-def gallery_delete_folder(folder_path: str):
+def gallery_delete_folder(folder_path: str, request: Request):
+    # Check user authentication and permissions
+    user_id = _get_current_user_id(request)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Check if user has access to this folder path
+    if not _user_has_path_access(user_id, folder_path):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this folder")
+    
     full = _safe_path(folder_path)
     if not full or not os.path.exists(full):
         raise HTTPException(status_code=404, detail="Folder not found")
@@ -746,11 +836,23 @@ def gallery_delete_folder(folder_path: str):
 
 
 @router.post("/delete-images")
-def gallery_delete_images(req: DeleteImagesRequest):
+def gallery_delete_images(req: DeleteImagesRequest, request: Request):
     """Batch delete multiple images."""
+    # Check user authentication
+    user_id = _get_current_user_id(request)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
     deleted = []
     errors = []
+    unauthorized = []
+    
     for image_path in req.paths:
+        # Check permissions for each image
+        if not _user_has_path_access(user_id, image_path):
+            unauthorized.append(image_path)
+            continue
+            
         full = _safe_path(image_path)
         if not full or not os.path.exists(full) or not os.path.isfile(full):
             errors.append(image_path)
@@ -764,12 +866,33 @@ def gallery_delete_images(req: DeleteImagesRequest):
                 conn.commit()
         os.remove(full)
         deleted.append(image_path)
-    return {"status": "done", "deleted": len(deleted), "errors": errors}
+    
+    return {
+        "status": "done", 
+        "deleted": len(deleted), 
+        "errors": errors,
+        "unauthorized": unauthorized
+    }
 
 
 @router.post("/move")
-def gallery_move(req: MoveRequest):
+def gallery_move(req: MoveRequest, request: Request):
     import shutil
+    
+    # Check user authentication and permissions
+    user_id = _get_current_user_id(request)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Check permissions for source image
+    if not _user_has_path_access(user_id, req.source_path):
+        raise HTTPException(status_code=403, detail="Not authorized to move this image")
+    
+    # Check permissions for destination folder
+    dest_folder = req.dest_folder if req.dest_folder else ""
+    if not _user_has_path_access(user_id, dest_folder):
+        raise HTTPException(status_code=403, detail="Not authorized to move to this destination")
+    
     src_path = req.source_path.replace("\\", "/")
     src_full = _safe_path(src_path)
     if not src_full or not os.path.exists(src_full) or not os.path.isfile(src_full):
@@ -812,7 +935,16 @@ def gallery_move(req: MoveRequest):
 
 
 @router.post("/rename")
-def gallery_rename(req: RenameRequest):
+def gallery_rename(req: RenameRequest, request: Request):
+    # Check user authentication and permissions
+    user_id = _get_current_user_id(request)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Check permissions for the image
+    if not _user_has_path_access(user_id, req.path):
+        raise HTTPException(status_code=403, detail="Not authorized to rename this image")
+    
     # Sanitise: new_name must be a bare filename with no path separators
     new_name = os.path.basename(req.new_name.strip())
     if not new_name:
