@@ -344,7 +344,7 @@ export default function ImageEdit() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={isBusy}
-          rows={3}
+          rows={6}
           className={cn(
             'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
             'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
