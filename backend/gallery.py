@@ -37,17 +37,24 @@ def _get_current_user_id(x_user_token: Optional[str] = Header(None)) -> Optional
     try:
         from user_management import _validate_user_token
         if x_user_token is None:
+            print("[gallery] No user token provided in headers")
             return None
-        return _validate_user_token(x_user_token)
-    except Exception:
+        user_id = _validate_user_token(x_user_token)
+        print(f"[gallery] Token validation result: user_id={user_id}")
+        return user_id
+    except Exception as e:
+        print(f"[gallery] Error validating token: {e}")
         return None
 
 
 def _user_has_path_access(user_id: int, image_path: str) -> bool:
     """Check if user has access to the given image path based on their assigned clients/projects."""
+    print(f"[gallery] _user_has_path_access called with user_id={user_id}, image_path={image_path}")
+
     if user_id == 0:  # Admin can access everything
+        print(f"[gallery] User is admin, access granted")
         return True
-    
+
     try:
         from user_management import _get_conn
         conn = _get_conn()
@@ -57,11 +64,13 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
                 "SELECT username FROM users WHERE id = ?",
                 (user_id,),
             ).fetchone()
-            
+
             if not username_row:
+                print(f"[gallery] User ID {user_id} not found in database")
                 return False
-            
+
             username = username_row["username"]
+            print(f"[gallery] User identified as: {username}")
             
             # Get user's assigned projects
             projects = conn.execute(
@@ -122,25 +131,41 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
             if full_path and os.path.exists(full_path) and PIL_AVAILABLE:
                 try:
                     meta = _get_image_metadata(full_path)
-                    # Check if this image was created by the current user
-                    workflow = meta.get("workflow", {})
-                    if isinstance(workflow, dict):
-                        # Look for user metadata in workflow nodes
-                        # The workflow is a dict of node_id -> node_data
-                        # We need to find a node with _meta.title == "98_USER"
-                        user_field = None
-                        for node_id, node_data in workflow.items():
-                            if isinstance(node_data, dict):
-                                meta_info = node_data.get("_meta", {})
-                                if isinstance(meta_info, dict) and meta_info.get("title") == "98_USER":
-                                    user_field = node_data.get("inputs", {}).get("value", "")
-                                    break
+                    print(f"[gallery] Checking image metadata for user ownership")
 
-                        if user_field and str(user_field).strip():
-                            print(f"[gallery] Image metadata user: {user_field}")
-                            if str(user_field).strip().lower() == username.lower():
-                                print(f"[gallery] Access granted: image belongs to user {username}")
-                                return True
+                    # Check if this image was created by the current user
+                    # First try custom_metadata (newer format)
+                    user_field = None
+                    parameters = meta.get("parameters", {})
+                    if "custom_metadata" in parameters:
+                        custom_meta_str = parameters["custom_metadata"]
+                        try:
+                            custom_meta = json.loads(custom_meta_str) if isinstance(custom_meta_str, str) else custom_meta_str
+                            if isinstance(custom_meta, dict):
+                                user_field = custom_meta.get("USER", "")
+                                print(f"[gallery] Found USER in custom_metadata: {user_field}")
+                        except Exception as e:
+                            print(f"[gallery] Error parsing custom_metadata: {e}")
+
+                    # Fallback: check workflow nodes for 98_USER (older format)
+                    if not user_field:
+                        workflow = meta.get("workflow", {})
+                        if isinstance(workflow, dict):
+                            for node_id, node_data in workflow.items():
+                                if isinstance(node_data, dict):
+                                    meta_info = node_data.get("_meta", {})
+                                    if isinstance(meta_info, dict) and meta_info.get("title") == "98_USER":
+                                        user_field = node_data.get("inputs", {}).get("value", "")
+                                        print(f"[gallery] Found USER in workflow node: {user_field}")
+                                        break
+
+                    if user_field and str(user_field).strip():
+                        print(f"[gallery] Comparing metadata user '{user_field}' with current user '{username}'")
+                        if str(user_field).strip().lower() == username.lower():
+                            print(f"[gallery] Access granted: image belongs to user {username}")
+                            return True
+                    else:
+                        print(f"[gallery] No user field found in metadata")
                 except Exception as e:
                     print(f"[gallery] Error reading metadata for permission check: {e}")
             
