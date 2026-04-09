@@ -125,8 +125,17 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
                     # Check if this image was created by the current user
                     workflow = meta.get("workflow", {})
                     if isinstance(workflow, dict):
-                        # Look for user metadata in workflow
-                        user_field = workflow.get("98_USER", "") or workflow.get("user", "") or workflow.get("username", "")
+                        # Look for user metadata in workflow nodes
+                        # The workflow is a dict of node_id -> node_data
+                        # We need to find a node with _meta.title == "98_USER"
+                        user_field = None
+                        for node_id, node_data in workflow.items():
+                            if isinstance(node_data, dict):
+                                meta_info = node_data.get("_meta", {})
+                                if isinstance(meta_info, dict) and meta_info.get("title") == "98_USER":
+                                    user_field = node_data.get("inputs", {}).get("value", "")
+                                    break
+
                         if user_field and str(user_field).strip():
                             print(f"[gallery] Image metadata user: {user_field}")
                             if str(user_field).strip().lower() == username.lower():
