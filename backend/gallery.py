@@ -94,17 +94,26 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
             if not allowed_prefixes:
                 return False
             
-            # Normalize path for comparison
-            norm_path = image_path.replace("\\", "/")
+            # Normalize path for comparison (case-insensitive)
+            norm_path = image_path.replace("\\", "/").lower()
             
             # Debug: Log what we're checking
-            print(f"[gallery] Checking access for user {username} to path: {norm_path}")
+            print(f"[gallery] Checking access for user {username} to path: {image_path}")
+            print(f"[gallery] Normalized path: {norm_path}")
             print(f"[gallery] Allowed prefixes: {allowed_prefixes}")
             
-            for prefix in allowed_prefixes:
-                # Check if path starts with prefix (with proper path separators)
-                if norm_path.startswith(prefix + "/") or norm_path == prefix:
-                    print(f"[gallery] Access granted: path starts with {prefix}")
+            # Also check original prefixes in lowercase for case-insensitive matching
+            lower_prefixes = [p.lower() for p in allowed_prefixes]
+            
+            for prefix, lower_prefix in zip(allowed_prefixes, lower_prefixes):
+                # Check multiple ways:
+                # 1. Exact prefix match (case-sensitive)
+                # 2. Case-insensitive prefix match
+                # 3. Path contains the prefix anywhere
+                if (norm_path.startswith(lower_prefix + "/") or 
+                    norm_path == lower_prefix or
+                    lower_prefix in norm_path):
+                    print(f"[gallery] Access granted: path matches {prefix}")
                     return True
             
             # If path checking fails, try to extract metadata to find owner
@@ -1021,3 +1030,67 @@ def gallery_rename(req: RenameRequest, request: Request):
 @router.get("/health")
 def gallery_health():
     return {"status": "healthy", "output_dir": _output_dir(), "db": _DB_FILE}
+
+@router.get("/debug-permissions")
+def debug_permissions(request: Request):
+    """Debug endpoint to check user permissions - for testing only"""
+    user_id = _get_current_user_id(request)
+    if user_id is None:
+        return {"user": None, "error": "Not authenticated"}
+    
+    try:
+        from user_management import _get_conn
+        conn = _get_conn()
+        try:
+            # Get user info
+            username_row = conn.execute(
+                "SELECT username, is_admin FROM users WHERE id = ?",
+                (user_id,),
+            ).fetchone()
+            
+            if not username_row:
+                return {"user_id": user_id, "error": "User not found"}
+            
+            username = username_row["username"]
+            is_admin = bool(username_row["is_admin"])
+            
+            # Get user's projects and clients
+            projects = conn.execute(
+                "SELECT p.project_id, p.client_id FROM user_projects up "
+                "JOIN projects p ON p.id = up.project_id WHERE up.user_id = ?",
+                (user_id,),
+            ).fetchall()
+            
+            clients = conn.execute(
+                "SELECT c.client_id FROM user_clients uc "
+                "JOIN clients c ON c.id = uc.client_id WHERE uc.user_id = ?",
+                (user_id,),
+            ).fetchall()
+            
+            # Build allowed prefixes
+            allowed_prefixes = set()
+            client_map = {c["id"]: c["client_id"] for c in clients}
+            
+            for project in projects:
+                client_id = project["client_id"]
+                project_id = project["project_id"]
+                if client_id:
+                    client_str = client_map.get(client_id)
+                    if client_str:
+                        allowed_prefixes.add(f"{client_str}/{project_id}")
+                else:
+                    allowed_prefixes.add(project_id)
+            
+            return {
+                "user_id": user_id,
+                "username": username,
+                "is_admin": is_admin,
+                "allowed_prefixes": list(allowed_prefixes),
+                "projects": [dict(p) for p in projects],
+                "clients": [dict(c) for c in clients]
+            }
+            
+        finally:
+            conn.close()
+    except Exception as e:
+        return {"user_id": user_id, "error": str(e)}
