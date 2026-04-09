@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
-import DropZone, { type ImageSlot, type UploadState } from '@/components/DropZone'
+import DropZone, { type ImageSlot } from '@/components/DropZone'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
