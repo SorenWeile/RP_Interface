@@ -97,18 +97,18 @@
   },
   "9": {
     "inputs": {
-      "scale_factor": "4x",
+      "scale_factor": "2x",
       "flavor": "photo_denoiser",
       "sharpen": [
-        "14",
+        "17",
         0
       ],
       "smart_grain": [
-        "15",
+        "18",
         0
       ],
       "ultra_detail": [
-        "16",
+        "19",
         0
       ],
       "auto_downscale": false,
@@ -154,36 +154,36 @@
   },
   "12": {
     "inputs": {
-      "image": "ComfyUI_temp_ahlyn_00001_.png"
+      "image": "Shot001_00007_.png"
     },
     "class_type": "LoadImage",
     "_meta": {
       "title": "11_INPUT_IMAGE"
     }
   },
-  "14": {
+  "17": {
     "inputs": {
-      "value": 7
+      "value": 3
     },
-    "class_type": "PrimitiveInt",
+    "class_type": "easy int",
     "_meta": {
       "title": "02_INPUT_SHARPEN"
     }
   },
-  "15": {
+  "18": {
     "inputs": {
-      "value": 7
+      "value": 3
     },
-    "class_type": "PrimitiveInt",
+    "class_type": "easy int",
     "_meta": {
       "title": "03_INPUT_SMART_GRAIN"
     }
   },
-  "16": {
+  "19": {
     "inputs": {
       "value": 30
     },
-    "class_type": "PrimitiveInt",
+    "class_type": "easy int",
     "_meta": {
       "title": "04_INPUT_ULTRA_DETAIL"
     }

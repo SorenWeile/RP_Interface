@@ -13,8 +13,8 @@ _VALID_SCALE_FACTORS = {"2x", "4x", "8x", "16x"}
 
 def load_magnific_upscaler(
     filename: str,
-    sharpen: int = 7,
-    smart_grain: int = 7,
+    sharpen: int = 3,
+    smart_grain: int = 3,
     ultra_detail: int = 30,
     scale_factor: str = "4x",
     client_path: str = "",
@@ -26,9 +26,9 @@ def load_magnific_upscaler(
 
     Magnific_Upscaler_V1_API.json patch points:
       Node "12" → inputs.image         : input image (11_INPUT_IMAGE)
-      Node "14" → inputs.value         : sharpen (02_INPUT_SHARPEN)
-      Node "15" → inputs.value         : smart grain (03_INPUT_SMART_GRAIN)
-      Node "16" → inputs.value         : ultra detail (04_INPUT_ULTRA_DETAIL)
+      Node "17" → inputs.value         : sharpen (02_INPUT_SHARPEN, easy int)
+      Node "18" → inputs.value         : smart grain (03_INPUT_SMART_GRAIN, easy int)
+      Node "19" → inputs.value         : ultra detail (04_INPUT_ULTRA_DETAIL, easy int)
       Node "9"  → inputs.scale_factor  : scale factor (MagnificImageUpscalerPreciseV2Node)
       Node "2"  → inputs.value         : client path (95_CLIENT_PATH)
       Node "4"  → inputs.value         : product path (96_PRODUCT_PATH)
@@ -60,9 +60,9 @@ def load_magnific_upscaler(
     workflow["12"]["inputs"]["image"] = filename
 
     # Magnific parameters
-    workflow["14"]["inputs"]["value"] = int(sharpen)
-    workflow["15"]["inputs"]["value"] = int(smart_grain)
-    workflow["16"]["inputs"]["value"] = int(ultra_detail)
+    workflow["17"]["inputs"]["value"] = int(sharpen)
+    workflow["18"]["inputs"]["value"] = int(smart_grain)
+    workflow["19"]["inputs"]["value"] = int(ultra_detail)
     workflow["9"]["inputs"]["scale_factor"] = scale_factor
 
     # Output path nodes
