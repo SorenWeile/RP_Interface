@@ -1,0 +1,191 @@
+{
+  "1": {
+    "inputs": {
+      "value": "ComfyUI"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "DEFAULT_PATH"
+    }
+  },
+  "2": {
+    "inputs": {
+      "value": "HD"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "95_CLIENT_PATH"
+    }
+  },
+  "3": {
+    "inputs": {
+      "value": "Deployed"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "98_USER"
+    }
+  },
+  "4": {
+    "inputs": {
+      "value": "PanAmerica_RA1250S"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "96_PRODUCT_PATH"
+    }
+  },
+  "5": {
+    "inputs": {
+      "value": "PanAmerica_RA1250S_"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "97_FILENAME"
+    }
+  },
+  "6": {
+    "inputs": {
+      "string_a": [
+        "1",
+        0
+      ],
+      "string_b": [
+        "2",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "7": {
+    "inputs": {
+      "string_a": [
+        "6",
+        0
+      ],
+      "string_b": [
+        "4",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "8": {
+    "inputs": {
+      "string_a": [
+        "7",
+        0
+      ],
+      "string_b": [
+        "5",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "9": {
+    "inputs": {
+      "scale_factor": "4x",
+      "flavor": "photo_denoiser",
+      "sharpen": [
+        "14",
+        0
+      ],
+      "smart_grain": [
+        "15",
+        0
+      ],
+      "ultra_detail": [
+        "16",
+        0
+      ],
+      "auto_downscale": false,
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "MagnificImageUpscalerPreciseV2Node",
+    "_meta": {
+      "title": "Magnific Image Upscale (Precise V2)"
+    }
+  },
+  "11": {
+    "inputs": {
+      "filename_prefix": [
+        "8",
+        0
+      ],
+      "meta_name_0": "Seed",
+      "meta_name_1": "Prompt_Pos",
+      "meta_name_2": "Prompt_Neg",
+      "meta_name_3": "",
+      "meta_name_4": "",
+      "meta_name_5": "USER",
+      "meta_name_6": "",
+      "meta_name_7": "",
+      "meta_name_8": "",
+      "meta_name_9": "",
+      "images": [
+        "9",
+        0
+      ],
+      "meta_value_5": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "MetaSaver",
+    "_meta": {
+      "title": "99_SAVE_IMAGE_OUTPUT"
+    }
+  },
+  "12": {
+    "inputs": {
+      "image": "ComfyUI_temp_ahlyn_00001_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "11_INPUT_IMAGE"
+    }
+  },
+  "14": {
+    "inputs": {
+      "value": 7
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "02_INPUT_SHARPEN"
+    }
+  },
+  "15": {
+    "inputs": {
+      "value": 7
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "03_INPUT_SMART_GRAIN"
+    }
+  },
+  "16": {
+    "inputs": {
+      "value": 30
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "04_INPUT_ULTRA_DETAIL"
+    }
+  }
+}

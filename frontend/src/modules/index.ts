@@ -22,7 +22,7 @@ export interface WorkflowModule {
 // ── Registry ─────────────────────────────────────────────────────────────────
 // Add new modules here. No other files need to change.
 
-import upscalerModule from './upscaler'
+import magnificUpscalerModule from './magnific-upscaler'
 import upscalerReworkModule from './upscaler-rework'
 import outfitSwappingModule from './outfit-swapping'
 import panoramaModule from './panorama'
@@ -39,7 +39,7 @@ export const adminModule: WorkflowModule = adminModuleDefinition
 
 /** Standard workflow tool modules shown in the Workflow Tools section. */
 export const workflowModules: WorkflowModule[] = [
-  upscalerModule,
+  magnificUpscalerModule,
   upscalerReworkModule,
   outfitSwappingModule,
   panoramaModule,

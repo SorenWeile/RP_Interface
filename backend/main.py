@@ -16,8 +16,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import comfy_client
-from workflows.upscale.upscale import load_upscale
 from workflows.upscale_rework.upscale_rework import load_upscale_rework
+from workflows.magnific_upscaler.magnific_upscaler import load_magnific_upscaler
 from workflows.outfit_swapping.outfit_swapping import load_outfit_swapping
 from workflows.panorama.panorama import load_panorama
 from workflows.image_edit.image_edit import load_image_edit
@@ -171,21 +171,45 @@ async def upload(file: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
-# ── Simple upscale (original workflow) ────────────────────────────────────────
+# ── Magnific Upscaler ─────────────────────────────────────────────────────────
 
-class WorkflowParams(BaseModel):
+class MagnificUpscalerParams(BaseModel):
     filename: str
+    sharpen: int = 7
+    smart_grain: int = 7
+    ultra_detail: int = 30
+    scale_factor: str = "4x"   # "2x" | "4x" | "8x" | "16x"
+    client_path: str
+    product_path: str
+    filename_prefix: str
 
 
-@app.post("/api/workflow/upscale")
-async def run_upscale(params: WorkflowParams):
+@app.post("/api/workflow/magnific_upscaler")
+async def run_magnific_upscaler(params: MagnificUpscalerParams, x_user_token: Optional[str] = Header(None)):
+    if not params.filename:
+        raise HTTPException(422, "filename is required")
+    if params.scale_factor not in {"2x", "4x", "8x", "16x"}:
+        raise HTTPException(422, "scale_factor must be one of 2x, 4x, 8x, 16x")
+    if not any(params.filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
+        raise HTTPException(422, f"Unsupported image format: {params.filename}")
     try:
         client_id = str(uuid.uuid4())
-        workflow = load_upscale(params.filename)
+        workflow = load_magnific_upscaler(
+            filename=params.filename,
+            sharpen=params.sharpen,
+            smart_grain=params.smart_grain,
+            ultra_detail=params.ultra_detail,
+            scale_factor=params.scale_factor,
+            client_path=params.client_path,
+            product_path=params.product_path,
+            filename_prefix=params.filename_prefix,
+            username=_resolve_username(x_user_token),
+        )
         prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        logger.info(f"[magnific_upscaler] queued → {prompt_id}")
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
-        print(f"[upscale] ERROR: {type(e).__name__}: {e}")
+        logger.error(f"[magnific_upscaler] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 

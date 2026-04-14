@@ -8,8 +8,8 @@ const authHeader = (token: string) => ({ 'X-Admin-Token': token, 'Content-Type':
 
 const ALL_MODULES: { id: string; label: string }[] = [
   { id: 'gallery',          label: 'Gallery' },
-  { id: 'upscaler',         label: 'Upscaler' },
-  { id: 'upscaler-rework',  label: 'Batch Upscaler' },
+  { id: 'magnific-upscaler', label: 'Magnific Upscaler' },
+  { id: 'upscaler-rework',   label: 'Batch Upscaler' },
   { id: 'outfit-swapping',  label: 'Outfit Swapping' },
   { id: 'panorama',         label: 'Panorama Outpainting' },
   { id: 'image-edit',       label: 'Image Edit' },

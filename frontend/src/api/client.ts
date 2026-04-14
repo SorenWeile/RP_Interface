@@ -10,17 +10,28 @@ export async function uploadImage(file: File): Promise<{ filename: string }> {
   return res.json()
 }
 
-// ── Workflow ──────────────────────────────────────────────────────────────
+// ── Magnific Upscaler ─────────────────────────────────────────────────────
 
-export async function runUpscale(
-  filename: string,
-): Promise<{ prompt_id: string; client_id: string }> {
-  const res = await fetch(`${BASE}/api/workflow/upscale`, {
+export async function runMagnificUpscaler(params: {
+  filename: string
+  sharpen: number
+  smart_grain: number
+  ultra_detail: number
+  scale_factor: string
+  client_path: string
+  product_path: string
+  filename_prefix: string
+}): Promise<{ prompt_id: string; client_id: string }> {
+  const token = localStorage.getItem('user_token') ?? ''
+  const res = await fetch(`${BASE}/api/workflow/magnific_upscaler`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename }),
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
+    body: JSON.stringify(params),
   })
-  if (!res.ok) throw new Error(`Workflow failed: ${res.statusText}`)
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
   return res.json()
 }
 
