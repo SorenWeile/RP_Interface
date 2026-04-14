@@ -388,7 +388,7 @@ async def download_batch_zip(batch_id: str):
                 )
                 # Strip metadata from PNG files
                 if img["filename"].lower().endswith('.png'):
-                    from backend.gallery import _strip_png_metadata
+                    from gallery import _strip_png_metadata
                     data = _strip_png_metadata(data)
                 zf.writestr(img["filename"], data)
             except Exception as e:
