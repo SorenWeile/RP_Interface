@@ -21,6 +21,7 @@ from workflows.upscale_rework.upscale_rework import load_upscale_rework
 from workflows.outfit_swapping.outfit_swapping import load_outfit_swapping
 from workflows.panorama.panorama import load_panorama
 from workflows.image_edit.image_edit import load_image_edit
+from workflows.image_prompting.image_prompting import load_image_prompting
 import gallery as gallery_module
 import user_management as user_mgmt_module
 from config import (
@@ -624,6 +625,120 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
     _batches[batch_id] = Batch(
         id=batch_id,
         filename=params.filename,
+        client_path=params.client_path,
+        product_path=params.product_path,
+        filename_prefix=params.filename_prefix,
+        runs_per_model=params.count,
+        jobs=jobs,
+        created_at=datetime.datetime.utcnow().isoformat() + "Z",
+    )
+
+    return {"batch_id": batch_id, "total": len(jobs), "queuing_errors": errors}
+
+
+# ── Image Prompting ───────────────────────────────────────────────────────────
+
+class ImagePromptingParams(BaseModel):
+    ref_images: List[str]        # up to 4 reference image filenames
+    prompt: str                  # 05_PROMPT_INSTRUCTION
+    client_path: str             # 95_CLIENT_PATH
+    product_path: str            # 96_PRODUCT_PATH
+    filename_prefix: str         # 97_FILENAME
+
+
+@app.post("/api/workflow/image_prompting")
+async def run_image_prompting(params: ImagePromptingParams, x_user_token: Optional[str] = Header(None)):
+    if not params.prompt:
+        raise HTTPException(422, "prompt is required")
+    if len(params.ref_images) > 4:
+        raise HTTPException(422, "At most 4 reference images are supported")
+
+    for img_filename in params.ref_images:
+        if not img_filename or not isinstance(img_filename, str):
+            raise HTTPException(422, f"Invalid image filename: {img_filename}")
+        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
+            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+
+    try:
+        client_id = str(uuid.uuid4())
+        workflow = load_image_prompting(
+            ref_images=params.ref_images,
+            prompt=params.prompt,
+            client_path=params.client_path,
+            product_path=params.product_path,
+            filename_prefix=params.filename_prefix,
+            username=_resolve_username(x_user_token),
+        )
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        logger.info(f"[image_prompting] queued → {prompt_id}")
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except Exception as e:
+        logger.error(f"[image_prompting] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
+
+
+# ── Image Prompting — batch ───────────────────────────────────────────────────
+
+class ImagePromptingBatchParams(BaseModel):
+    ref_images: List[str]        # up to 4 reference image filenames
+    prompt: str                  # 05_PROMPT_INSTRUCTION
+    count: int = 1               # 1–10 runs
+    client_path: str
+    product_path: str
+    filename_prefix: str
+
+
+@app.post("/api/workflow/image_prompting/batch")
+async def run_image_prompting_batch(params: ImagePromptingBatchParams, x_user_token: Optional[str] = Header(None)):
+    if not params.prompt:
+        raise HTTPException(422, "prompt is required")
+    if len(params.ref_images) > 4:
+        raise HTTPException(422, "At most 4 reference images are supported")
+    if not MIN_BATCH_COUNT <= params.count <= MAX_BATCH_COUNT:
+        raise HTTPException(422, "count must be between 1 and 10")
+
+    for img_filename in params.ref_images:
+        if not img_filename or not isinstance(img_filename, str):
+            raise HTTPException(422, f"Invalid image filename: {img_filename}")
+        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
+            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+
+    username = _resolve_username(x_user_token)
+    batch_id = str(uuid.uuid4())
+    jobs: List[BatchJob] = []
+    errors: List[str] = []
+
+    for run in range(1, params.count + 1):
+        try:
+            client_id = str(uuid.uuid4())
+            prefix = f"{params.filename_prefix}_r{run:02d}_" if params.count > 1 else params.filename_prefix
+            workflow = load_image_prompting(
+                ref_images=params.ref_images,
+                prompt=params.prompt,
+                client_path=params.client_path,
+                product_path=params.product_path,
+                filename_prefix=prefix,
+                username=username,
+            )
+            prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+            jobs.append(BatchJob(
+                prompt_id=prompt_id,
+                client_id=client_id,
+                model="image_prompting",
+                run_index=run,
+            ))
+            logger.info(f"[image_prompting_batch:{batch_id}] queued run {run} → {prompt_id}")
+        except Exception as e:
+            msg = f"run {run}: {type(e).__name__}: {e}"
+            logger.error(f"[image_prompting_batch:{batch_id}] ERROR: {msg}")
+            errors.append(msg)
+
+    if not jobs:
+        raise HTTPException(422, f"All jobs failed to queue: {errors}")
+
+    _batches[batch_id] = Batch(
+        id=batch_id,
+        filename=params.filename_prefix,
         client_path=params.client_path,
         product_path=params.product_path,
         filename_prefix=params.filename_prefix,

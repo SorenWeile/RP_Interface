@@ -1,0 +1,243 @@
+{
+  "31": {
+    "inputs": {
+      "prompt": [
+        "666",
+        0
+      ],
+      "model": "gemini-3-pro-image-preview",
+      "seed": 915282770715116,
+      "aspect_ratio": "16:9",
+      "resolution": "2K",
+      "response_modalities": "IMAGE",
+      "system_prompt": "Status: Completed\nPrice: $0.1445\nTime elapsed: 64s",
+      "images": [
+        "669",
+        0
+      ]
+    },
+    "class_type": "GeminiImage2Node",
+    "_meta": {
+      "title": "Nano Banana Pro (Google Gemini Image)"
+    }
+  },
+  "648": {
+    "inputs": {
+      "filename_prefix": [
+        "675",
+        0
+      ],
+      "meta_name_0": "Seed",
+      "meta_name_1": "Prompt_Pos",
+      "meta_name_2": "Prompt_Neg",
+      "meta_name_3": "",
+      "meta_name_4": "",
+      "meta_name_5": "USER",
+      "meta_name_6": "",
+      "meta_name_7": "",
+      "meta_name_8": "",
+      "meta_name_9": "",
+      "images": [
+        "651",
+        0
+      ],
+      "meta_value_1": [
+        "666",
+        0
+      ],
+      "meta_value_5": [
+        "658",
+        0
+      ]
+    },
+    "class_type": "MetaSaver",
+    "_meta": {
+      "title": "99_SAVE_IMAGE_OUTPUT"
+    }
+  },
+  "651": {
+    "inputs": {
+      "width": 2752,
+      "height": 1548,
+      "upscale_method": "nearest-exact",
+      "keep_proportion": "pad_edge",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "gpu",
+      "image": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "655": {
+    "inputs": {
+      "value": "PanAmerica_RA1250S_"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "97_FILENAME"
+    }
+  },
+  "656": {
+    "inputs": {
+      "value": "Deployed/HD"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "95_CLIENT_PATH"
+    }
+  },
+  "657": {
+    "inputs": {
+      "value": "PanAmerica_RA1250S"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "96_PRODUCT_PATH"
+    }
+  },
+  "658": {
+    "inputs": {
+      "value": "Deployed"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "98_USER"
+    }
+  },
+  "660": {
+    "inputs": {
+      "value": "ComfyUI"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "DEFAULT_PATH"
+    }
+  },
+  "666": {
+    "inputs": {
+      "value": "Harley Davidson 2026 Road Glide in Thunder Teal + Black, wide hero three quarter-profile shot, dynamic cruising with single rider, centered.Keep T2026 Road Glide features exactly the same as the reference images. Images 1-4 are the same product and preserve all product details exactly.\n\n\n\nLocation: Two-lane desert highway segment on the Oatman Highway corridor between Kingman and Oatman in the Mojave Desert of Arizona, United States. Roadway infrastructure includes asphalt lanes with a double-yellow centerline, white edge lines, steel W-beam guardrails at bends, and a shallow cut through low volcanic rock slopes. Ground surface is clean tarmac with a narrow gravel shoulder and compacted sand beyond the pavement edge. Background depth shows stepped ridgelines, isolated buttes and mesas, and a sparse run of wooden utility poles tracking the road alignment with clear separation between planes.Camera: A 35mm lens at f/5.6 is placed very low to the road surface, angled slightly upward to preserve a dominant side profile while keeping the horizon line stable. The camera tracks parallel to the motorcycle’s direction of travel, holding the full bike and rider in frame with mild perspective emphasis on the nearer wheel. Focus is set on the tank-to-fairing area and rider torso, with depth of field retaining legibility in both wheels and the nearest lane markings.Shot Type: Wide side-profile hero framing with the motorcycle and rider centered as a single readable silhouette, occupying the middle band of the frame with clear air around mirrors and bars. The fairing, hard saddlebags, alloy wheels, and exhaust run remain unobstructed; the rider sits upright in full-face helmet and black protective gear with a stable, forward-looking posture.Lighting: Golden-hour sun sits behind the subject, producing a warm rim line along the fairing edges, tank crown, windscreen perimeter, and helmet contour. The backlight creates tight specular hits on chrome and polished metal while leaving the front faces in controlled shadow with gentle fill. Shadows project forward along the lane surface, clean-edged near the tires and softer at distance.Composition: Leading-line diagonal profile uses the highway centerline and road edges to run from lower-left toward upper-right, converging behind the bike to reinforce travel direction. Visual weight concentrates in the fairing and saddlebag mass near center, with reserved negative space in the upper-left for clean sky and copy. Depth is staged as foreground lane markings, midground motorcycle-and-rider, and background mesas and utility poles with minimal overlap.Color Palette: Dusty warm–teal complementary scheme, with tan and amber earth tones set against muted teal-blue shadows and steel-blue distance. The motorcycle reads as deep charcoal and gloss black with chrome highlights, separated from the environment by warm edge accents and cooler shadow fill. Small accents include off-white road paint, desaturated red-and-white Route 66 graphics, and dark graphite rubber.Mood: Controlled drama with high subject clarity and low scene noise. Visual energy is high but regulated by stable geometry, readable materials, and contained motion cues. The frame is intended to present speed and presence without visual chaos.Props: A single Route 66 marker sign with weathered enamel face on a galvanized steel post is placed back from the shoulder, positioned peripheral behind the motorcycle’s rear half. No additional props are present near the roadway edge or in the travel lane. No other vehicles, no pedestrians, no loose riding gear, and no extra signage.Physically accurate lighting, realistic color balance, no cinematic styling."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "05_PROMPT_INSTRUCTION"
+    }
+  },
+  "667": {
+    "inputs": {
+      "image": "2026-road-glide-m79-motorcycle-01.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "11_INPUT_IMAGE_LATENT"
+    }
+  },
+  "669": {
+    "inputs": {
+      "images.image0": [
+        "667",
+        0
+      ],
+      "images.image1": [
+        "670",
+        0
+      ],
+      "images.image2": [
+        "671",
+        0
+      ],
+      "images.image3": [
+        "672",
+        0
+      ]
+    },
+    "class_type": "BatchImagesNode",
+    "_meta": {
+      "title": "Batch Images"
+    }
+  },
+  "670": {
+    "inputs": {
+      "image": "2026-road-glide-m79-motorcycle-07.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "12_INPUT_IMAGE_LATENT"
+    }
+  },
+  "671": {
+    "inputs": {
+      "image": "2026-road-glide-m79-motorcycle-19.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "13_INPUT_IMAGE_LATENT"
+    }
+  },
+  "672": {
+    "inputs": {
+      "image": "2026-road-glide-m79-motorcycle-25.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "14_INPUT_IMAGE_LATENT"
+    }
+  },
+  "673": {
+    "inputs": {
+      "string_a": [
+        "660",
+        0
+      ],
+      "string_b": [
+        "656",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "674": {
+    "inputs": {
+      "string_a": [
+        "673",
+        0
+      ],
+      "string_b": [
+        "657",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "675": {
+    "inputs": {
+      "string_a": [
+        "674",
+        0
+      ],
+      "string_b": [
+        "655",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  }
+}

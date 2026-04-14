@@ -13,6 +13,7 @@ const ALL_MODULES: { id: string; label: string }[] = [
   { id: 'outfit-swapping',  label: 'Outfit Swapping' },
   { id: 'panorama',         label: 'Panorama Outpainting' },
   { id: 'image-edit',       label: 'Image Edit' },
+  { id: 'image-prompting',  label: 'Image Prompting' },
 ]
 
 // ---------------------------------------------------------------------------

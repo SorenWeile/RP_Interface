@@ -27,6 +27,7 @@ import upscalerReworkModule from './upscaler-rework'
 import outfitSwappingModule from './outfit-swapping'
 import panoramaModule from './panorama'
 import imageEditModule from './image-edit'
+import imagePromptingModule from './image-prompting'
 import galleryModuleDefinition from './gallery'
 import adminModuleDefinition from './admin'
 
@@ -43,6 +44,7 @@ export const workflowModules: WorkflowModule[] = [
   outfitSwappingModule,
   panoramaModule,
   imageEditModule,
+  imagePromptingModule,
 ]
 
 /** All modules combined (used by AppSidebar for navigation). */

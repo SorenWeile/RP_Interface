@@ -8,6 +8,7 @@ from .upscale_rework.upscale_rework import load_upscale_rework
 from .outfit_swapping.outfit_swapping import load_outfit_swapping
 from .image_edit.image_edit import load_image_edit
 from .panorama.panorama import load_panorama
+from .image_prompting.image_prompting import load_image_prompting
 
 __all__ = [
     "load_upscale",
@@ -15,4 +16,5 @@ __all__ = [
     "load_outfit_swapping",
     "load_image_edit",
     "load_panorama",
+    "load_image_prompting",
 ]

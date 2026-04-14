@@ -190,6 +190,29 @@ export async function createImageEditBatch(params: {
   return res.json()
 }
 
+// ── Image Prompting ───────────────────────────────────────────────────────────
+
+export async function createImagePromptingBatch(params: {
+  ref_images: string[]
+  prompt: string
+  count: number
+  client_path: string
+  product_path: string
+  filename_prefix: string
+}): Promise<{ batch_id: string; total: number }> {
+  const token = localStorage.getItem('user_token') ?? ''
+  const res = await fetch(`${BASE}/api/workflow/image_prompting/batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────
 
 export type ProgressEvent =
