@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react'
-import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch, Pencil } from 'lucide-react'
+import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch, Pencil, Film } from 'lucide-react'
+
+const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
+function isVideoFile(name: string): boolean {
+  const lower = name.toLowerCase()
+  return VIDEO_EXTS.some(ext => lower.endsWith(ext))
+}
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
@@ -256,13 +262,21 @@ export default function GridView({
                   isSelected ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-border'
                 )}
               >
-                <img
-                  src={`/api/gallery/thumbnail/${encodePath(img.path)}`}
-                  alt={img.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  draggable={false}
-                />
+                {isVideoFile(img.name) ? (
+                  <div className="w-full h-full bg-black/60 flex flex-col items-center justify-center gap-1.5 text-white/70">
+                    <Film className="w-8 h-8" />
+                    <span className="text-[10px] px-2 text-center line-clamp-2 break-all">{img.name}</span>
+                    <span className="text-[9px] bg-black/70 px-1.5 py-0.5 rounded uppercase tracking-wide">video</span>
+                  </div>
+                ) : (
+                  <img
+                    src={`/api/gallery/thumbnail/${encodePath(img.path)}`}
+                    alt={img.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                )}
 
                 {/* Checkbox overlay */}
                 <div

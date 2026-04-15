@@ -1,5 +1,5 @@
 """
-Configuration file for the ComfyUI Workflow UI.
+Configuration file for the AI Toolhouse.
 Centralizes hardcoded values and settings for better maintainability.
 """
 

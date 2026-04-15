@@ -203,8 +203,12 @@ export default function Gallery() {
             : rawImages
           setFolders(filteredFolders)
           setImages(filteredImages)
-          if (filteredImages.length) {
-            apiGenerateThumbnails(filteredImages.map(i => i.path))
+          const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
+          const thumbnailable = filteredImages.filter(
+            i => !VIDEO_EXTS.some(ext => i.name.toLowerCase().endsWith(ext))
+          )
+          if (thumbnailable.length) {
+            apiGenerateThumbnails(thumbnailable.map(i => i.path))
           }
         }
         setSelectedIndex(0)

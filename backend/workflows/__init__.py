@@ -9,6 +9,7 @@ from .image_edit.image_edit import load_image_edit
 from .panorama.panorama import load_panorama
 from .image_prompting.image_prompting import load_image_prompting
 from .magnific_upscaler.magnific_upscaler import load_magnific_upscaler
+from .video_creation.video_creation import load_video_creation
 
 __all__ = [
     "load_upscale_rework",
@@ -17,4 +18,5 @@ __all__ = [
     "load_panorama",
     "load_image_prompting",
     "load_magnific_upscaler",
+    "load_video_creation",
 ]

@@ -58,7 +58,7 @@ export default function LoginPage({ onLogin }: Props) {
           <div className="w-3 h-3 rounded-full bg-primary" />
           <div className="text-center">
             <h1 className="text-foreground text-lg font-medium tracking-widest uppercase">
-              ComfyUI Workflow UI
+              AI Toolhouse
             </h1>
             <p className="text-muted-foreground text-sm mt-2">Sign in to continue</p>
           </div>

@@ -22,6 +22,7 @@ from workflows.outfit_swapping.outfit_swapping import load_outfit_swapping
 from workflows.panorama.panorama import load_panorama
 from workflows.image_edit.image_edit import load_image_edit
 from workflows.image_prompting.image_prompting import load_image_prompting
+from workflows.video_creation.video_creation import load_video_creation, MIN_LENGTH, MAX_LENGTH
 import gallery as gallery_module
 import user_management as user_mgmt_module
 from config import (
@@ -43,7 +44,7 @@ from config import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="ComfyUI Workflow UI")
+app = FastAPI(title="AI Toolhouse")
 app.include_router(gallery_module.router)
 app.include_router(user_mgmt_module.router)
 app.include_router(user_mgmt_module.auth_router)
@@ -774,6 +775,53 @@ async def run_image_prompting_batch(params: ImagePromptingBatchParams, x_user_to
     return {"batch_id": batch_id, "total": len(jobs), "queuing_errors": errors}
 
 
+# ── Video Creation ────────────────────────────────────────────────────────────
+
+class VideoCreationParams(BaseModel):
+    first_frame: str          # 11_INPUT_IMAGE_LATENT - First Frame
+    last_frame: str           # 12_INPUT_IMAGE_LATENT - Last Frame
+    prompt: str               # 05_PROMPT_INSTRUCTION
+    length: int = 121         # frame count (25–125)
+    client_path: str
+    product_path: str
+    filename_prefix: str
+
+
+@app.post("/api/workflow/video_creation")
+async def run_video_creation(params: VideoCreationParams, x_user_token: Optional[str] = Header(None)):
+    if not params.first_frame:
+        raise HTTPException(422, "first_frame is required")
+    if not params.last_frame:
+        raise HTTPException(422, "last_frame is required")
+    if not params.prompt:
+        raise HTTPException(422, "prompt is required")
+    if not MIN_LENGTH <= params.length <= MAX_LENGTH:
+        raise HTTPException(422, f"length must be between {MIN_LENGTH} and {MAX_LENGTH}")
+
+    for img_filename in [params.first_frame, params.last_frame]:
+        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
+            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+
+    try:
+        client_id = str(uuid.uuid4())
+        workflow = load_video_creation(
+            first_frame=params.first_frame,
+            last_frame=params.last_frame,
+            prompt=params.prompt,
+            length=params.length,
+            client_path=params.client_path,
+            product_path=params.product_path,
+            filename_prefix=params.filename_prefix,
+            username=_resolve_username(x_user_token),
+        )
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        logger.info(f"[video_creation] queued → {prompt_id}")
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except Exception as e:
+        logger.error(f"[video_creation] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
+
+
 # ── Machine monitor ───────────────────────────────────────────────────────────
 
 @app.get("/api/monitor/stats")
@@ -842,10 +890,15 @@ async def get_status(prompt_id: str):
 
     outputs = entry.get("outputs", {})
     images = []
+    videos = []
     for node_output in outputs.values():
         for img in node_output.get("images", []):
             if img.get("type") == "output":  # exclude PreviewImage temp outputs
                 images.append(img)
+        # Video outputs are stored under "gifs" by ComfyUI video savers
+        for vid in node_output.get("gifs", []):
+            if vid.get("type") == "output":
+                videos.append(vid)
 
     status = entry.get("status", {})
     completed = status.get("completed", False)
@@ -854,7 +907,7 @@ async def get_status(prompt_id: str):
     if error:
         return {"status": "error"}
     if completed:
-        return {"status": "done", "images": images}
+        return {"status": "done", "images": images, "videos": videos}
     return {"status": "processing"}
 
 
@@ -863,6 +916,15 @@ async def proxy_image(filename: str, subfolder: str = "", type: str = "output"):
     from fastapi.responses import Response
     data = await comfy_client.get_image(filename, subfolder, type)
     return Response(content=data, media_type="image/png")
+
+
+@app.get("/api/video")
+async def proxy_video(filename: str, subfolder: str = "", type: str = "output"):
+    from fastapi.responses import Response
+    data = await comfy_client.get_image(filename, subfolder, type)
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    media_type = {"mp4": "video/mp4", "webm": "video/webm", "gif": "image/gif"}.get(ext, "video/mp4")
+    return Response(content=data, media_type=media_type)
 
 
 # ---------------------------------------------------------------------------

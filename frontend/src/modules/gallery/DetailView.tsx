@@ -1,8 +1,14 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch, Pencil, Film } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
+
+const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
+function isVideoFile(name: string): boolean {
+  const lower = name.toLowerCase()
+  return VIDEO_EXTS.some(ext => lower.endsWith(ext))
+}
 
 async function fetchMetadataForCopy(path: string) {
   const encoded = path.split('/').map(encodeURIComponent).join('/')
@@ -47,6 +53,7 @@ export default function DetailView({
   onRenameImage,
 }: Props) {
   const selectedImage = images[selectedIndex] ?? null
+  const isVideo = selectedImage ? isVideoFile(selectedImage.name) : false
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
   const openImageMenu = (e: React.MouseEvent, img: GalleryImage) => {
@@ -210,15 +217,18 @@ export default function DetailView({
         </div>
       )}
 
-      {/* Image viewer */}
+      {/* Image / video viewer */}
       <div
         ref={viewerRef}
-        className="flex-1 relative overflow-hidden bg-black/20 cursor-grab active:cursor-grabbing select-none"
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        className={cn(
+          'flex-1 relative overflow-hidden bg-black/20 select-none',
+          !isVideo && 'cursor-grab active:cursor-grabbing',
+        )}
+        onWheel={isVideo ? undefined : handleWheel}
+        onPointerDown={isVideo ? undefined : handlePointerDown}
+        onPointerMove={isVideo ? undefined : handlePointerMove}
+        onPointerUp={isVideo ? undefined : handlePointerUp}
+        onPointerLeave={isVideo ? undefined : handlePointerUp}
       >
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -226,7 +236,8 @@ export default function DetailView({
           </div>
         )}
 
-        {!loading && selectedImage && (
+        {/* Image viewer */}
+        {!loading && selectedImage && !isVideo && (
           <div
             className="absolute inset-0 flex items-center justify-center pointer-events-none"
             style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
@@ -241,13 +252,26 @@ export default function DetailView({
           </div>
         )}
 
-        {!loading && !selectedImage && !loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-            {totalItems === 0 ? 'No images in this folder' : 'Select an image'}
+        {/* Video viewer */}
+        {!loading && selectedImage && isVideo && (
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <video
+              key={selectedImage.path}
+              src={`/api/gallery/image/${encodePath(selectedImage.path)}`}
+              controls
+              className="max-w-full max-h-full rounded"
+              style={{ maxHeight: '100%' }}
+            />
           </div>
         )}
 
-        {/* Zoom controls overlay */}
+        {!loading && !selectedImage && (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+            {totalItems === 0 ? 'No items in this folder' : 'Select an item'}
+          </div>
+        )}
+
+        {/* Controls overlay */}
         {selectedImage && (
           <div className="absolute top-3 right-3 flex flex-col gap-1.5">
             <button
@@ -260,27 +284,31 @@ export default function DetailView({
             >
               <Star className="w-4 h-4" fill={selectedImage.is_favorite ? 'currentColor' : 'none'} />
             </button>
-            <button
-              onClick={() => setScale(s => Math.min(10, s * 1.25))}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
-              title="Zoom in"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setScale(s => Math.max(0.1, s * 0.8))}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
-              title="Zoom out"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={fitToScreen}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
-              title="Fit to screen"
-            >
-              <Maximize className="w-4 h-4" />
-            </button>
+            {!isVideo && (
+              <>
+                <button
+                  onClick={() => setScale(s => Math.min(10, s * 1.25))}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
+                  title="Zoom in"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setScale(s => Math.max(0.1, s * 0.8))}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
+                  title="Zoom out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={fitToScreen}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
+                  title="Fit to screen"
+                >
+                  <Maximize className="w-4 h-4" />
+                </button>
+              </>
+            )}
             <a
               href={`/api/gallery/download/${encodePath(selectedImage.path)}`}
               download={selectedImage.name}
@@ -341,38 +369,53 @@ export default function DetailView({
           </button>
         ))}
 
-        {/* Image thumbnails */}
-        {images.map((img, i) => (
-          <button
-            key={img.path}
-            data-active={i === selectedIndex}
-            draggable
-            onDragStart={e => {
-              e.dataTransfer.effectAllowed = 'move'
-              e.dataTransfer.setData('gallery/image', img.path)
-            }}
-            onClick={() => onSelectIndex(i)}
-            onContextMenu={e => openImageMenu(e, img)}
-            className={cn(
-              'shrink-0 w-[156px] h-[156px] rounded overflow-hidden border-2 transition-colors relative',
-              i === selectedIndex ? 'border-primary' : 'border-transparent hover:border-border'
-            )}
-          >
-            <img
-              src={`/api/gallery/thumbnail/${encodePath(img.path)}`}
-              alt={img.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              draggable={false}
-            />
-            {img.is_favorite && (
-              <Star
-                className="absolute top-1 right-1 w-3.5 h-3.5 text-yellow-400 drop-shadow"
-                fill="currentColor"
-              />
-            )}
-          </button>
-        ))}
+        {/* Image / video thumbnails */}
+        {images.map((img, i) => {
+          const vid = isVideoFile(img.name)
+          return (
+            <button
+              key={img.path}
+              data-active={i === selectedIndex}
+              draggable
+              onDragStart={e => {
+                e.dataTransfer.effectAllowed = 'move'
+                e.dataTransfer.setData('gallery/image', img.path)
+              }}
+              onClick={() => onSelectIndex(i)}
+              onContextMenu={e => openImageMenu(e, img)}
+              className={cn(
+                'shrink-0 w-[156px] h-[156px] rounded overflow-hidden border-2 transition-colors relative',
+                i === selectedIndex ? 'border-primary' : 'border-transparent hover:border-border'
+              )}
+            >
+              {vid ? (
+                <div className="w-full h-full bg-black/60 flex flex-col items-center justify-center gap-1.5 text-white/70">
+                  <Film className="w-8 h-8" />
+                  <span className="text-[10px] px-2 text-center truncate w-full">{img.name}</span>
+                </div>
+              ) : (
+                <img
+                  src={`/api/gallery/thumbnail/${encodePath(img.path)}`}
+                  alt={img.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  draggable={false}
+                />
+              )}
+              {img.is_favorite && (
+                <Star
+                  className="absolute top-1 right-1 w-3.5 h-3.5 text-yellow-400 drop-shadow"
+                  fill="currentColor"
+                />
+              )}
+              {vid && (
+                <span className="absolute bottom-1 left-1 text-[9px] bg-black/70 text-white px-1 py-0.5 rounded uppercase tracking-wide">
+                  video
+                </span>
+              )}
+            </button>
+          )
+        })}
 
         {folders.length === 0 && images.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">

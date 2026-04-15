@@ -77,7 +77,7 @@ export default function App() {
         >
           <div className="w-2 h-2 rounded-full bg-primary" />
           <span className="text-foreground text-sm font-medium tracking-widest uppercase">
-            ComfyUI Workflow UI
+            AI Toolhouse
           </span>
         </button>
 

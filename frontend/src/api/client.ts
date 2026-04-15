@@ -40,6 +40,7 @@ export async function runMagnificUpscaler(params: {
 export interface StatusResult {
   status: 'pending' | 'processing' | 'done' | 'error'
   images?: Array<{ filename: string; subfolder: string; type: string }>
+  videos?: Array<{ filename: string; subfolder: string; type: string; format?: string }>
 }
 
 export async function getStatus(prompt_id: string): Promise<StatusResult> {
@@ -199,6 +200,34 @@ export async function createImageEditBatch(params: {
     throw new Error(err.detail ?? res.statusText)
   }
   return res.json()
+}
+
+// ── Video Creation ────────────────────────────────────────────────────────────
+
+export async function runVideoCreation(params: {
+  first_frame: string
+  last_frame: string
+  prompt: string
+  length: number
+  client_path: string
+  product_path: string
+  filename_prefix: string
+}): Promise<{ prompt_id: string; client_id: string }> {
+  const token = localStorage.getItem('user_token') ?? ''
+  const res = await fetch(`${BASE}/api/workflow/video_creation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
+export function videoUrl(filename: string, subfolder = '', type = 'output'): string {
+  return `${BASE}/api/video?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder)}&type=${encodeURIComponent(type)}`
 }
 
 // ── Image Prompting ───────────────────────────────────────────────────────────

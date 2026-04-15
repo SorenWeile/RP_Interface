@@ -14,6 +14,7 @@ const ALL_MODULES: { id: string; label: string }[] = [
   { id: 'panorama',         label: 'Panorama Outpainting' },
   { id: 'image-edit',       label: 'Image Edit' },
   { id: 'image-prompting',  label: 'Image Prompting' },
+  { id: 'video-creation',   label: 'Video Creation' },
 ]
 
 // ---------------------------------------------------------------------------

@@ -28,6 +28,7 @@ import outfitSwappingModule from './outfit-swapping'
 import panoramaModule from './panorama'
 import imageEditModule from './image-edit'
 import imagePromptingModule from './image-prompting'
+import videoCreationModule from './video-creation'
 import galleryModuleDefinition from './gallery'
 import adminModuleDefinition from './admin'
 
@@ -45,6 +46,7 @@ export const workflowModules: WorkflowModule[] = [
   panoramaModule,
   imageEditModule,
   imagePromptingModule,
+  videoCreationModule,
 ]
 
 /** All modules combined (used by AppSidebar for navigation). */

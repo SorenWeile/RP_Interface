@@ -191,6 +191,8 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
 # ---------------------------------------------------------------------------
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
+VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}
+MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 THUMBNAIL_SIZE = (300, 300)
 _THUMBNAIL_DIR = os.path.join(os.path.dirname(__file__), "gallery_thumbnails")
 os.makedirs(_THUMBNAIL_DIR, exist_ok=True)
@@ -313,7 +315,7 @@ def _get_images_recursive(directory: str) -> list:
         return images
     for root, _dirs, files in os.walk(directory):
         for f in files:
-            if Path(f).suffix.lower() in IMAGE_EXTENSIONS:
+            if Path(f).suffix.lower() in MEDIA_EXTENSIONS:
                 full = os.path.join(root, f)
                 rel = _encode_path(os.path.relpath(full, directory))
                 stat = os.stat(full)
@@ -359,7 +361,7 @@ def _get_items_in_dir(directory: str, current_path: str = "") -> dict:
                         ),
                     }
                 )
-            elif os.path.isfile(ep) and Path(entry).suffix.lower() in IMAGE_EXTENSIONS:
+            elif os.path.isfile(ep) and Path(entry).suffix.lower() in MEDIA_EXTENSIONS:
                 stat = os.stat(ep)
                 items["images"].append(
                     {
