@@ -665,6 +665,8 @@ def gallery_images():
 def gallery_browse(folder_path: str = ""):
     items = _get_items_in_dir(_output_dir(), folder_path)
     if items["images"]:
+        # Sync any newly generated files into the DB so favorites work immediately.
+        _sync_files_to_db(items["images"])
         fmap = _fav_map([i["path"] for i in items["images"]])
         for img in items["images"]:
             img["is_favorite"] = fmap.get(img["path"], False)
