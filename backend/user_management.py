@@ -46,6 +46,12 @@ def _db_dir() -> Path:
 
 
 def _db_path() -> str:
+    # DB_PATH lets docker-compose point the database directly at the NAS.
+    # Falls back to the legacy WORKSPACE_DIR layout if not set.
+    db_path = os.environ.get("DB_PATH")
+    if db_path:
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        return db_path
     return str(_db_dir() / "users.db")
 
 
