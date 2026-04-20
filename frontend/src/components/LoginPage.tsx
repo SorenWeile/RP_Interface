@@ -55,7 +55,7 @@ export default function LoginPage({ onLogin }: Props) {
       <div className="w-full max-w-sm space-y-8 px-4">
         {/* Logo / title */}
         <div className="flex flex-col items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-primary" />
+          <img src="/ai_toolhouse.png" alt="AI Toolhouse" className="w-16 h-16 object-contain" />
           <div className="text-center">
             <h1 className="text-foreground text-lg font-medium tracking-widest uppercase">
               AI Toolhouse
