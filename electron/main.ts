@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, session } from 'electron'
 import Store from 'electron-store'
 import path from 'path'
 
@@ -13,6 +13,40 @@ let mainWindow: BrowserWindow | null = null
 // Absolute path to the bundled React app (works in dev and in packaged app).
 function frontendPath(): string {
   return path.join(__dirname, '..', 'dist-frontend', 'index.html')
+}
+
+// ── Session-level request interceptor ────────────────────────────────────────
+//
+// When the React app is loaded from file://, any resource path starting with /
+// (img src, video src, download links, WebSocket upgrades …) resolves to the
+// local filesystem instead of the Docker backend.
+//
+// We intercept at the Electron session level so every request type is caught —
+// not just fetch() calls. Any file:// request whose path contains /api/ is
+// transparently forwarded to the configured backend URL.
+
+function installApiRedirect(): void {
+  session.defaultSession.webRequest.onBeforeRequest(
+    { urls: ['file://*/*'] },
+    (details, callback) => {
+      const backendUrl = store.get('backendUrl', '') as string
+      if (!backendUrl) { callback({}); return }
+
+      try {
+        const parsed = new URL(details.url)
+        // On Windows, pathname is e.g. /C:/api/gallery/image/...
+        // On all platforms the segment we care about starts with /api/
+        const apiIdx = parsed.pathname.indexOf('/api/')
+        if (apiIdx !== -1) {
+          const apiPath = parsed.pathname.slice(apiIdx) + parsed.search
+          callback({ redirectURL: `${backendUrl}${apiPath}` })
+          return
+        }
+      } catch { /* ignore malformed URLs */ }
+
+      callback({})
+    },
+  )
 }
 
 // ── Window factory ────────────────────────────────────────────────────────────
@@ -109,6 +143,7 @@ ipcMain.handle('save-backend-url', (_event, url: string) => {
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  installApiRedirect()
   buildMenu()
   mainWindow = createWindow()
 
