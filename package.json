@@ -7,7 +7,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
     "build:electron": "tsc -p electron/tsconfig.json && node -e \"require('fs').copyFileSync('electron/settings.html', 'dist-electron/settings.html')\"",
-    "start": "npm run build:electron && electron .",
+    "copy:static": "node -e \"const fs=require('fs'); fs.rmSync('backend/static',{recursive:true,force:true}); fs.cpSync('frontend/dist','backend/static',{recursive:true}); console.log('Copied frontend/dist → backend/static')\"",
+    "start": "npm run build:frontend && npm run copy:static && npm run build:electron && electron .",
     "build": "npm run build:frontend && npm run build:electron && electron-builder",
     "build:win": "npm run build:frontend && npm run build:electron && electron-builder --win"
   },
