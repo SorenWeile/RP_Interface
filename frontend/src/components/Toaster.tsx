@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             {t.type === 'error'   && <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />}
             {t.type === 'info'    && <Info className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />}
             {t.type === 'loading' && <Loader2 className="w-4 h-4 shrink-0 mt-0.5 animate-spin text-primary" />}
-            <span className="flex-1 leading-snug">{message}</span>
+            <span className="flex-1 leading-snug">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
               className="shrink-0 opacity-50 hover:opacity-100 transition-opacity mt-0.5"
