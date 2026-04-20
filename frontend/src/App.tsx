@@ -77,7 +77,7 @@ export default function App() {
           onClick={() => setActive(null)}
           className="flex items-center gap-3 hover:opacity-70 transition-opacity"
         >
-          <img src="/ai_toolhouse.png" alt="" className="w-5 h-5 object-contain" />
+          <img src="./ai_toolhouse.png" alt="" className="w-5 h-5 object-contain" />
           <span className="text-foreground text-sm font-medium tracking-widest uppercase">
             AI Toolhouse
           </span>
