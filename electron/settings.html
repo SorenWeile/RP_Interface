@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RP Interface — Connect</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #e5e5e5;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 36px 40px;
+      width: 420px;
+      -webkit-app-region: no-drag;
+    }
+
+    .logo {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #f5f5f5;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #999;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    input {
+      width: 100%;
+      background: #0f0f0f;
+      border: 1px solid #2e2e2e;
+      border-radius: 7px;
+      color: #f0f0f0;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    input:focus {
+      border-color: #555;
+    }
+
+    input::placeholder { color: #444; }
+
+    .error {
+      font-size: 12px;
+      color: #f87171;
+      margin-top: 8px;
+      min-height: 18px;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      background: #f5f5f5;
+      color: #0f0f0f;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover { background: #e0e0e0; }
+    button:active { background: #ccc; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">RP Interface</div>
+    <h1>Connect to backend</h1>
+    <p class="subtitle">
+      Enter the address of the workstation running the Docker container.
+    </p>
+
+    <label for="url">Backend URL</label>
+    <input
+      id="url"
+      type="text"
+      placeholder="http://192.168.1.100:8501"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <div class="error" id="error"></div>
+
+    <button id="connect">Connect</button>
+  </div>
+
+  <script>
+    const input  = document.getElementById('url')
+    const btn    = document.getElementById('connect')
+    const errEl  = document.getElementById('error')
+
+    // Pre-fill with stored URL if returning from the app
+    window.electronAPI.getBackendUrl().then(url => {
+      if (url) input.value = url
+    })
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') btn.click()
+    })
+
+    btn.addEventListener('click', async () => {
+      errEl.textContent = ''
+      const raw = input.value.trim()
+      if (!raw) {
+        errEl.textContent = 'Please enter a URL.'
+        return
+      }
+
+      let url
+      try {
+        // Auto-prepend http:// if missing
+        url = new URL(raw.startsWith('http') ? raw : 'http://' + raw)
+      } catch {
+        errEl.textContent = 'Not a valid URL.'
+        return
+      }
+
+      btn.disabled = true
+      btn.textContent = 'Connecting…'
+
+      try {
+        // Quick reachability check before saving
+        await fetch(url.origin + '/api/auth/me', { signal: AbortSignal.timeout(4000) })
+      } catch {
+        errEl.textContent = 'Could not reach the backend. Is Docker running?'
+        btn.disabled = false
+        btn.textContent = 'Connect'
+        return
+      }
+
+      await window.electronAPI.saveBackendUrl(url.origin)
+    })
+  </script>
+</body>
+</html>

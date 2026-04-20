@@ -1,0 +1,24 @@
+{
+  "name": "rp-interface",
+  "version": "1.0.0",
+  "description": "RP Interface — AI Toolhouse for studio workstations",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "build:electron": "tsc -p electron/tsconfig.json && node -e \"require('fs').copyFileSync('electron/settings.html', 'dist-electron/settings.html')\"",
+    "start": "npm run build:electron && electron .",
+    "build": "npm run build:frontend && npm run build:electron && electron-builder",
+    "build:win": "npm run build:frontend && npm run build:electron && electron-builder --win"
+  },
+  "devDependencies": {
+    "@types/electron": "^1.6.10",
+    "@types/node": "^20.0.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  }
+}

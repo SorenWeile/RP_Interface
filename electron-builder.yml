@@ -1,0 +1,29 @@
+appId: com.studio.rp-interface
+productName: RP Interface
+copyright: Studio
+
+directories:
+  output: release
+  buildResources: electron/assets
+
+files:
+  - dist-electron/**
+  - "!dist-electron/**/*.map"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+# Publish to NAS share for easy studio-wide distribution.
+# Installer lands in \\nas\indgai\rp-interface\releases\
+# Change to "github" provider when the repo is public.
+publish:
+  provider: generic
+  url: "\\\\nas\\indgai\\rp-interface\\releases\\"

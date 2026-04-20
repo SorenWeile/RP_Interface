@@ -27,3 +27,4 @@ Thumbs.db
 *.swp
 /Docs
 .claude/settings.local.json
+/node_modules
