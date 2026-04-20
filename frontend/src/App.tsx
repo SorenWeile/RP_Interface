@@ -4,6 +4,7 @@ import { workflowModules, galleryModule, adminModule, type WorkflowModule } from
 import ModuleGrid from '@/components/ModuleGrid'
 import AppSidebar from '@/components/AppSidebar'
 import LoginPage, { type AuthUser } from '@/components/LoginPage'
+import { ToastProvider } from '@/components/Toaster'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -68,6 +69,7 @@ export default function App() {
   }
 
   return (
+    <ToastProvider>
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="shrink-0 border-b border-border bg-card px-6 py-3 flex items-center gap-3">
@@ -149,5 +151,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </ToastProvider>
   )
 }

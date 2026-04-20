@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/Toaster'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 import DropZone, { type ImageSlot } from '@/components/DropZone'
 
@@ -68,6 +69,7 @@ export default function MagnificUpscaler() {
   const [filePrefix, setFilePrefix]   = useState('Shot001')
   const [stage, setStage]             = useState<Stage>({ status: 'idle' })
   const disconnectWs                  = useRef<(() => void) | null>(null)
+  const { toast }                     = useToast()
 
   // ── Upload ───────────────────────────────────────────────────────────────────
 
@@ -117,21 +119,26 @@ export default function MagnificUpscaler() {
               if (s.status === 'done') {
                 clearInterval(poll)
                 setStage({ status: 'done', images: s.images ?? [] })
+                toast('Upscale complete!', 'success')
               } else if (s.status === 'error') {
                 clearInterval(poll)
                 setStage({ status: 'error', message: 'Workflow error' })
+                toast('Upscale failed', 'error')
               }
             } catch {
               clearInterval(poll)
               setStage({ status: 'error', message: 'Status poll failed' })
+              toast('Status poll failed', 'error')
             }
           }, 800)
         } else if (event.type === 'error') {
           setStage({ status: 'error', message: event.message ?? 'Unknown error' })
+          toast('Upscale error', 'error')
         }
       })
     } catch (e) {
       setStage({ status: 'error', message: String(e) })
+      toast('Failed to start upscale', 'error')
     }
   }
 
@@ -240,7 +247,7 @@ export default function MagnificUpscaler() {
             {stage.status === 'submitting' ? 'Queuing…' : `Upscale ${scaleFactor}`}
           </Button>
           {slot.preview && (
-            <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
+            <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
       )}
@@ -265,12 +272,13 @@ export default function MagnificUpscaler() {
                 <a
                   href={imageUrl(img.filename, img.subfolder, img.type)}
                   download={img.filename}
+                  onClick={() => toast('Downloading…', 'info')}
                 >
                   Download {img.filename}
                 </a>
               </Button>
             ))}
-            <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+            <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
           </div>
           {stage.images.map((img) => (
@@ -290,7 +298,7 @@ export default function MagnificUpscaler() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
         </div>
       )}
     </div>

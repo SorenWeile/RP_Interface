@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/Toaster'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 import DropZone, { type ImageSlot } from '@/components/DropZone'
 
@@ -56,6 +57,7 @@ export default function ImageEdit() {
   const [filePrefix, setFilePrefix]   = useState('Shot001')
   const [stage, setStage]             = useState<Stage>({ status: 'idle' })
   const pollRef                       = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { toast }                     = useToast()
 
   // ── Upload ───────────────────────────────────────────────────────────────────
 
@@ -108,14 +110,22 @@ export default function ImageEdit() {
         if (isDone) {
           clearInterval(pollRef.current!)
           pollRef.current = null
+          if (s.error > 0 && s.done === 0) {
+            toast('All runs failed', 'error')
+          } else if (s.error > 0) {
+            toast(`${s.done} done, ${s.error} failed`, 'info')
+          } else {
+            toast(`${s.done} image${s.done !== 1 ? 's' : ''} ready!`, 'success')
+          }
         }
       } catch (e) {
         setStage({ status: 'error', message: String(e) })
         clearInterval(pollRef.current!)
         pollRef.current = null
+        toast('Batch polling failed', 'error')
       }
     }, 2500)
-  }, [])
+  }, [toast])
 
   // ── Submit ───────────────────────────────────────────────────────────────────
 
@@ -273,7 +283,7 @@ export default function ImageEdit() {
               : count === 1 ? 'Generate' : `Generate — ${count} runs`}
           </Button>
           {slot.preview && (
-            <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
+            <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
       )}
@@ -325,20 +335,25 @@ export default function ImageEdit() {
               {stage.status === 'complete' && (
                 <>
                   {batch.total === 1 && batch.jobs[0]?.images?.length > 0 ? (
-                    // Single run — offer individual image download
                     batch.jobs[0].images.map((img, i) => (
                       <Button key={i} variant="outline" size="sm" asChild>
-                        <a href={`/api/image?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder ?? '')}&type=${encodeURIComponent(img.type ?? 'output')}`} download={img.filename}>
+                        <a
+                          href={`/api/image?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder ?? '')}&type=${encodeURIComponent(img.type ?? 'output')}`}
+                          download={img.filename}
+                          onClick={() => toast('Downloading…', 'info')}
+                        >
                           Download {img.filename}
                         </a>
                       </Button>
                     ))
                   ) : (
-                    <a href={`/api/batch/${batch.batchId}/download`} download>
-                      <Button variant="outline" size="sm">Download ZIP</Button>
-                    </a>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`/api/batch/${batch.batchId}/download`} download onClick={() => toast('Preparing ZIP…', 'info')}>
+                        Download ZIP
+                      </a>
+                    </Button>
                   )}
-                  <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+                  <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
                   <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
                 </>
               )}
@@ -353,7 +368,7 @@ export default function ImageEdit() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
         </div>
       )}
     </div>

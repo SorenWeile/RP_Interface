@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/Toaster'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 import DropZone, { type ImageSlot } from '@/components/DropZone'
 
@@ -29,6 +30,7 @@ export default function OutfitSwapping() {
   const [filePrefix, setFilePrefix]     = useState('Shot001')
   const [stage, setStage]               = useState<Stage>({ status: 'idle' })
   const wsCleanupRef                    = useRef<(() => void) | null>(null)
+  const { toast }                       = useToast()
 
   // ── Upload helpers ───────────────────────────────────────────────────────────
 
@@ -94,7 +96,6 @@ export default function OutfitSwapping() {
           )
         } else if (ev.type === 'complete') {
           wsCleanupRef.current?.()
-          // Poll until history is populated — same pattern as Upscaler
           const poll = setInterval(async () => {
             try {
               const res = await fetch(`/api/status/${prompt_id}`)
@@ -102,23 +103,27 @@ export default function OutfitSwapping() {
               if (s.status === 'done') {
                 clearInterval(poll)
                 setStage({ status: 'complete', images: s.images ?? [] })
+                toast('Outfit swap complete!', 'success')
               } else if (s.status === 'error') {
                 clearInterval(poll)
                 setStage({ status: 'error', message: 'Workflow error' })
+                toast('Outfit swap failed', 'error')
               }
-              // 'pending' / 'processing' → keep polling
             } catch {
               clearInterval(poll)
               setStage({ status: 'error', message: 'Status poll failed' })
+              toast('Status poll failed', 'error')
             }
           }, 800)
         } else if (ev.type === 'error') {
           wsCleanupRef.current?.()
           setStage({ status: 'error', message: JSON.stringify(ev.data ?? ev.message) })
+          toast('Outfit swap error', 'error')
         }
       })
     } catch (e) {
       setStage({ status: 'error', message: String(e) })
+      toast('Failed to start outfit swap', 'error')
     }
   }
 
@@ -225,7 +230,7 @@ export default function OutfitSwapping() {
             {stage.status === 'submitting' ? 'Queuing…' : 'Generate'}
           </Button>
           {(mainSlot.preview || refSlots.some((s) => s.preview)) && (
-            <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+            <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
           )}
         </div>
       )}
@@ -259,14 +264,14 @@ export default function OutfitSwapping() {
                       className="rounded border border-border max-w-full"
                     />
                     <Button variant="outline" size="sm" asChild>
-                      <a href={url} download={img.filename}>Download {img.filename}</a>
+                      <a href={url} download={img.filename} onClick={() => toast('Downloading…', 'info')}>Download {img.filename}</a>
                     </Button>
                   </div>
                 )
               })}
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={newRun}>New run</Button>
+          <Button variant="secondary" size="sm" onClick={newRun}>New run</Button>
         </div>
       )}
 
@@ -276,7 +281,7 @@ export default function OutfitSwapping() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
         </div>
       )}
     </div>

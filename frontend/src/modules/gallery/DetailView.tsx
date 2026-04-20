@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch, Pencil, Film } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch, Pencil, Film, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/Toaster'
 import { cn } from '@/lib/utils'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
@@ -55,6 +56,8 @@ export default function DetailView({
   const selectedImage = images[selectedIndex] ?? null
   const isVideo = selectedImage ? isVideoFile(selectedImage.name) : false
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const { toast } = useToast()
 
   const openImageMenu = (e: React.MouseEvent, img: GalleryImage) => {
     e.preventDefault()
@@ -120,6 +123,7 @@ export default function DetailView({
             a.href = `/api/gallery/download-folder/${encoded}`
             a.download = `${folder.name}.zip`
             a.click()
+            toast(`Downloading "${folder.name}" as ZIP…`, 'info')
           },
         },
         { separator: true as const },
@@ -141,10 +145,11 @@ export default function DetailView({
   const viewerRef = useRef<HTMLDivElement>(null)
   const thumbStripRef = useRef<HTMLDivElement>(null)
 
-  // Reset zoom when image changes
+  // Reset zoom + image load state when image changes
   useEffect(() => {
     setScale(1)
     setOffset({ x: 0, y: 0 })
+    setImgLoaded(false)
   }, [selectedImage?.path])
 
   // Scroll thumbnail strip to active item
@@ -232,24 +237,36 @@ export default function DetailView({
       >
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-muted-foreground text-sm">Loading…</div>
+            <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
           </div>
         )}
 
         {/* Image viewer */}
         {!loading && selectedImage && !isVideo && (
-          <div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
-          >
-            <img
-              src={`/api/gallery/image/${encodePath(selectedImage.path)}`}
-              alt={selectedImage.name}
-              className="max-w-none max-h-none object-contain"
-              style={{ maxWidth: '100%', maxHeight: '100%' }}
-              draggable={false}
-            />
-          </div>
+          <>
+            {!imgLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            <div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              style={{
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                opacity: imgLoaded ? 1 : 0,
+              }}
+            >
+              <img
+                src={`/api/gallery/image/${encodePath(selectedImage.path)}`}
+                alt={selectedImage.name}
+                className="max-w-none max-h-none object-contain"
+                style={{ maxWidth: '100%', maxHeight: '100%' }}
+                draggable={false}
+                onLoad={() => setImgLoaded(true)}
+                onError={() => setImgLoaded(true)}
+              />
+            </div>
+          </>
         )}
 
         {/* Video viewer */}

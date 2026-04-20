@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/Toaster'
 import PanoramaEditor, { type PanoramaEditorHandle } from './PanoramaEditor'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 
@@ -28,6 +29,7 @@ export default function Panorama() {
   const [productPath, setProductPath]     = useState('')
   const [filePrefix, setFilePrefix]       = useState('Shot001')
   const [stage, setStage]                 = useState<Stage>({ status: 'idle' })
+  const { toast }                         = useToast()
 
   // ── Submit ────────────────────────────────────────────────────────────────
 
@@ -59,7 +61,7 @@ export default function Panorama() {
               if (s.status === 'done') {
                 clearInterval(poll)
                 setStage({ status: 'complete', images: s.images ?? [] })
-                // Feed the generated ERP panorama back into the editor.
+                toast('Panorama ready!', 'success')
                 const first = (s.images ?? [])[0]
                 if (first) {
                   editorRef.current?.setErpPreview(
@@ -69,19 +71,23 @@ export default function Panorama() {
               } else if (s.status === 'error') {
                 clearInterval(poll)
                 setStage({ status: 'error', message: 'Workflow error' })
+                toast('Panorama generation failed', 'error')
               }
             } catch {
               clearInterval(poll)
               setStage({ status: 'error', message: 'Status poll failed' })
+              toast('Status poll failed', 'error')
             }
           }, 800)
         } else if (ev.type === 'error') {
           wsCleanupRef.current?.()
           setStage({ status: 'error', message: JSON.stringify(ev.data ?? ev.message) })
+          toast('Panorama generation error', 'error')
         }
       })
     } catch (e) {
       setStage({ status: 'error', message: String(e) })
+      toast('Failed to start panorama', 'error')
     }
   }
 
@@ -173,12 +179,12 @@ export default function Panorama() {
               <div key={i} className="space-y-2">
                 <img src={url} alt={img.filename} className="rounded border border-border max-w-full" />
                 <Button variant="outline" size="sm" asChild>
-                  <a href={url} download={img.filename}>Download {img.filename}</a>
+                  <a href={url} download={img.filename} onClick={() => toast('Downloading…', 'info')}>Download {img.filename}</a>
                 </Button>
               </div>
             )
           })}
-          <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+          <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
         </div>
       )}
 
@@ -188,7 +194,7 @@ export default function Panorama() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
         </div>
       )}
     </div>

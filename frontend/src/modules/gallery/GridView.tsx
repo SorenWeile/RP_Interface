@@ -1,15 +1,16 @@
 import { useState, useCallback } from 'react'
 import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch, Pencil, Film } from 'lucide-react'
+import { useToast } from '@/components/Toaster'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import ContextMenu, { type ContextMenuState } from './ContextMenu'
+import type { GalleryImage, GalleryFolder } from './types'
 
 const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
 function isVideoFile(name: string): boolean {
   const lower = name.toLowerCase()
   return VIDEO_EXTS.some(ext => lower.endsWith(ext))
 }
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import ContextMenu, { type ContextMenuState } from './ContextMenu'
-import type { GalleryImage, GalleryFolder } from './types'
 
 async function fetchMetadataForCopy(path: string) {
   const encoded = path.split('/').map(encodeURIComponent).join('/')
@@ -57,6 +58,7 @@ export default function GridView({
 }: Props) {
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const { toast, dismiss } = useToast()
 
   const openImageMenu = (e: React.MouseEvent, img: GalleryImage) => {
     e.preventDefault()
@@ -122,6 +124,7 @@ export default function GridView({
             a.href = `/api/gallery/download-folder/${encoded}`
             a.download = `${folder.name}.zip`
             a.click()
+            toast(`Downloading "${folder.name}" as ZIP…`, 'info')
           },
         },
         { separator: true as const },
@@ -154,19 +157,30 @@ export default function GridView({
 
   const downloadMultiple = async () => {
     const paths = Array.from(selectedImages)
-    const res = await fetch('/api/gallery/download-multiple', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paths }),
-    })
-    if (!res.ok) return
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `images_${paths.length}.zip`
-    a.click()
-    URL.revokeObjectURL(url)
+    const loadingId = toast(`Preparing ZIP of ${paths.length} file${paths.length !== 1 ? 's' : ''}…`, 'loading', 0)
+    try {
+      const res = await fetch('/api/gallery/download-multiple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths }),
+      })
+      if (!res.ok) {
+        toast('Download failed', 'error')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `images_${paths.length}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast(`Downloaded ${paths.length} file${paths.length !== 1 ? 's' : ''}`, 'success')
+    } catch {
+      toast('Download failed', 'error')
+    } finally {
+      dismiss(loadingId)
+    }
   }
 
   const parts = currentPath ? currentPath.split('/') : []

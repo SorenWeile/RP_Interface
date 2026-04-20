@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/Toaster'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 
 // ── Model catalogue ───────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ function RunDot({ status }: { status: BatchJobStatus['status'] | 'pending' }) {
 
 export default function UpscalerRework() {
   const [stage, setStage]               = useState<Stage>({ status: 'idle' })
+  const { toast }                       = useToast()
   const [preview, setPreview]           = useState<string | null>(null)
   const [filename, setFilename]         = useState<string | null>(null)
   const [dragging, setDragging]         = useState(false)
@@ -133,14 +135,22 @@ export default function UpscalerRework() {
         if (isDone) {
           clearInterval(pollRef.current!)
           pollRef.current = null
+          if (s.error > 0 && s.done === 0) {
+            toast('All runs failed', 'error')
+          } else if (s.error > 0) {
+            toast(`${s.done} done, ${s.error} failed`, 'info')
+          } else {
+            toast(`${s.done} image${s.done !== 1 ? 's' : ''} ready!`, 'success')
+          }
         }
       } catch (e) {
         setStage({ status: 'error', message: String(e) })
         clearInterval(pollRef.current!)
         pollRef.current = null
+        toast('Batch polling failed', 'error')
       }
     }, 2500)
-  }, [])
+  }, [toast])
 
   // ── Start batch ─────────────────────────────────────────────────────────────
 
@@ -319,7 +329,7 @@ export default function UpscalerRework() {
                 : `Start Batch — ${totalExpected * 2} images (${selectedModels.length} models × ${runsPerModel} runs × 4K+8K)`}
             </Button>
             {preview && (
-              <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+              <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
             )}
           </div>
         </div>
@@ -381,10 +391,12 @@ export default function UpscalerRework() {
               )}
               {stage.status === 'complete' && (
                 <>
-                  <a href={`/api/batch/${stage.batch.batchId}/download`} download>
-                    <Button variant="outline" size="sm">Download ZIP</Button>
-                  </a>
-                  <Button variant="outline" size="sm" onClick={reset}>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/api/batch/${stage.batch.batchId}/download`} download onClick={() => toast('Preparing ZIP…', 'info')}>
+                      Download ZIP
+                    </a>
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={reset}>
                     New batch
                   </Button>
                 </>
@@ -400,7 +412,7 @@ export default function UpscalerRework() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={reset}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
         </div>
       )}
     </div>

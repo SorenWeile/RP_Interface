@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/Toaster'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 import DropZone, { type ImageSlot } from '@/components/DropZone'
 
@@ -42,6 +43,7 @@ export default function VideoCreation() {
   const [filePrefix, setFilePrefix]   = useState('Video001')
   const [stage, setStage]             = useState<Stage>({ status: 'idle' })
   const disconnectWs                  = useRef<(() => void) | null>(null)
+  const { toast }                     = useToast()
 
   const seconds = (length / FRAME_RATE).toFixed(1)
 
@@ -92,21 +94,26 @@ export default function VideoCreation() {
               if (s.status === 'done') {
                 clearInterval(poll)
                 setStage({ status: 'done', videos: s.videos ?? [] })
+                toast('Video generation complete!', 'success')
               } else if (s.status === 'error') {
                 clearInterval(poll)
                 setStage({ status: 'error', message: 'Workflow error' })
+                toast('Video generation failed', 'error')
               }
             } catch {
               clearInterval(poll)
               setStage({ status: 'error', message: 'Status poll failed' })
+              toast('Status poll failed', 'error')
             }
           }, 800)
         } else if (event.type === 'error') {
           setStage({ status: 'error', message: event.message ?? 'Unknown error' })
+          toast('Video generation error', 'error')
         }
       })
     } catch (e) {
       setStage({ status: 'error', message: String(e) })
+      toast('Failed to start video generation', 'error')
     }
   }
 
@@ -229,7 +236,7 @@ export default function VideoCreation() {
             {stage.status === 'submitting' ? 'Queuing…' : `Generate Video — ${seconds}s`}
           </Button>
           {(firstFrame.preview || lastFrame.preview) && (
-            <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
+            <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
       )}
@@ -264,7 +271,7 @@ export default function VideoCreation() {
                     className="w-full rounded border border-border"
                   />
                   <Button variant="outline" size="sm" asChild>
-                    <a href={url} download={vid.filename}>
+                    <a href={url} download={vid.filename} onClick={() => toast('Downloading…', 'info')}>
                       Download {vid.filename}
                     </a>
                   </Button>
@@ -273,7 +280,7 @@ export default function VideoCreation() {
             })
           )}
           <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+            <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
           </div>
         </div>
@@ -285,7 +292,7 @@ export default function VideoCreation() {
           <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
             {stage.message}
           </p>
-          <Button variant="outline" size="sm" onClick={resetFull}>Reset</Button>
+          <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
         </div>
       )}
     </div>

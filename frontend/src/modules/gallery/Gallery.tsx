@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Star, LayoutGrid, Columns2, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/Toaster'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import FolderTree from './FolderTree'
@@ -129,8 +130,7 @@ export default function Gallery() {
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null)
   type RenameTarget = { img: GalleryImage; name: string }
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
-  const [notification, setNotification] = useState<string | null>(null)
-  const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { toast } = useToast()
 
   // When admin changes the filter, derive new allowedPaths and re-filter the tree
   const handleFilterChange = useCallback((f: ActiveFilters) => {
@@ -275,11 +275,17 @@ export default function Gallery() {
         setImages(prev =>
           prev.map(i => (selectedImages.has(i.path) ? { ...i, is_favorite } : i))
         )
-      } catch (e) {
-        console.error(e)
+        toast(
+          is_favorite
+            ? `${paths.length} image${paths.length !== 1 ? 's' : ''} starred`
+            : `${paths.length} image${paths.length !== 1 ? 's' : ''} unstarred`,
+          'success'
+        )
+      } catch {
+        toast('Failed to update favourites', 'error')
       }
     },
-    [selectedImages]
+    [selectedImages, toast]
   )
 
   const toggleImageSelection = useCallback((img: GalleryImage) => {
@@ -288,12 +294,6 @@ export default function Gallery() {
       next.has(img.path) ? next.delete(img.path) : next.add(img.path)
       return next
     })
-  }, [])
-
-  const showNotification = useCallback((msg: string) => {
-    setNotification(msg)
-    if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
-    notifTimerRef.current = setTimeout(() => setNotification(null), 4000)
   }, [])
 
   const moveImage = useCallback(async (imagePath: string, destFolder: string) => {
@@ -305,16 +305,16 @@ export default function Gallery() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
-        showNotification(err.detail ?? 'Move failed')
+        toast(err.detail ?? 'Move failed', 'error')
         return
       }
-      // Remove image from current view immediately
       setImages(prev => prev.filter(i => i.path !== imagePath))
       setSelectedImages(prev => { const n = new Set(prev); n.delete(imagePath); return n })
-    } catch (e) {
-      showNotification('Move failed')
+      toast('Image moved', 'success')
+    } catch {
+      toast('Move failed', 'error')
     }
-  }, [showNotification])
+  }, [toast])
 
   const handleRename = useCallback(async (img: GalleryImage, newName: string) => {
     try {
@@ -325,15 +325,16 @@ export default function Gallery() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
-        showNotification(err.detail ?? 'Rename failed')
+        toast(err.detail ?? 'Rename failed', 'error')
         return
       }
       const { new_path, name } = await res.json()
       setImages(prev => prev.map(i => i.path === img.path ? { ...i, path: new_path, name } : i))
-    } catch (e) {
-      showNotification('Rename failed')
+      toast(`Renamed to "${name}"`, 'success')
+    } catch {
+      toast('Rename failed', 'error')
     }
-  }, [showNotification])
+  }, [toast])
 
   const refreshTree = async () => {
     await fetch('/api/gallery/tree/refresh')
@@ -349,35 +350,25 @@ export default function Gallery() {
       onConfirm: async () => {
         const token = localStorage.getItem('user_token') ?? ''
         const encoded = img.path.split('/').map(encodeURIComponent).join('/')
-        
         try {
           const response = await fetch(`/api/gallery/image/${encoded}`, {
             method: 'DELETE',
             headers: { 'X-User-Token': token }
           })
-          
           if (!response.ok) {
-            if (response.status === 403) {
-              throw new Error('You are not authorized to delete this image')
-            } else if (response.status === 401) {
-              throw new Error('Please login to delete images')
-            } else {
-              throw new Error('Failed to delete image')
-            }
+            if (response.status === 403) throw new Error('Not authorized to delete this image')
+            else if (response.status === 401) throw new Error('Please log in to delete images')
+            else throw new Error('Failed to delete image')
           }
-          
           setImages(prev => prev.filter(i => i.path !== img.path))
           setSelectedImages(prev => { const n = new Set(prev); n.delete(img.path); return n })
+          toast('Image deleted', 'success')
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error)
-          setNotification(errorMessage)
-          // Auto-dismiss notification after 5 seconds
-          if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
-          notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+          toast(error instanceof Error ? error.message : 'Delete failed', 'error')
         }
       },
     })
-  }, [])
+  }, [toast])
 
   const confirmDeleteFolder = useCallback((folder: GalleryFolder) => {
     setDeleteConfirm({
@@ -385,36 +376,26 @@ export default function Gallery() {
       onConfirm: async () => {
         const token = localStorage.getItem('user_token') ?? ''
         const encoded = folder.path.split('/').map(encodeURIComponent).join('/')
-        
         try {
           const response = await fetch(`/api/gallery/folder/${encoded}`, {
             method: 'DELETE',
             headers: { 'X-User-Token': token }
           })
-          
           if (!response.ok) {
-            if (response.status === 403) {
-              throw new Error('You are not authorized to delete this folder')
-            } else if (response.status === 401) {
-              throw new Error('Please login to delete folders')
-            } else {
-              throw new Error('Failed to delete folder')
-            }
+            if (response.status === 403) throw new Error('Not authorized to delete this folder')
+            else if (response.status === 401) throw new Error('Please log in to delete folders')
+            else throw new Error('Failed to delete folder')
           }
-          
           setFolders(prev => prev.filter(f => f.path !== folder.path))
           await fetch('/api/gallery/tree/refresh')
           apiTree().then(rawTree => setTree(allowedPaths ? filterTree(rawTree, allowedPaths) : rawTree))
+          toast(`Folder "${folder.name}" deleted`, 'success')
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error)
-          setNotification(errorMessage)
-          // Auto-dismiss notification after 5 seconds
-          if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
-          notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+          toast(error instanceof Error ? error.message : 'Delete failed', 'error')
         }
       },
     })
-  }, [allowedPaths])
+  }, [allowedPaths, toast])
 
   const confirmDeleteSelected = useCallback(() => {
     const count = selectedImages.size
@@ -423,50 +404,38 @@ export default function Gallery() {
       label: `Delete ${count} selected image${count !== 1 ? 's' : ''}?`,
       onConfirm: async () => {
         const token = localStorage.getItem('user_token') ?? ''
-        
         try {
           const response = await fetch('/api/gallery/delete-images', {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'X-User-Token': token 
-            },
+            headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
             body: JSON.stringify({ paths: Array.from(selectedImages) }),
           })
-          
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             if (response.status === 403) {
-              const unauthorizedCount = errorData.unauthorized?.length || 0
-              throw new Error(`Not authorized to delete ${unauthorizedCount} image${unauthorizedCount !== 1 ? 's' : ''}`)
+              const n = errorData.unauthorized?.length || 0
+              throw new Error(`Not authorized to delete ${n} image${n !== 1 ? 's' : ''}`)
             } else if (response.status === 401) {
-              throw new Error('Please login to delete images')
+              throw new Error('Please log in to delete images')
             } else {
-              const errorCount = errorData.errors?.length || 0
-              throw new Error(`Failed to delete ${errorCount} image${errorCount !== 1 ? 's' : ''}`)
+              const n = errorData.errors?.length || 0
+              throw new Error(`Failed to delete ${n} image${n !== 1 ? 's' : ''}`)
             }
           }
-          
           const result = await response.json()
-          if (result.unauthorized && result.unauthorized.length > 0) {
-            // Some images were unauthorized, show warning but still remove authorized ones
-            setNotification(`Deleted ${result.deleted} images, but ${result.unauthorized.length} were not authorized`)
-            if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
-            notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
-          }
-          
           setImages(prev => prev.filter(i => !selectedImages.has(i.path)))
           setSelectedImages(new Set())
+          if (result.unauthorized?.length > 0) {
+            toast(`Deleted ${result.deleted} images — ${result.unauthorized.length} not authorized`, 'info')
+          } else {
+            toast(`Deleted ${result.deleted ?? count} image${count !== 1 ? 's' : ''}`, 'success')
+          }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error)
-          setNotification(errorMessage)
-          // Auto-dismiss notification after 5 seconds
-          if (notifTimerRef.current) clearTimeout(notifTimerRef.current)
-          notifTimerRef.current = setTimeout(() => setNotification(null), 5000)
+          toast(error instanceof Error ? error.message : 'Delete failed', 'error')
         }
       },
     })
-  }, [selectedImages])
+  }, [selectedImages, toast])
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -571,14 +540,6 @@ export default function Gallery() {
           />
         )}
       </div>
-
-      {/* Notification toast */}
-      {notification && (
-        <div className="fixed bottom-5 right-5 z-50 bg-destructive text-destructive-foreground text-sm px-4 py-2.5 rounded-lg shadow-lg max-w-sm flex items-center gap-3">
-          <span className="flex-1">{notification}</span>
-          <button onClick={() => setNotification(null)} className="shrink-0 opacity-70 hover:opacity-100 text-lg leading-none">×</button>
-        </div>
-      )}
 
       {/* Rename dialog */}
       {renameTarget && (
