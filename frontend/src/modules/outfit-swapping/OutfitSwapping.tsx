@@ -271,7 +271,7 @@ export default function OutfitSwapping() {
               })}
             </div>
           )}
-          <Button variant="secondary" size="sm" onClick={newRun}>New run</Button>
+          <Button variant="outline" size="sm" onClick={newRun}>New run</Button>
         </div>
       )}
 

@@ -280,7 +280,7 @@ export default function VideoCreation() {
             })
           )}
           <div className="flex gap-3">
-            <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
+            <Button variant="outline" size="sm" onClick={reset}>New run</Button>
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
           </div>
         </div>

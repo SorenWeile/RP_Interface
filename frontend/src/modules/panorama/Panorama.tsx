@@ -184,7 +184,7 @@ export default function Panorama() {
               </div>
             )
           })}
-          <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
+          <Button variant="outline" size="sm" onClick={reset}>New run</Button>
         </div>
       )}
 

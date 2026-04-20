@@ -65,7 +65,7 @@ function RunDot({ status }: { status: BatchJobStatus['status'] | 'pending' }) {
 
 export default function UpscalerRework() {
   const [stage, setStage]               = useState<Stage>({ status: 'idle' })
-  const { toast }                       = useToast()
+  const { toast, dismiss }              = useToast()
   const [preview, setPreview]           = useState<string | null>(null)
   const [filename, setFilename]         = useState<string | null>(null)
   const [dragging, setDragging]         = useState(false)
@@ -391,12 +391,29 @@ export default function UpscalerRework() {
               )}
               {stage.status === 'complete' && (
                 <>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/api/batch/${stage.batch.batchId}/download`} download onClick={() => toast('Preparing ZIP…', 'info')}>
-                      Download ZIP
-                    </a>
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    const batchId = stage.batch.batchId
+                    const id = toast('Preparing ZIP…', 'loading', 0)
+                    try {
+                      const res = await fetch(`/api/batch/${batchId}/download`)
+                      if (!res.ok) throw new Error('Download failed')
+                      const blob = await res.blob()
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `batch_${batchId}.zip`
+                      a.click()
+                      URL.revokeObjectURL(url)
+                      toast('ZIP downloaded!', 'success')
+                    } catch {
+                      toast('Download failed', 'error')
+                    } finally {
+                      dismiss(id)
+                    }
+                  }}>
+                    Download ZIP
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={reset}>
+                  <Button variant="outline" size="sm" onClick={reset}>
                     New batch
                   </Button>
                 </>

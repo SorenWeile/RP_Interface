@@ -57,7 +57,7 @@ export default function ImageEdit() {
   const [filePrefix, setFilePrefix]   = useState('Shot001')
   const [stage, setStage]             = useState<Stage>({ status: 'idle' })
   const pollRef                       = useRef<ReturnType<typeof setInterval> | null>(null)
-  const { toast }                     = useToast()
+  const { toast, dismiss }             = useToast()
 
   // ── Upload ───────────────────────────────────────────────────────────────────
 
@@ -347,13 +347,29 @@ export default function ImageEdit() {
                       </Button>
                     ))
                   ) : (
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/api/batch/${batch.batchId}/download`} download onClick={() => toast('Preparing ZIP…', 'info')}>
-                        Download ZIP
-                      </a>
+                    <Button variant="outline" size="sm" onClick={async () => {
+                      const id = toast('Preparing ZIP…', 'loading', 0)
+                      try {
+                        const res = await fetch(`/api/batch/${batch.batchId}/download`)
+                        if (!res.ok) throw new Error('Download failed')
+                        const blob = await res.blob()
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `batch_${batch.batchId}.zip`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                        toast('ZIP downloaded!', 'success')
+                      } catch {
+                        toast('Download failed', 'error')
+                      } finally {
+                        dismiss(id)
+                      }
+                    }}>
+                      Download ZIP
                     </Button>
                   )}
-                  <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
+                  <Button variant="outline" size="sm" onClick={reset}>New run</Button>
                   <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
                 </>
               )}

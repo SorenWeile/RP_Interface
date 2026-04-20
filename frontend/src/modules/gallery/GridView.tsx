@@ -90,6 +90,17 @@ export default function GridView({
         },
         { separator: true as const },
         {
+          label: 'Download',
+          icon: <Download className="w-4 h-4" />,
+          onClick: () => {
+            const a = document.createElement('a')
+            a.href = `/api/gallery/download/${encodePath(img.path)}`
+            a.download = img.name
+            a.click()
+            toast('Downloading…', 'info')
+          },
+        },
+        {
           label: 'Rename',
           icon: <Pencil className="w-4 h-4" />,
           onClick: () => onRenameImage(img),

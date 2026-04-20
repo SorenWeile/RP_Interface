@@ -278,7 +278,7 @@ export default function MagnificUpscaler() {
                 </a>
               </Button>
             ))}
-            <Button variant="secondary" size="sm" onClick={reset}>New run</Button>
+            <Button variant="outline" size="sm" onClick={reset}>New run</Button>
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
           </div>
           {stage.images.map((img) => (
