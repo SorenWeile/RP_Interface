@@ -1276,7 +1276,7 @@
   "180": {
     "inputs": {
       "model_name": "Qwen2.5-VL-3B-Instruct",
-      "quantization": "None (FP16)",
+      "quantization": "4-bit (VRAM-friendly)",
       "attention_mode": "auto",
       "use_torch_compile": true,
       "device": "auto",

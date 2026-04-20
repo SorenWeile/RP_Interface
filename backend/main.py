@@ -1,12 +1,13 @@
 import io
 import os
 import uuid
+import json
 import zipfile
 import datetime
 import asyncio
 import httpx
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 
@@ -133,11 +134,28 @@ class Batch:
     runs_per_model: int
     jobs: List[BatchJob]
     created_at: str
+    cleanup_queued: bool = field(default=False)
 
 
 # In-memory store — keyed by batch_id.
 # Fine for a single-pod tool; no persistence needed across restarts.
 _batches: dict = {}
+
+_CLEANUP_WORKFLOW_PATH = Path(__file__).parent / "workflows" / "cleanup" / "Cleaner_API_V1.json"
+
+
+async def _queue_cleanup() -> None:
+    """Queue the RAM cleanup workflow on ComfyUI. Fire-and-forget."""
+    if not _CLEANUP_WORKFLOW_PATH.exists():
+        logger.warning(f"Cleanup workflow not found: {_CLEANUP_WORKFLOW_PATH}")
+        return
+    try:
+        workflow = json.loads(_CLEANUP_WORKFLOW_PATH.read_text())
+        client_id = str(uuid.uuid4())
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        logger.info(f"[cleanup] queued RAM cleanup workflow → {prompt_id}")
+    except Exception as e:
+        logger.warning(f"[cleanup] failed to queue cleanup workflow: {e}")
 
 
 def _job_status(entry: dict) -> str:
@@ -345,6 +363,12 @@ async def get_batch_status(batch_id: str):
             "status": status,
             "images": images,
         })
+
+    # Queue RAM cleanup once when all jobs have finished (done or error).
+    active = counts["queued"] + counts["processing"]
+    if active == 0 and not batch.cleanup_queued:
+        batch.cleanup_queued = True
+        asyncio.create_task(_queue_cleanup())
 
     return {
         "batch_id": batch_id,
@@ -870,6 +894,15 @@ async def get_monitor_stats():
         "queue_pending": len(pending_jobs),
         "jobs":          running_jobs + pending_jobs,
     }
+
+
+# ── Manual RAM cleanup ────────────────────────────────────────────────────────
+
+@app.post("/api/free")
+async def free_memory():
+    """Queue the RAM cleanup workflow manually (e.g. from a UI button)."""
+    await _queue_cleanup()
+    return {"status": "cleanup queued"}
 
 
 # ── List available upscale rework models ──────────────────────────────────────
