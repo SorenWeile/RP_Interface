@@ -8,6 +8,10 @@ const electron_store_1 = __importDefault(require("electron-store"));
 const path_1 = __importDefault(require("path"));
 const store = new electron_store_1.default();
 let mainWindow = null;
+// Absolute path to the bundled React app (works in dev and in packaged app).
+function frontendPath() {
+    return path_1.default.join(__dirname, '..', 'dist-frontend', 'index.html');
+}
 // ── Window factory ────────────────────────────────────────────────────────────
 function createWindow() {
     const win = new electron_1.BrowserWindow({
@@ -25,7 +29,7 @@ function createWindow() {
     });
     const backendUrl = store.get('backendUrl', '');
     if (backendUrl) {
-        win.loadURL(backendUrl);
+        win.loadFile(frontendPath());
     }
     else {
         loadSettings(win);
@@ -33,7 +37,6 @@ function createWindow() {
     return win;
 }
 function loadSettings(win) {
-    // settings.html lives next to main.js in dist-electron/
     const settingsPath = path_1.default.join(__dirname, 'settings.html');
     win.loadFile(settingsPath);
 }
@@ -77,11 +80,16 @@ function buildMenu() {
     electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate(template));
 }
 // ── IPC handlers ──────────────────────────────────────────────────────────────
+// Synchronous read — called by preload before any renderer script runs.
+electron_1.ipcMain.on('get-backend-url-sync', (event) => {
+    event.returnValue = store.get('backendUrl', '');
+});
 electron_1.ipcMain.handle('get-backend-url', () => store.get('backendUrl', ''));
 electron_1.ipcMain.handle('save-backend-url', (_event, url) => {
-    store.set('backendUrl', url.replace(/\/+$/, '')); // strip trailing slashes
+    store.set('backendUrl', url.replace(/\/+$/, ''));
     if (mainWindow) {
-        mainWindow.loadURL(store.get('backendUrl'));
+        // Reload the local React app — preload will re-read the new URL from store.
+        mainWindow.loadFile(frontendPath());
     }
     return { success: true };
 });

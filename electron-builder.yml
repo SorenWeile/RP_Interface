@@ -9,6 +9,7 @@ directories:
 files:
   - dist-electron/**
   - "!dist-electron/**/*.map"
+  - dist-frontend/**
 
 win:
   target:

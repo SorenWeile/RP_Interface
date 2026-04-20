@@ -1,4 +1,10 @@
-const BASE = import.meta.env.VITE_API_URL ?? ''
+// In Electron the preload exposes the backend URL synchronously before any
+// script runs. In the Vite dev server VITE_API_URL is used instead (proxied
+// to localhost:8000 via vite.config.ts).
+const BASE: string =
+  (window as Window & { electronAPI?: { backendUrl?: string } }).electronAPI?.backendUrl
+  ?? import.meta.env.VITE_API_URL
+  ?? ''
 
 // ── Upload ────────────────────────────────────────────────────────────────
 
@@ -265,9 +271,14 @@ export function connectProgress(
   prompt_id: string,
   onEvent: (e: ProgressEvent) => void,
 ): () => void {
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  const host  = window.location.host
-  const ws    = new WebSocket(`${proto}://${host}/ws/${client_id}`)
+  // When loaded from file:// (Electron), window.location.host is empty.
+  // Use the stored backend URL instead.
+  const backendOrigin =
+    (window as Window & { electronAPI?: { backendUrl?: string } }).electronAPI?.backendUrl
+    ?? window.location.origin
+  const url    = new URL(backendOrigin)
+  const proto  = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  const ws     = new WebSocket(`${proto}//${url.host}/ws/${client_id}`)
 
   ws.onopen = () => ws.send(JSON.stringify({ prompt_id }))
   ws.onmessage = (e) => {

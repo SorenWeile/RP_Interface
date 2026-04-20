@@ -11,6 +11,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 backend/static/
+dist-frontend/
 
 # Env
 .env
@@ -28,3 +29,4 @@ Thumbs.db
 /Docs
 .claude/settings.local.json
 /node_modules
+/release

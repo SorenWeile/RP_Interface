@@ -7,6 +7,13 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
+  // Relative asset paths so the build works when loaded from file:// in Electron.
+  base: './',
+  build: {
+    // Output next to the electron build artefacts so electron-builder picks up both.
+    outDir: '../dist-frontend',
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:8000',
