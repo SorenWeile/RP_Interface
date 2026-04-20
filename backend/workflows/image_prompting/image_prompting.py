@@ -51,7 +51,8 @@ def load_image_prompting(
     workflow_dir = Path(__file__).parent
     workflow = copy.deepcopy(_load_workflow("Image_Prompting_V1_API", workflow_dir))
 
-    # Rebuild BatchImagesNode (669) — only include images actually provided
+    # Rebuild BatchImagesNode (669) — only include images actually provided.
+    # BatchImagesNode requires min=2 slots, so duplicate the first image if only one is given.
     batch_inputs = workflow["669"]["inputs"]
     for key in list(batch_inputs.keys()):
         if key.startswith("images.image"):
@@ -63,6 +64,10 @@ def load_image_prompting(
             workflow[node_id]["inputs"]["image"] = filename
             batch_inputs[f"images.image{slot}"] = [node_id, 0]
             slot += 1
+
+    if slot == 1:
+        # Satisfy min=2 requirement by wiring the first image into slot 1 as well
+        batch_inputs["images.image1"] = batch_inputs["images.image0"]
 
     # Prompt
     workflow["666"]["inputs"]["value"] = prompt
