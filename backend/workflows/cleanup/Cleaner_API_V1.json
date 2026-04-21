@@ -1,0 +1,25 @@
+{
+  "1": {
+    "inputs": {
+      "clean_file_cache": true,
+      "clean_processes": true,
+      "clean_dlls": true,
+      "retry_times": 3,
+      "anything": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "RAMCleanup",
+    "_meta": {
+      "title": "🎈RAM-Cleanup"
+    }
+  },
+  "2": {
+    "inputs": {},
+    "class_type": "NBPRAMCleanup",
+    "_meta": {
+      "title": "NBP RAM Cleanup"
+    }
+  }
+}

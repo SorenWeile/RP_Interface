@@ -158,6 +158,12 @@ async def _queue_cleanup() -> None:
         logger.warning(f"[cleanup] failed to queue cleanup workflow: {e}")
 
 
+def _dated_product_path(product_path: str, workflow_tag: str) -> str:
+    """Append a YYYY_MM_DD_WorkflowTag subfolder to the product path."""
+    date = datetime.date.today().strftime("%Y_%m_%d")
+    return f"{product_path}/{date}_{workflow_tag}"
+
+
 def _job_status(entry: dict) -> str:
     """Derive a job status string from a ComfyUI history entry."""
     s = entry.get("status", {})
@@ -212,6 +218,7 @@ async def run_magnific_upscaler(params: MagnificUpscalerParams, x_user_token: Op
     if not any(params.filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
         raise HTTPException(422, f"Unsupported image format: {params.filename}")
     try:
+        await _queue_cleanup()
         client_id = str(uuid.uuid4())
         workflow = load_magnific_upscaler(
             filename=params.filename,
@@ -220,7 +227,7 @@ async def run_magnific_upscaler(params: MagnificUpscalerParams, x_user_token: Op
             ultra_detail=params.ultra_detail,
             scale_factor=params.scale_factor,
             client_path=params.client_path,
-            product_path=params.product_path,
+            product_path=_dated_product_path(params.product_path, "Magnific_Upscaler"),
             filename_prefix=params.filename_prefix,
             username=_resolve_username(x_user_token),
         )
@@ -258,6 +265,9 @@ async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional
     batch_id = str(uuid.uuid4())
     jobs: List[BatchJob] = []
     errors: List[str] = []
+    product_path = _dated_product_path(params.product_path, "Upscaler")
+
+    await _queue_cleanup()
 
     for model in params.models:
         for run in range(1, params.runs_per_model + 1):
@@ -268,7 +278,7 @@ async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional
                     model_name=model,
                     run_index=run,
                     client_path=params.client_path,
-                    product_path=params.product_path,
+                    product_path=product_path,
                     filename_prefix=params.filename_prefix,
                     username=username,
                 )
@@ -292,7 +302,7 @@ async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional
         id=batch_id,
         filename=params.filename,
         client_path=params.client_path,
-        product_path=params.product_path,
+        product_path=product_path,
         filename_prefix=params.filename_prefix,
         runs_per_model=params.runs_per_model,
         jobs=jobs,
@@ -480,13 +490,14 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
             raise HTTPException(422, f"Unsupported image format: {img_filename}")
     
     try:
+        await _queue_cleanup()
         client_id = str(uuid.uuid4())
         workflow = load_outfit_swapping(
             main_image=params.main_image,
             ref_images=params.ref_images,
             prompt=params.prompt,
             client_path=params.client_path,
-            product_path=params.product_path,
+            product_path=_dated_product_path(params.product_path, "Outfit_Swapping"),
             filename_prefix=params.filename_prefix,
             username=_resolve_username(x_user_token),
         )
@@ -527,12 +538,13 @@ async def run_panorama(params: PanoramaParams, x_user_token: Optional[str] = Hea
     if not params.state_json:
         raise HTTPException(422, "state_json is required")
     try:
+        await _queue_cleanup()
         client_id = str(uuid.uuid4())
         workflow = load_panorama(
             state_json=params.state_json,
             prompt=params.prompt,
             client_path=params.client_path,
-            product_path=params.product_path,
+            product_path=_dated_product_path(params.product_path, "Panorama"),
             filename_prefix=params.filename_prefix,
             username=_resolve_username(x_user_token),
         )
@@ -573,13 +585,14 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
             raise HTTPException(422, f"Unsupported image format: {img_filename}")
     
     try:
+        await _queue_cleanup()
         client_id = str(uuid.uuid4())
         workflow = load_image_edit(
             filename=params.filename,
             prompt=params.prompt,
             ref_images=params.ref_images,
             client_path=params.client_path,
-            product_path=params.product_path,
+            product_path=_dated_product_path(params.product_path, "Image_Edit"),
             filename_prefix=params.filename_prefix,
             username=_resolve_username(x_user_token),
         )
@@ -640,6 +653,9 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
     batch_id = str(uuid.uuid4())
     jobs: List[BatchJob] = []
     errors: List[str] = []
+    product_path = _dated_product_path(params.product_path, "Image_Edit")
+
+    await _queue_cleanup()
 
     for run in range(1, params.count + 1):
         try:
@@ -651,7 +667,7 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
                 prompt=params.prompt,
                 ref_images=params.ref_images,
                 client_path=params.client_path,
-                product_path=params.product_path,
+                product_path=product_path,
                 filename_prefix=prefix,
                 username=username,
             )
@@ -675,7 +691,7 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
         id=batch_id,
         filename=params.filename,
         client_path=params.client_path,
-        product_path=params.product_path,
+        product_path=product_path,
         filename_prefix=params.filename_prefix,
         runs_per_model=params.count,
         jobs=jobs,
@@ -709,12 +725,13 @@ async def run_image_prompting(params: ImagePromptingParams, x_user_token: Option
             raise HTTPException(422, f"Unsupported image format: {img_filename}")
 
     try:
+        await _queue_cleanup()
         client_id = str(uuid.uuid4())
         workflow = load_image_prompting(
             ref_images=params.ref_images,
             prompt=params.prompt,
             client_path=params.client_path,
-            product_path=params.product_path,
+            product_path=_dated_product_path(params.product_path, "Image_Prompting"),
             filename_prefix=params.filename_prefix,
             username=_resolve_username(x_user_token),
         )
@@ -756,6 +773,9 @@ async def run_image_prompting_batch(params: ImagePromptingBatchParams, x_user_to
     batch_id = str(uuid.uuid4())
     jobs: List[BatchJob] = []
     errors: List[str] = []
+    product_path = _dated_product_path(params.product_path, "Image_Prompting")
+
+    await _queue_cleanup()
 
     for run in range(1, params.count + 1):
         try:
@@ -765,7 +785,7 @@ async def run_image_prompting_batch(params: ImagePromptingBatchParams, x_user_to
                 ref_images=params.ref_images,
                 prompt=params.prompt,
                 client_path=params.client_path,
-                product_path=params.product_path,
+                product_path=product_path,
                 filename_prefix=prefix,
                 username=username,
             )
@@ -789,7 +809,7 @@ async def run_image_prompting_batch(params: ImagePromptingBatchParams, x_user_to
         id=batch_id,
         filename=params.filename_prefix,
         client_path=params.client_path,
-        product_path=params.product_path,
+        product_path=product_path,
         filename_prefix=params.filename_prefix,
         runs_per_model=params.count,
         jobs=jobs,
@@ -827,6 +847,7 @@ async def run_video_creation(params: VideoCreationParams, x_user_token: Optional
             raise HTTPException(422, f"Unsupported image format: {img_filename}")
 
     try:
+        await _queue_cleanup()
         client_id = str(uuid.uuid4())
         workflow = load_video_creation(
             first_frame=params.first_frame,
@@ -834,7 +855,7 @@ async def run_video_creation(params: VideoCreationParams, x_user_token: Optional
             prompt=params.prompt,
             length=params.length,
             client_path=params.client_path,
-            product_path=params.product_path,
+            product_path=_dated_product_path(params.product_path, "Video_Creation"),
             filename_prefix=params.filename_prefix,
             username=_resolve_username(x_user_token),
         )

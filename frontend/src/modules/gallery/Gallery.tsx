@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Star, LayoutGrid, Columns2, RefreshCw } from 'lucide-react'
 import { useToast } from '@/components/Toaster'
 import { Button } from '@/components/ui/button'
@@ -126,6 +126,28 @@ export default function Gallery() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({ clients: [], projects: [], users: [] })
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>(emptyFilters())
+  const [folderWidth, setFolderWidth] = useState(224)
+  const folderWidthRef = useRef(224)
+
+  const startFolderResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = folderWidthRef.current
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.max(160, Math.min(480, startWidth + ev.clientX - startX))
+      folderWidthRef.current = next
+      setFolderWidth(next)
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [])
+
+  useEffect(() => { folderWidthRef.current = folderWidth }, [folderWidth])
+
   type DeleteConfirm = { label: string; onConfirm: () => Promise<void> }
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null)
   type RenameTarget = { img: GalleryImage; name: string }
@@ -484,16 +506,23 @@ export default function Gallery() {
 
       {/* Three-panel body */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: folder tree */}
+        {/* Left: folder tree + drag handle */}
         {!showFavoritesOnly && (
-          <FolderTree
-            tree={tree}
-            currentPath={currentPath}
-            onNavigate={navigate}
-            showFavoritesOnly={showFavoritesOnly}
-            isAdmin={isAdmin && allowedPaths === null}
-            onMove={moveImage}
-          />
+          <>
+            <FolderTree
+              tree={tree}
+              currentPath={currentPath}
+              onNavigate={navigate}
+              showFavoritesOnly={showFavoritesOnly}
+              isAdmin={isAdmin && allowedPaths === null}
+              onMove={moveImage}
+              width={folderWidth}
+            />
+            <div
+              className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/60 transition-colors"
+              onMouseDown={startFolderResize}
+            />
+          </>
         )}
 
         {/* Center: content */}

@@ -10,6 +10,7 @@ interface Props {
   showFavoritesOnly: boolean
   isAdmin: boolean
   onMove?: (imagePath: string, destFolder: string) => void
+  width?: number
 }
 
 function TreeNode({
@@ -99,9 +100,9 @@ function TreeNode({
   )
 }
 
-export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly, isAdmin, onMove }: Props) {
+export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly, isAdmin, onMove, width = 224 }: Props) {
   return (
-    <aside className="w-56 shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
+    <aside className="shrink-0 border-r border-border bg-card flex flex-col overflow-hidden" style={{ width }}>
       <div className="px-3 py-2 border-b border-border">
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
           Folders
