@@ -12,6 +12,10 @@ frontend/dist/
 frontend/.vite/
 backend/static/
 dist-frontend/
+dist-electron/
+
+# Runtime caches
+backend/gallery_thumbnails/
 
 # Env
 .env
