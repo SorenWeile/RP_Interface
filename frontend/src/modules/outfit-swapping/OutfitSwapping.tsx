@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { uploadImage, runOutfitSwapping, connectProgress, type ProgressEvent, imageUrl } from '@/api/client'
+import { fetchAndDownload } from '@/lib/download'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
@@ -263,8 +264,8 @@ export default function OutfitSwapping() {
                       alt={img.filename}
                       className="rounded border border-border max-w-full"
                     />
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={url} download={img.filename} onClick={() => toast('Downloading…', 'info')}>Download {img.filename}</a>
+                    <Button variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(url, img.filename) }}>
+                      Download {img.filename}
                     </Button>
                   </div>
                 )

@@ -3,6 +3,7 @@ import { Folder, Star, Download, Check, Trash2, Copy, FileJson, GitBranch, Penci
 import { useToast } from '@/components/Toaster'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { fetchAndDownload } from '@/lib/download'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
 
@@ -92,12 +93,9 @@ export default function GridView({
         {
           label: 'Download',
           icon: <Download className="w-4 h-4" />,
-          onClick: () => {
-            const a = document.createElement('a')
-            a.href = `/api/gallery/download/${encodePath(img.path)}`
-            a.download = img.name
-            a.click()
+          onClick: async () => {
             toast('Downloading…', 'info')
+            await fetchAndDownload(`/api/gallery/download/${encodePath(img.path)}`, img.name)
           },
         },
         {
@@ -129,13 +127,10 @@ export default function GridView({
         {
           label: 'Download as ZIP',
           icon: <Download className="w-4 h-4" />,
-          onClick: () => {
+          onClick: async () => {
             const encoded = folder.path.split('/').map(encodeURIComponent).join('/')
-            const a = document.createElement('a')
-            a.href = `/api/gallery/download-folder/${encoded}`
-            a.download = `${folder.name}.zip`
-            a.click()
             toast(`Downloading "${folder.name}" as ZIP…`, 'info')
+            await fetchAndDownload(`/api/gallery/download-folder/${encoded}`, `${folder.name}.zip`)
           },
         },
         { separator: true as const },

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { createImagePromptingBatch, getBatchStatus, cancelBatch, uploadImage, type BatchJobStatus } from '@/api/client'
+import { createImagePromptingBatch, getBatchStatus, cancelBatch, uploadImage, imageUrl, type BatchJobStatus } from '@/api/client'
+import { fetchAndDownload } from '@/lib/download'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
@@ -317,14 +318,8 @@ export default function ImagePrompting() {
                 <>
                   {batch.total === 1 && batch.jobs[0]?.images?.length > 0 ? (
                     batch.jobs[0].images.map((img, i) => (
-                      <Button key={i} variant="outline" size="sm" asChild>
-                        <a
-                          href={`/api/image?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder ?? '')}&type=${encodeURIComponent(img.type ?? 'output')}`}
-                          download={img.filename}
-                          onClick={() => toast('Downloading…', 'info')}
-                        >
-                          Download {img.filename}
-                        </a>
+                      <Button key={i} variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(imageUrl(img.filename, img.subfolder ?? '', img.type ?? 'output'), img.filename) }}>
+                        Download {img.filename}
                       </Button>
                     ))
                   ) : (

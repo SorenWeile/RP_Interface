@@ -167,6 +167,16 @@ export default function Gallery() {
     })
   }, [filterOptions])
 
+  // Poll the tree every 10 s so new subfolders appear without a manual refresh
+  useEffect(() => {
+    const id = setInterval(() => {
+      apiTree().then(rawTree => {
+        setTree(allowedPaths ? filterTree(rawTree, allowedPaths) : rawTree)
+      }).catch(() => {})
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [allowedPaths])
+
   // Load path permissions + folder tree together
   useEffect(() => {
     const token = localStorage.getItem('user_token') ?? ''

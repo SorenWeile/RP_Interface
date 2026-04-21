@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { runVideoCreation, uploadImage, getStatus, connectProgress, videoUrl, type ProgressEvent } from '@/api/client'
+import { fetchAndDownload } from '@/lib/download'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
@@ -270,10 +271,8 @@ export default function VideoCreation() {
                     controls
                     className="w-full rounded border border-border"
                   />
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={url} download={vid.filename} onClick={() => toast('Downloading…', 'info')}>
-                      Download {vid.filename}
-                    </a>
+                  <Button variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(url, vid.filename) }}>
+                    Download {vid.filename}
                   </Button>
                 </div>
               )

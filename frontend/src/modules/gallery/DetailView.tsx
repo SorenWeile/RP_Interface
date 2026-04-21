@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Star, Download, Folder, Trash2, Copy, FileJson, GitBranch, Pencil, Film, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/Toaster'
 import { cn } from '@/lib/utils'
+import { fetchAndDownload } from '@/lib/download'
 import ContextMenu, { type ContextMenuState } from './ContextMenu'
 import type { GalleryImage, GalleryFolder } from './types'
 
@@ -91,12 +92,9 @@ export default function DetailView({
         {
           label: 'Download',
           icon: <Download className="w-4 h-4" />,
-          onClick: () => {
-            const a = document.createElement('a')
-            a.href = `/api/gallery/download/${encodePath(img.path)}`
-            a.download = img.name
-            a.click()
+          onClick: async () => {
             toast('Downloading…', 'info')
+            await fetchAndDownload(`/api/gallery/download/${encodePath(img.path)}`, img.name)
           },
         },
         {
@@ -128,13 +126,10 @@ export default function DetailView({
         {
           label: 'Download as ZIP',
           icon: <Download className="w-4 h-4" />,
-          onClick: () => {
+          onClick: async () => {
             const encoded = folder.path.split('/').map(encodeURIComponent).join('/')
-            const a = document.createElement('a')
-            a.href = `/api/gallery/download-folder/${encoded}`
-            a.download = `${folder.name}.zip`
-            a.click()
             toast(`Downloading "${folder.name}" as ZIP…`, 'info')
+            await fetchAndDownload(`/api/gallery/download-folder/${encoded}`, `${folder.name}.zip`)
           },
         },
         { separator: true as const },
@@ -337,15 +332,13 @@ export default function DetailView({
                 </button>
               </>
             )}
-            <a
-              href={`/api/gallery/download/${encodePath(selectedImage.path)}`}
-              download={selectedImage.name}
+            <button
+              onClick={e => { e.stopPropagation(); fetchAndDownload(`/api/gallery/download/${encodePath(selectedImage.path)}`, selectedImage.name) }}
               className="w-8 h-8 rounded-full flex items-center justify-center bg-background/80 border border-border hover:bg-background transition-colors"
               title="Download"
-              onClick={e => e.stopPropagation()}
             >
               <Download className="w-4 h-4" />
-            </a>
+            </button>
           </div>
         )}
 

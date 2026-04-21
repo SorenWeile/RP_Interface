@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { runMagnificUpscaler, uploadImage, getStatus, connectProgress, imageUrl, type ProgressEvent } from '@/api/client'
+import { fetchAndDownload } from '@/lib/download'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
@@ -268,14 +269,8 @@ export default function MagnificUpscaler() {
         <div className="space-y-4">
           <div className="flex gap-3 flex-wrap">
             {stage.images.map((img, i) => (
-              <Button key={i} variant="outline" size="sm" asChild>
-                <a
-                  href={imageUrl(img.filename, img.subfolder, img.type)}
-                  download={img.filename}
-                  onClick={() => toast('Downloading…', 'info')}
-                >
-                  Download {img.filename}
-                </a>
+              <Button key={i} variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename) }}>
+                Download {img.filename}
               </Button>
             ))}
             <Button variant="outline" size="sm" onClick={reset}>New run</Button>
