@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RP Interface — Connect</title>
+  <title>AI Toolhouse — Settings</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -24,61 +24,95 @@
       border: 1px solid #2a2a2a;
       border-radius: 12px;
       padding: 36px 40px;
-      width: 420px;
+      width: 460px;
       -webkit-app-region: no-drag;
     }
 
     .logo {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #666;
-      margin-bottom: 24px;
+      color: #555;
+      margin-bottom: 20px;
     }
 
     h1 {
       font-size: 20px;
       font-weight: 600;
       color: #f5f5f5;
-      margin-bottom: 6px;
+      margin-bottom: 24px;
     }
 
-    .subtitle {
-      font-size: 13px;
-      color: #666;
+    /* ── Backend toggle ─────────────────────────────────────── */
+
+    .toggle-row {
+      display: flex;
+      gap: 8px;
       margin-bottom: 28px;
-      line-height: 1.5;
     }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 7px;
+      border: 1px solid #2e2e2e;
+      background: #111;
+      color: #666;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      text-align: center;
+    }
+
+    .toggle-btn.active {
+      background: #f5f5f5;
+      border-color: #f5f5f5;
+      color: #0f0f0f;
+    }
+
+    /* ── URL sections ───────────────────────────────────────── */
+
+    .section {
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .section.visible { display: block; }
 
     label {
       display: block;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
-      color: #999;
-      margin-bottom: 8px;
-      letter-spacing: 0.04em;
+      color: #777;
+      margin-bottom: 7px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
     }
 
-    input {
+    .hint {
+      font-size: 11px;
+      color: #444;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    input[type="text"] {
       width: 100%;
       background: #0f0f0f;
       border: 1px solid #2e2e2e;
       border-radius: 7px;
       color: #f0f0f0;
-      font-size: 14px;
+      font-size: 13px;
       padding: 10px 14px;
       outline: none;
       transition: border-color 0.15s;
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
     }
 
-    input:focus {
-      border-color: #555;
-    }
-
-    input::placeholder { color: #444; }
+    input[type="text"]:focus { border-color: #555; }
+    input[type="text"]::placeholder { color: #333; }
 
     .error {
       font-size: 12px;
@@ -87,9 +121,14 @@
       min-height: 18px;
     }
 
-    button {
-      margin-top: 20px;
-      width: 100%;
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    button.primary {
+      flex: 1;
       background: #f5f5f5;
       color: #0f0f0f;
       border: none;
@@ -101,49 +140,109 @@
       transition: background 0.15s;
     }
 
-    button:hover { background: #e0e0e0; }
-    button:active { background: #ccc; }
-    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    button.primary:hover  { background: #e0e0e0; }
+    button.primary:active { background: #ccc; }
+    button.primary:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+
+    button.secondary {
+      background: transparent;
+      color: #666;
+      border: 1px solid #2e2e2e;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 11px 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    button.secondary:hover { border-color: #555; color: #aaa; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="logo">RP Interface</div>
-    <h1>Connect to backend</h1>
-    <p class="subtitle">
-      Enter the address of the workstation running the Docker container.
-    </p>
+    <div class="logo">AI Toolhouse</div>
+    <h1>Backend connection</h1>
 
-    <label for="url">Backend URL</label>
-    <input
-      id="url"
-      type="text"
-      placeholder="http://192.168.1.100:8501"
-      spellcheck="false"
-      autocomplete="off"
-    />
+    <!-- Toggle -->
+    <div class="toggle-row">
+      <div class="toggle-btn active" id="btn-local" onclick="selectBackend('local')">
+        Local Docker
+      </div>
+      <div class="toggle-btn" id="btn-runpod" onclick="selectBackend('runpod')">
+        RunPod Pod
+      </div>
+    </div>
+
+    <!-- Local section -->
+    <div class="section visible" id="section-local">
+      <label for="url-local">Workstation IP &amp; port</label>
+      <p class="hint">The LAN address of the workstation running Docker Desktop.</p>
+      <input id="url-local" type="text"
+        placeholder="http://192.168.1.100:8501"
+        spellcheck="false" autocomplete="off" />
+    </div>
+
+    <!-- RunPod section -->
+    <div class="section" id="section-runpod">
+      <label for="url-runpod">RunPod pod URL</label>
+      <p class="hint">Public URL for your RunPod pod — find it under "Connect" in the RunPod dashboard (port 8501).</p>
+      <input id="url-runpod" type="text"
+        placeholder="https://&lt;pod-id&gt;-8501.proxy.runpod.net"
+        spellcheck="false" autocomplete="off" />
+    </div>
+
     <div class="error" id="error"></div>
 
-    <button id="connect">Connect</button>
+    <div class="actions">
+      <button class="primary" id="connect-btn">Connect</button>
+      <button class="secondary" id="cancel-btn">Cancel</button>
+    </div>
   </div>
 
   <script>
-    const input  = document.getElementById('url')
-    const btn    = document.getElementById('connect')
-    const errEl  = document.getElementById('error')
+    let activeBackend = 'local'
 
-    // Pre-fill with stored URL if returning from the app
-    window.electronAPI.getBackendUrl().then(url => {
-      if (url) input.value = url
+    function selectBackend(which) {
+      activeBackend = which
+      document.getElementById('btn-local').classList.toggle('active', which === 'local')
+      document.getElementById('btn-runpod').classList.toggle('active', which === 'runpod')
+      document.getElementById('section-local').classList.toggle('visible', which === 'local')
+      document.getElementById('section-runpod').classList.toggle('visible', which === 'runpod')
+      document.getElementById('error').textContent = ''
+    }
+
+    function activeInput() {
+      return document.getElementById(
+        activeBackend === 'runpod' ? 'url-runpod' : 'url-local'
+      )
+    }
+
+    // Pre-fill stored values
+    window.electronAPI.getBackendConfig().then(cfg => {
+      if (cfg.localUrl)  document.getElementById('url-local').value  = cfg.localUrl
+      if (cfg.runpodUrl) document.getElementById('url-runpod').value = cfg.runpodUrl
+      selectBackend(cfg.activeBackend || 'local')
     })
 
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') btn.click()
+    // Enter key on either input triggers connect
+    document.getElementById('url-local').addEventListener('keydown',  e => { if (e.key === 'Enter') connect() })
+    document.getElementById('url-runpod').addEventListener('keydown', e => { if (e.key === 'Enter') connect() })
+
+    document.getElementById('connect-btn').addEventListener('click', connect)
+    document.getElementById('cancel-btn').addEventListener('click', () => {
+      // If already have a valid active URL just close settings (reload app)
+      window.electronAPI.getBackendUrl().then(url => {
+        if (url) window.location.reload()
+      })
     })
 
-    btn.addEventListener('click', async () => {
+    async function connect() {
+      const errEl = document.getElementById('error')
+      const btn   = document.getElementById('connect-btn')
       errEl.textContent = ''
-      const raw = input.value.trim()
+
+      const raw = activeInput().value.trim()
       if (!raw) {
         errEl.textContent = 'Please enter a URL.'
         return
@@ -151,7 +250,6 @@
 
       let url
       try {
-        // Auto-prepend http:// if missing
         url = new URL(raw.startsWith('http') ? raw : 'http://' + raw)
       } catch {
         errEl.textContent = 'Not a valid URL.'
@@ -162,17 +260,24 @@
       btn.textContent = 'Connecting…'
 
       try {
-        // Quick reachability check before saving
-        await fetch(url.origin + '/api/auth/me', { signal: AbortSignal.timeout(4000) })
+        await fetch(url.origin + '/api/auth/me', { signal: AbortSignal.timeout(5000) })
       } catch {
-        errEl.textContent = 'Could not reach the backend. Is Docker running?'
+        const label = activeBackend === 'runpod' ? 'RunPod pod' : 'Docker container'
+        errEl.textContent = `Could not reach the backend. Is the ${label} running?`
         btn.disabled = false
         btn.textContent = 'Connect'
         return
       }
 
-      await window.electronAPI.saveBackendUrl(url.origin)
-    })
+      const localUrl  = document.getElementById('url-local').value.trim()
+      const runpodUrl = document.getElementById('url-runpod').value.trim()
+
+      await window.electronAPI.saveBackendConfig({
+        localUrl:      localUrl  ? new URL(localUrl.startsWith('http')  ? localUrl  : 'http://'  + localUrl).origin  : '',
+        runpodUrl:     runpodUrl ? new URL(runpodUrl.startsWith('http') ? runpodUrl : 'https://' + runpodUrl).origin : '',
+        activeBackend,
+      })
+    }
   </script>
 </body>
 </html>
