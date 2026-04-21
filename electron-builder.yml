@@ -1,6 +1,8 @@
-appId: com.studio.rp-interface
-productName: RP Interface
+appId: com.studio.ai-toolhouse
+productName: AI Toolhouse
 copyright: Studio
+
+icon: electron/assets/icon.png
 
 directories:
   output: release

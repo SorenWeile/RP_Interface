@@ -1,7 +1,7 @@
 {
-  "name": "rp-interface",
+  "name": "ai-toolhouse",
   "version": "1.0.0",
-  "description": "RP Interface — AI Toolhouse for studio workstations",
+  "description": "AI Toolhouse — generative AI pipeline for studio workstations",
   "author": "Studio",
   "main": "dist-electron/main.js",
   "scripts": {

@@ -57,7 +57,8 @@ function createWindow(): BrowserWindow {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: 'RP Interface',
+    title: 'AI Toolhouse',
+    icon: path.join(__dirname, '..', 'dist-frontend', 'ai_toolhouse.png'),
     backgroundColor: '#0f0f0f',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -86,7 +87,7 @@ function loadSettings(win: BrowserWindow): void {
 function buildMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'RP Interface',
+      label: 'AI Toolhouse',
       submenu: [
         {
           label: 'Settings…',
