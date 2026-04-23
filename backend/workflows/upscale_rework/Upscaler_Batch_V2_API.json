@@ -64,7 +64,7 @@
   },
   "19": {
     "inputs": {
-      "upscale_method": "nearest-exact",
+      "upscale_method": "area",
       "megapixels": 2,
       "resolution_steps": 1,
       "image": [
