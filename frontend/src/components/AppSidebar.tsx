@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
 import { getIcon } from '@/lib/icons'
 import MachineMonitor from './MachineMonitor'
+import StorageStatus from './StorageStatus'
 import type { ToolSummary } from '@/modules/workflow-builder/types'
 
 interface Props {
@@ -140,6 +141,8 @@ export default function AppSidebar({
         )}
       </nav>
 
+      <Separator />
+      <StorageStatus />
       <Separator />
       <MachineMonitor />
     </aside>

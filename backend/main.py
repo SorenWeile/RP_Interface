@@ -210,6 +210,41 @@ def _job_images(entry: dict) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Storage status
+# ---------------------------------------------------------------------------
+
+def _storage_label(path: str) -> str:
+    p = path.replace("\\\\", "//")
+    if p.startswith("//"):
+        # Extract host from UNC: //host/share/...
+        parts = p.lstrip("/").split("/")
+        return parts[0] if parts else "NAS"
+    if any(p.startswith(prefix) for prefix in ("/runpod", "/workspace", "/volume")):
+        return "Volume"
+    return "Local"
+
+
+@app.get("/api/storage/status")
+def storage_status():
+    output_dir = os.getenv("COMFYUI_OUTPUT_DIR", "/workspace/ComfyUI/output")
+    db_dir     = os.getenv("DB_DIR", "")
+
+    def accessible(p: str) -> bool:
+        try:
+            return bool(p) and os.path.isdir(p)
+        except Exception:
+            return False
+
+    output_ok = accessible(output_dir)
+    db_ok     = accessible(db_dir) if db_dir else None
+
+    return {
+        "output": {"path": output_dir, "ok": output_ok,  "label": _storage_label(output_dir)},
+        "db":     {"path": db_dir,     "ok": db_ok,      "label": _storage_label(db_dir) if db_dir else None},
+    }
+
+
+# ---------------------------------------------------------------------------
 # API routes
 # ---------------------------------------------------------------------------
 
