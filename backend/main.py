@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # loads backend/.env before any other module reads env vars
+
 import io
 import os
 import uuid
@@ -486,8 +489,8 @@ class OutfitSwappingParams(BaseModel):
 async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Optional[str] = Header(None)):
     if not params.main_image:
         raise HTTPException(422, "main_image is required")
-    if len(params.ref_images) > 7:
-        raise HTTPException(422, "At most 7 reference images are supported")
+    if len(params.ref_images) > 6:
+        raise HTTPException(422, "At most 6 reference images are supported")
     
     # Validate all image filenames
     all_images = [params.main_image] + params.ref_images

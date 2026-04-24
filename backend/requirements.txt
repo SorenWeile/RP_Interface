@@ -4,3 +4,4 @@ httpx
 websockets
 python-multipart
 Pillow
+python-dotenv

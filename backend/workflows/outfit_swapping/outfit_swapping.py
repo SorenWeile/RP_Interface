@@ -1,16 +1,24 @@
 """
 Outfit swapping workflow loader.
+
+Patch points (updated for INDGOutputPath + INDGFlexibleImageBatch):
+  Node "1"      → inputs.image       : main subject image (11_INPUT_IMAGE_LATENT)
+  Nodes "2"–"7" → inputs.image       : reference images (up to 6)
+  Node "31"     → inputs.image_1..7  : INDGFlexibleImageBatch (wired dynamically)
+  Node "30"     → inputs.value       : prompt (102_POSITIVE_PROMPT_INPUT)
+  Node "32"     → inputs.client/product/filename : INDGOutputPath
+  Node "20"     → inputs.value       : username (98_USER)
+  Node "22"     → inputs.seed        : randomised seed
 """
 
 import copy
 from pathlib import Path
 from typing import Dict, List
 
-from ..base import _load_workflow
+from ..base import _load_workflow, _random_seed
 
-
-# Ref image node IDs in order (titles 12→18_INPUT_IMAGE_REF)
-_OUTFIT_REF_NODES: List[str] = ["11", "2", "3", "4", "5", "6", "7"]
+# Reference image node IDs — up to 6 refs (nodes 2–7)
+_OUTFIT_REF_NODES: List[str] = ["2", "3", "4", "5", "6", "7"]
 
 
 def load_outfit_swapping(
@@ -23,58 +31,30 @@ def load_outfit_swapping(
     positive_prompt: str = "",
     username: str = "",
 ) -> Dict:
-    """Patch Outfit_Swapping_V1_API.json for a single run.
-    
-    ref_images: list of up to 7 filenames; only provided slots are patched.
-    The remaining ref nodes keep whatever default filename is in the JSON.
-    Prompt goes to node 30 (102_POSITIVE_PROMPT_INPUT).
-    
-    Args:
-        main_image: The main subject image filename.
-        ref_images: List of reference image filenames (up to 7).
-        prompt: The positive prompt for the workflow.
-        client_path: The client path (e.g., "Deployed/HD").
-        product_path: The product path (e.g., "ProjectName").
-        filename_prefix: The filename prefix (e.g., "Shot001").
-        positive_prompt: Additional positive prompt (optional).
-        username: The username for tracking (optional).
-        
-    Returns:
-        The patched workflow dictionary.
-    """
     workflow_dir = Path(__file__).parent
     workflow = copy.deepcopy(_load_workflow("Outfit_Swapping_V1_API", workflow_dir))
 
-    # Main subject image
     workflow["1"]["inputs"]["image"] = main_image
 
-    # Reference images — patch only slots the caller supplied; track which node IDs
-    # are actually populated so we can rebuild the BatchImagesNode accurately.
-    populated_ref_nodes: List[str] = []
-    for node_id, filename in zip(_OUTFIT_REF_NODES, ref_images):
-        if filename:
-            workflow[node_id]["inputs"]["image"] = filename
-            populated_ref_nodes.append(node_id)
-
-    # Rebuild BatchImagesNode (10) from scratch — only include images we actually have.
-    # The JSON default wires all 8 slots to placeholder filenames; any unpopulated slot
-    # would cause ComfyUI to error with "Invalid image file".
-    batch_inputs = workflow["10"]["inputs"]
+    # Manage INDGFlexibleImageBatch slots: image_1 is always wired to main (node "1").
+    # Remove all optional slots (image_2+), then re-add only those with a provided image.
+    batch_inputs = workflow["31"]["inputs"]
     for key in list(batch_inputs.keys()):
-        if key.startswith("images.image"):
+        if key.startswith("image_") and key != "image_1":
             del batch_inputs[key]
-    batch_inputs["images.image0"] = ["1", 0]          # main image always first
-    for i, node_id in enumerate(populated_ref_nodes, start=1):
-        batch_inputs[f"images.image{i}"] = [node_id, 0]
 
-    # Prompt → node 30 (102_POSITIVE_PROMPT_INPUT)
+    for i, (node_id, ref_filename) in enumerate(zip(_OUTFIT_REF_NODES, ref_images), start=2):
+        if ref_filename:
+            workflow[node_id]["inputs"]["image"] = ref_filename
+            batch_inputs[f"image_{i}"] = [node_id, 0]
+
     workflow["30"]["inputs"]["value"] = prompt
 
-    # Output path nodes — concat chain 13/14/15/16 → nodes 27→28→29 → MetaSaver 26
-    workflow["13"]["inputs"]["value"] = "ComfyUI"      # base path (always fixed)
-    workflow["14"]["inputs"]["value"] = client_path    # 95_CLIENT_PATH
-    workflow["15"]["inputs"]["value"] = product_path   # 96_PRODUCT_PATH
-    workflow["16"]["inputs"]["value"] = filename_prefix  # 97_FILENAME
-    workflow["20"]["inputs"]["value"] = username         # 98_USER
+    workflow["32"]["inputs"]["client"]   = client_path
+    workflow["32"]["inputs"]["product"]  = product_path
+    workflow["32"]["inputs"]["filename"] = filename_prefix
+
+    workflow["20"]["inputs"]["value"] = username
+    workflow["22"]["inputs"]["seed"]  = _random_seed()
 
     return workflow

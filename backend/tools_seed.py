@@ -1,8 +1,8 @@
 """
 Seed data for built-in tools.  Read once at startup; never at request time.
 
-Each dict mirrors the tools table schema.  Fields that are omitted here
-(path_nodes / auto_nodes) will be filled with defaults in _seed_builtin_tools().
+path_nodes format: {"node_id": "X"} — single INDGOutputPath node
+                   {"node_ids": ["X","Y"]} — multiple INDGOutputPath nodes (upscale_rework)
 """
 
 import json
@@ -68,7 +68,7 @@ BUILTIN_TOOLS = [
                 "required": False,
             },
         ]),
-        "path_nodes": json.dumps({"client": "2", "product": "4", "filename": "5"}),
+        "path_nodes": json.dumps({"node_id": "20"}),
         "auto_nodes": json.dumps([
             {"node_id": "3", "input_key": "value", "strategy": "username"},
         ]),
@@ -76,8 +76,8 @@ BUILTIN_TOOLS = [
     },
 
     # ── Upscale Rework ──────────────────────────────────────────────────────
-    # Note: model selection and batch runs are handled outside the generic
-    # patcher (the existing upscale_rework endpoint stays custom for now).
+    # Model selection and batch runs are handled by the custom endpoint.
+    # Two INDGOutputPath nodes (181 = 8K saver, 182 = 4K saver).
     {
         "id": "upscale-rework",
         "name": "Upscale Rework",
@@ -93,7 +93,7 @@ BUILTIN_TOOLS = [
                 "required": True,
             },
         ]),
-        "path_nodes": json.dumps({"client": "173", "product": "15", "filename": "16"}),
+        "path_nodes": json.dumps({"node_ids": ["181", "182"]}),
         "auto_nodes": json.dumps([
             {"node_id": "1",   "input_key": "value",      "strategy": "username"},
             {"node_id": "46",  "input_key": "noise_seed", "strategy": "random_seed"},
@@ -105,6 +105,7 @@ BUILTIN_TOOLS = [
     },
 
     # ── Outfit Swapping ─────────────────────────────────────────────────────
+    # INDGFlexibleImageBatch node 31: image_1=main(1), image_2-7=refs(2-7).
     {
         "id": "outfit-swapping",
         "name": "Outfit Swapping",
@@ -123,7 +124,7 @@ BUILTIN_TOOLS = [
                 "id": "ref_image_1",
                 "label": "Reference Image 1",
                 "type": "image",
-                "node_id": "11",
+                "node_id": "2",
                 "input_key": "image",
                 "required": True,
             },
@@ -131,7 +132,7 @@ BUILTIN_TOOLS = [
                 "id": "ref_image_2",
                 "label": "Reference Image 2",
                 "type": "image",
-                "node_id": "2",
+                "node_id": "3",
                 "input_key": "image",
                 "required": False,
             },
@@ -139,7 +140,7 @@ BUILTIN_TOOLS = [
                 "id": "ref_image_3",
                 "label": "Reference Image 3",
                 "type": "image",
-                "node_id": "3",
+                "node_id": "4",
                 "input_key": "image",
                 "required": False,
             },
@@ -147,7 +148,7 @@ BUILTIN_TOOLS = [
                 "id": "ref_image_4",
                 "label": "Reference Image 4",
                 "type": "image",
-                "node_id": "4",
+                "node_id": "5",
                 "input_key": "image",
                 "required": False,
             },
@@ -155,21 +156,13 @@ BUILTIN_TOOLS = [
                 "id": "ref_image_5",
                 "label": "Reference Image 5",
                 "type": "image",
-                "node_id": "5",
+                "node_id": "6",
                 "input_key": "image",
                 "required": False,
             },
             {
                 "id": "ref_image_6",
                 "label": "Reference Image 6",
-                "type": "image",
-                "node_id": "6",
-                "input_key": "image",
-                "required": False,
-            },
-            {
-                "id": "ref_image_7",
-                "label": "Reference Image 7",
                 "type": "image",
                 "node_id": "7",
                 "input_key": "image",
@@ -186,16 +179,15 @@ BUILTIN_TOOLS = [
                 "rows": 4,
             },
         ]),
-        "path_nodes": json.dumps({"client": "14", "product": "15", "filename": "16"}),
+        "path_nodes": json.dumps({"node_id": "32"}),
         "auto_nodes": json.dumps([
             {"node_id": "20", "input_key": "value", "strategy": "username"},
+            {"node_id": "22", "input_key": "seed",  "strategy": "random_seed"},
         ]),
         "workflow": _wf("outfit_swapping/Outfit_Swapping_V1_API.json"),
     },
 
     # ── Panorama ────────────────────────────────────────────────────────────
-    # Panorama has a special state_json field (PanoramaStickers editor).
-    # The generic patcher can handle it as a textarea type.
     {
         "id": "panorama",
         "name": "Panorama Outpainting",
@@ -222,9 +214,8 @@ BUILTIN_TOOLS = [
                 "rows": 4,
             },
         ]),
-        "path_nodes": json.dumps({"client": "160", "product": "162", "filename": "163"}),
+        "path_nodes": json.dumps({"node_id": "170"}),
         "auto_nodes": json.dumps([
-            {"node_id": "998", "input_key": "value",      "strategy": "username"},
             {"node_id": "31",  "input_key": "seed",       "strategy": "random_seed"},
             {"node_id": "83",  "input_key": "noise_seed", "strategy": "random_seed"},
             {"node_id": "147", "input_key": "noise_seed", "strategy": "random_seed"},
@@ -233,8 +224,7 @@ BUILTIN_TOOLS = [
     },
 
     # ── Image Edit ──────────────────────────────────────────────────────────
-    # Note: uses INDGFlexibleImageBatch after workflow update (Phase 0 manual step).
-    # Until then the existing endpoint still handles BatchImagesNode rebuilding.
+    # INDGFlexibleImageBatch node 69: image_1=main(11), image_2-5=refs(61,62,63,68).
     {
         "id": "image-edit",
         "name": "Image Edit",
@@ -292,7 +282,7 @@ BUILTIN_TOOLS = [
                 "required": False,
             },
         ]),
-        "path_nodes": json.dumps({"client": "45", "product": "55", "filename": "56"}),
+        "path_nodes": json.dumps({"node_id": "70"}),
         "auto_nodes": json.dumps([
             {"node_id": "46", "input_key": "value", "strategy": "username"},
             {"node_id": "35", "input_key": "seed",  "strategy": "random_seed"},
@@ -301,6 +291,7 @@ BUILTIN_TOOLS = [
     },
 
     # ── Image Prompting ─────────────────────────────────────────────────────
+    # INDGFlexibleImageBatch node 677: image_1-4=refs(667,670,671,672).
     {
         "id": "image-prompting",
         "name": "Image Prompting",
@@ -350,7 +341,7 @@ BUILTIN_TOOLS = [
                 "rows": 5,
             },
         ]),
-        "path_nodes": json.dumps({"client": "656", "product": "657", "filename": "655"}),
+        "path_nodes": json.dumps({"node_id": "676"}),
         "auto_nodes": json.dumps([
             {"node_id": "658", "input_key": "value", "strategy": "username"},
             {"node_id": "31",  "input_key": "seed",  "strategy": "random_seed"},
@@ -401,10 +392,11 @@ BUILTIN_TOOLS = [
                 "required": False,
             },
         ]),
-        "path_nodes": json.dumps({"client": "163", "product": "164", "filename": "162"}),
+        "path_nodes": json.dumps({"node_id": "173"}),
         "auto_nodes": json.dumps([
-            {"node_id": "165", "input_key": "value", "strategy": "username"},
-            {"node_id": "172", "input_key": "seed",  "strategy": "random_seed"},
+            {"node_id": "165", "input_key": "value",      "strategy": "username"},
+            {"node_id": "172", "input_key": "seed",       "strategy": "random_seed"},
+            {"node_id": "100", "input_key": "noise_seed", "strategy": "random_seed"},
         ]),
         "workflow": _wf("video_creation/LTX_IMG2Video_v01_API.json"),
     },

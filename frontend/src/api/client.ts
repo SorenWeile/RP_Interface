@@ -1,3 +1,13 @@
+import type {
+  ToolSummary,
+  ToolDef,
+  CreateToolPayload,
+  UpdateToolPayload,
+  ToolRunBody,
+  ToolBatchBody,
+  ToolBatchStatus,
+} from '@/modules/workflow-builder/types'
+
 // In Electron the preload exposes the backend URL synchronously before any
 // script runs. In the Vite dev server VITE_API_URL is used instead (proxied
 // to localhost:8000 via vite.config.ts).
@@ -257,6 +267,91 @@ export async function createImagePromptingBatch(params: {
     throw new Error(err.detail ?? res.statusText)
   }
   return res.json()
+}
+
+// ── Tools (built-in + custom) ─────────────────────────────────────────────
+
+async function _toolFetch(path: string, init?: RequestInit): Promise<Response> {
+  const token = localStorage.getItem('user_token') ?? ''
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Token': token,
+      ...(init?.headers ?? {}),
+    },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res
+}
+
+export async function listTools(): Promise<ToolSummary[]> {
+  const res = await _toolFetch('/api/tools/')
+  return res.json()
+}
+
+export async function getTool(id: string): Promise<ToolDef> {
+  const res = await _toolFetch(`/api/tools/${id}`)
+  return res.json()
+}
+
+export async function createTool(payload: CreateToolPayload): Promise<ToolDef> {
+  const res = await _toolFetch('/api/tools/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+  return res.json()
+}
+
+export async function updateTool(id: string, patch: UpdateToolPayload): Promise<ToolDef> {
+  const res = await _toolFetch(`/api/tools/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })
+  return res.json()
+}
+
+export async function deleteTool(id: string): Promise<void> {
+  await _toolFetch(`/api/tools/${id}`, { method: 'DELETE' })
+}
+
+export async function runTool(
+  id: string,
+  body: ToolRunBody,
+): Promise<{ prompt_id: string; client_id: string }> {
+  const res = await _toolFetch(`/api/tools/${id}/run`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+export async function runToolBatch(
+  id: string,
+  body: ToolBatchBody,
+): Promise<{ batch_id: string; total: number }> {
+  const res = await _toolFetch(`/api/tools/${id}/batch`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+export async function getToolBatchStatus(batchId: string): Promise<ToolBatchStatus> {
+  const res = await _toolFetch(`/api/tools/batch/${batchId}`)
+  return res.json()
+}
+
+export async function cancelToolBatch(batchId: string): Promise<{ cancelled: number }> {
+  const res = await _toolFetch(`/api/tools/batch/${batchId}/cancel`, { method: 'POST' })
+  return res.json()
+}
+
+export function toolBatchDownloadUrl(batchId: string): string {
+  return `${BASE}/api/tools/batch/${batchId}/download`
 }
 
 // ── WebSocket ─────────────────────────────────────────────────────────────

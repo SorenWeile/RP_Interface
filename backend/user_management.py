@@ -35,6 +35,18 @@ auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
 # ---------------------------------------------------------------------------
 
 def _db_dir() -> Path:
+    # DB_DIR points all databases (users.db, tools.db) at one directory.
+    # E.g. on the NAS: \\nas\indgai\database  or on RunPod: /runpod-volume/database
+    db_dir_env = os.environ.get("DB_DIR")
+    if db_dir_env:
+        db_dir = Path(db_dir_env)
+        try:
+            db_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+        return db_dir
+
+    # Legacy: derive from WORKSPACE_DIR
     workspace = os.environ.get("WORKSPACE_DIR", "/workspace")
     db_dir = Path(workspace) / ".rp_interface"
     try:
@@ -46,8 +58,7 @@ def _db_dir() -> Path:
 
 
 def _db_path() -> str:
-    # DB_PATH lets docker-compose point the database directly at the NAS.
-    # Falls back to the legacy WORKSPACE_DIR layout if not set.
+    # DB_PATH overrides the exact file path for users.db (legacy env var).
     db_path = os.environ.get("DB_PATH")
     if db_path:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)

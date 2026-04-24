@@ -1,5 +1,13 @@
 """
 Image prompting workflow loader.
+
+Patch points (updated for INDGOutputPath + INDGFlexibleImageBatch):
+  Nodes "667","670","671","672" → inputs.image : reference images 1–4 (LoadImage nodes)
+  Node "677" → inputs.image_1..4 : INDGFlexibleImageBatch (wired dynamically)
+  Node "666" → inputs.value      : prompt instruction (05_PROMPT_INSTRUCTION)
+  Node "676" → inputs.client/product/filename : INDGOutputPath
+  Node "658" → inputs.value      : username (98_USER)
+  Node "31"  → inputs.seed       : randomised Gemini seed
 """
 
 import copy
@@ -8,8 +16,7 @@ from typing import Dict, List
 
 from ..base import _load_workflow, _random_seed
 
-
-# Reference image node IDs in order (titles 11→14_INPUT_IMAGE_LATENT)
+# Reference image node IDs in slot order (image_1 through image_4 in the batch node)
 _IMAGE_PROMPTING_REF_NODES: List[str] = ["667", "670", "671", "672"]
 
 
@@ -21,64 +28,31 @@ def load_image_prompting(
     filename_prefix: str,
     username: str = "",
 ) -> Dict:
-    """Patch Image_Prompting_V1_API.json for a single run.
-
-    Image_Prompting_V1_API.json patch points:
-      Node "667" → inputs.image   : reference image 1 (11_INPUT_IMAGE_LATENT)
-      Node "670" → inputs.image   : reference image 2 (12_INPUT_IMAGE_LATENT)
-      Node "671" → inputs.image   : reference image 3 (13_INPUT_IMAGE_LATENT)
-      Node "672" → inputs.image   : reference image 4 (14_INPUT_IMAGE_LATENT)
-      Node "669" → inputs         : BatchImagesNode collecting all ref images
-      Node "666" → inputs.value   : prompt instruction (05_PROMPT_INSTRUCTION)
-      Node "656" → inputs.value   : client path (95_CLIENT_PATH)
-      Node "657" → inputs.value   : product path (96_PRODUCT_PATH)
-      Node "655" → inputs.value   : filename prefix (97_FILENAME)
-      Node "658" → inputs.value   : username (98_USER)
-      Node "31"  → inputs.seed    : randomised Gemini seed
-      Path chain: 660("ComfyUI")/656/657/655 → concat 673→674→675 → MetaSaver 648
-
-    Args:
-        ref_images: List of reference image filenames (up to 4).
-        prompt: The prompt instruction for the workflow.
-        client_path: The client path (e.g., "Deployed/HD").
-        product_path: The product path (e.g., "ProjectName").
-        filename_prefix: The filename prefix (e.g., "Shot001").
-        username: The username for tracking (optional).
-
-    Returns:
-        The patched workflow dictionary.
-    """
     workflow_dir = Path(__file__).parent
     workflow = copy.deepcopy(_load_workflow("Image_Prompting_V1_API", workflow_dir))
 
-    # Rebuild BatchImagesNode (669) — only include images actually provided.
-    # BatchImagesNode requires min=2 slots, so duplicate the first image if only one is given.
-    batch_inputs = workflow["669"]["inputs"]
+    # Manage INDGFlexibleImageBatch slots: image_1 is always required.
+    # Remove optional slots (image_2+), then re-add only those with a provided image.
+    # image_1 stays wired to node "667" (the first ref image, always required).
+    batch_inputs = workflow["677"]["inputs"]
     for key in list(batch_inputs.keys()):
-        if key.startswith("images.image"):
+        if key.startswith("image_") and key != "image_1":
             del batch_inputs[key]
 
-    slot = 0
-    for node_id, filename in zip(_IMAGE_PROMPTING_REF_NODES, ref_images):
+    for i, (node_id, filename) in enumerate(zip(_IMAGE_PROMPTING_REF_NODES, ref_images), start=1):
+        # slot i=1 → image_1 (required, always wired); slots 2-4 → optional
         if filename:
             workflow[node_id]["inputs"]["image"] = filename
-            batch_inputs[f"images.image{slot}"] = [node_id, 0]
-            slot += 1
+            if i > 1:
+                batch_inputs[f"image_{i}"] = [node_id, 0]
 
-    if slot == 1:
-        # Satisfy min=2 requirement by wiring the first image into slot 1 as well
-        batch_inputs["images.image1"] = batch_inputs["images.image0"]
-
-    # Prompt
     workflow["666"]["inputs"]["value"] = prompt
 
-    # Output path nodes
-    workflow["656"]["inputs"]["value"] = client_path      # 95_CLIENT_PATH
-    workflow["657"]["inputs"]["value"] = product_path     # 96_PRODUCT_PATH
-    workflow["655"]["inputs"]["value"] = filename_prefix  # 97_FILENAME
-    workflow["658"]["inputs"]["value"] = username         # 98_USER
+    workflow["676"]["inputs"]["client"]   = client_path
+    workflow["676"]["inputs"]["product"]  = product_path
+    workflow["676"]["inputs"]["filename"] = filename_prefix
 
-    # Randomise seed on the Gemini node
-    workflow["31"]["inputs"]["seed"] = _random_seed()
+    workflow["658"]["inputs"]["value"] = username
+    workflow["31"]["inputs"]["seed"]   = _random_seed()
 
     return workflow

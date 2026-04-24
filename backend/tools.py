@@ -2,7 +2,8 @@
 Tools DB — stores built-in and custom tools; generic workflow patcher;
 FastAPI router for /api/tools.
 
-Two SQLite tables share users.db:
+SQLite file: tools.db   (same directory as users.db, resolved via DB_PATH or WORKSPACE_DIR)
+Tables:
   tools       — one row per tool (built-in or custom)
   batch_runs  — one row per run inside a tool batch job
 """
@@ -11,9 +12,12 @@ import copy
 import datetime
 import io
 import json
+import os
 import random
+import sqlite3
 import uuid
 import zipfile
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException
@@ -24,6 +28,9 @@ import comfy_client
 import user_management as user_mgmt_module
 from tools_seed import BUILTIN_TOOLS
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
 _MAX_SEED = 2**53 - 1
@@ -33,9 +40,14 @@ _MAX_SEED = 2**53 - 1
 # DB helpers
 # ---------------------------------------------------------------------------
 
-def _get_conn():
-    import sqlite3
-    conn = sqlite3.connect(user_mgmt_module._db_path())
+def _tools_db_path() -> str:
+    """tools.db lives next to users.db in the same persistent directory."""
+    users_db = user_mgmt_module._db_path()
+    return str(Path(users_db).parent / "tools.db")
+
+
+def _get_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(_tools_db_path())
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
@@ -75,6 +87,7 @@ def _create_tables() -> None:
 
 def _seed_builtin_tools() -> None:
     conn = _get_conn()
+    seeded = 0
     try:
         for tool in BUILTIN_TOOLS:
             existing = conn.execute(
@@ -101,14 +114,20 @@ def _seed_builtin_tools() -> None:
                     datetime.datetime.utcnow().isoformat() + "Z",
                 ),
             )
+            seeded += 1
         conn.commit()
     finally:
         conn.close()
+    if seeded:
+        logger.info(f"[tools_db] Seeded {seeded} built-in tool(s).")
+    else:
+        logger.info("[tools_db] Built-in tools already present, skipping seed.")
 
 
 def init_tools_db() -> None:
     _create_tables()
     _seed_builtin_tools()
+    logger.info(f"[tools_db] Initialized at {_tools_db_path()}")
 
 
 # ---------------------------------------------------------------------------
@@ -206,13 +225,29 @@ def apply_patches(tool_row: dict, values: dict, username: str = "") -> dict:
         if node:
             node["inputs"][field["input_key"]] = value
 
-    # Path nodes (passed in via values with reserved keys __path_client etc.)
+    # Path nodes — patch the INDGOutputPath node(s) with client/product/filename.
+    # Format: {"node_id": "X"} for one node, {"node_ids": ["X","Y"]} for multiple.
     path_nodes = json.loads(tool_row.get("path_nodes") or "null")
     if path_nodes:
-        for key, node_id in path_nodes.items():
-            v = values.get(f"__path_{key}")
-            if v and node_id and node_id in workflow:
-                workflow[node_id]["inputs"]["value"] = v
+        client_val   = values.get("__path_client", "")
+        product_val  = values.get("__path_product", "")
+        filename_val = values.get("__path_filename", "")
+
+        if "node_id" in path_nodes:
+            nids = [path_nodes["node_id"]]
+        else:
+            nids = path_nodes.get("node_ids", [])
+
+        for nid in nids:
+            node = workflow.get(nid)
+            if not node:
+                continue
+            if client_val:
+                node["inputs"]["client"] = client_val
+            if product_val:
+                node["inputs"]["product"] = product_val
+            if filename_val:
+                node["inputs"]["filename"] = filename_val
 
     # Auto-nodes
     for spec in auto:

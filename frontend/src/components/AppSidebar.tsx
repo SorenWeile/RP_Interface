@@ -1,30 +1,38 @@
+import { Plus } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
+import { getIcon } from '@/lib/icons'
 import MachineMonitor from './MachineMonitor'
+import type { ToolSummary } from '@/modules/workflow-builder/types'
 
 interface Props {
-  active: WorkflowModule | null
-  onSelect: (m: WorkflowModule) => void
-  showGallery: boolean
-  showAdmin: boolean
+  activeModule:    WorkflowModule | null
+  activeToolId:    string | null
+  wizardActive:    boolean
+  onSelectModule:  (m: WorkflowModule) => void
+  onOpenTool:      (id: string) => void
+  onNewTool:       () => void
+  showGallery:     boolean
+  showAdmin:       boolean
   workflowModules: WorkflowModule[]
+  customTools:     ToolSummary[]
 }
 
 function NavButton({
-  m,
-  active,
-  onSelect,
+  label,
+  icon: Icon,
+  isActive,
+  onClick,
 }: {
-  m: WorkflowModule
-  active: WorkflowModule | null
-  onSelect: (m: WorkflowModule) => void
+  label:    string
+  icon?:    React.ComponentType<{ className?: string }>
+  isActive: boolean
+  onClick:  () => void
 }) {
-  const Icon = m.icon
-  const isActive = active?.id === m.id
   return (
     <button
-      onClick={() => onSelect(m)}
+      onClick={onClick}
       className={cn(
         'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
         isActive
@@ -33,12 +41,17 @@ function NavButton({
       )}
     >
       {Icon && <Icon className="w-4 h-4 shrink-0" />}
-      <span className="truncate">{m.title}</span>
+      <span className="truncate">{label}</span>
     </button>
   )
 }
 
-export default function AppSidebar({ active, onSelect, showGallery, showAdmin, workflowModules }: Props) {
+export default function AppSidebar({
+  activeModule, activeToolId, wizardActive,
+  onSelectModule, onOpenTool, onNewTool,
+  showGallery, showAdmin,
+  workflowModules, customTools,
+}: Props) {
   return (
     <aside className="w-64 shrink-0 border-l border-border bg-card flex flex-col">
       <div className="px-4 py-3">
@@ -49,7 +62,14 @@ export default function AppSidebar({ active, onSelect, showGallery, showAdmin, w
 
       <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {/* Gallery */}
-        {showGallery && <NavButton m={galleryModule} active={active} onSelect={onSelect} />}
+        {showGallery && (
+          <NavButton
+            label={galleryModule.title}
+            icon={galleryModule.icon}
+            isActive={activeModule?.id === galleryModule.id}
+            onClick={() => onSelectModule(galleryModule)}
+          />
+        )}
 
         {/* Workflow Tools */}
         {workflowModules.length > 0 && (
@@ -60,10 +80,47 @@ export default function AppSidebar({ active, onSelect, showGallery, showAdmin, w
               </p>
             </div>
             {workflowModules.map(m => (
-              <NavButton key={m.id} m={m} active={active} onSelect={onSelect} />
+              <NavButton
+                key={m.id}
+                label={m.title}
+                icon={m.icon}
+                isActive={activeModule?.id === m.id}
+                onClick={() => onSelectModule(m)}
+              />
             ))}
           </>
         )}
+
+        {/* Custom Tools */}
+        <div className="pt-1 pb-0.5">
+          <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+            Custom Tools
+          </p>
+        </div>
+        {customTools.map(t => {
+          const Icon = getIcon(t.icon)
+          return (
+            <NavButton
+              key={t.id}
+              label={t.name}
+              icon={Icon}
+              isActive={activeToolId === t.id}
+              onClick={() => onOpenTool(t.id)}
+            />
+          )
+        })}
+        <button
+          onClick={onNewTool}
+          className={cn(
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
+            wizardActive
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+          )}
+        >
+          <Plus className="w-4 h-4 shrink-0" />
+          <span className="truncate">New Tool</span>
+        </button>
 
         {/* Admin */}
         {showAdmin && (
@@ -73,7 +130,12 @@ export default function AppSidebar({ active, onSelect, showGallery, showAdmin, w
                 Settings
               </p>
             </div>
-            <NavButton m={adminModule} active={active} onSelect={onSelect} />
+            <NavButton
+              label={adminModule.title}
+              icon={adminModule.icon}
+              isActive={activeModule?.id === adminModule.id}
+              onClick={() => onSelectModule(adminModule)}
+            />
           </>
         )}
       </nav>

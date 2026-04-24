@@ -6,10 +6,11 @@ import UsersTab from './UsersTab'
 import ClientsTab from './ClientsTab'
 import ProjectsTab from './ProjectsTab'
 import GroupsTab from './GroupsTab'
+import CustomToolsTab from './CustomToolsTab'
 
 const TOKEN_KEY = 'admin_token'
 
-type Tab = 'groups' | 'users' | 'clients' | 'projects'
+type Tab = 'groups' | 'users' | 'clients' | 'projects' | 'tools'
 
 // ---------------------------------------------------------------------------
 // Login form
@@ -97,6 +98,7 @@ function AdminPanel({ token, onLogout }: { token: string; onLogout: () => void }
     { id: 'users',    label: 'Users' },
     { id: 'clients',  label: 'Clients' },
     { id: 'projects', label: 'Projects' },
+    { id: 'tools',    label: 'Custom Tools' },
   ]
 
   return (
@@ -133,6 +135,7 @@ function AdminPanel({ token, onLogout }: { token: string; onLogout: () => void }
         {tab === 'users'    && <UsersTab token={token} />}
         {tab === 'clients'  && <ClientsTab token={token} />}
         {tab === 'projects' && <ProjectsTab token={token} />}
+        {tab === 'tools'    && <CustomToolsTab />}
       </div>
     </div>
   )
