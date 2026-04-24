@@ -281,7 +281,7 @@ interface Props {
   pathNodeId:     string | null
   setPathNodeId:  (v: string | null) => void
   outputPathNodes: Array<{ node_id: string; title: string }>
-  onBack:         () => void
+  onBack?:        () => void
   onNext:         () => void
 }
 
@@ -453,7 +453,10 @@ export default function StepFields({
 
         {/* Nav buttons */}
         <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack}>← Back</Button>
+          {onBack
+            ? <Button variant="outline" onClick={onBack}>← Back</Button>
+            : <span />
+          }
           <Button onClick={handleNext}>Next →</Button>
         </div>
       </div>

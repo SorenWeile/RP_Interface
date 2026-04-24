@@ -59,6 +59,12 @@ export default function App() {
     if (authState === 'authenticated') refreshCustomTools()
   }, [authState, refreshCustomTools])
 
+  // Refresh when admin panel deletes a tool
+  useEffect(() => {
+    window.addEventListener('rp:tools-changed', refreshCustomTools)
+    return () => window.removeEventListener('rp:tools-changed', refreshCustomTools)
+  }, [refreshCustomTools])
+
   // ── Navigation helpers ────────────────────────────────────────────────────
 
   const openHub    = () => setNav({ screen: 'hub' })

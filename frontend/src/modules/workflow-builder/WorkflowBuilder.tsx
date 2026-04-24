@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createTool, getTool, updateTool } from '@/api/client'
@@ -46,9 +46,8 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
   const [loadError,    setLoadError]    = useState<string | null>(null)
 
   // Load existing tool data when editing
-  const [editLoaded, setEditLoaded] = useState(false)
-  if (editToolId && !editLoaded && !loadError) {
-    setEditLoaded(true)  // prevent re-entry
+  useEffect(() => {
+    if (!editToolId) return
     getTool(editToolId)
       .then((raw: ToolDef) => {
         const wf = JSON.parse(raw.workflow) as Record<string, unknown>
@@ -68,7 +67,7 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
         setToolIcon(raw.icon ?? 'sparkles')
       })
       .catch(e => setLoadError(String(e)))
-  }
+  }, [editToolId])
 
   // Output path nodes derived from the loaded workflow
   const outputPathNodes = useMemo(
@@ -181,7 +180,7 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
           pathNodeId={pathNodeId}
           setPathNodeId={setPathNodeId}
           outputPathNodes={outputPathNodes}
-          onBack={() => setStep(editToolId ? 2 : 1)}
+          onBack={editToolId ? undefined : () => setStep(1)}
           onNext={() => setStep(3)}
         />
       )}

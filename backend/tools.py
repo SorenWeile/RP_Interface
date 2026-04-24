@@ -532,6 +532,7 @@ async def api_update_tool(tool_id: str, body: UpdateToolBody):
     if row["is_builtin"]:
         raise HTTPException(status_code=403, detail="Built-in tools cannot be edited via the API")
 
+    fields_set = getattr(body, 'model_fields_set', getattr(body, '__fields_set__', set()))
     if body.name is not None:
         row["name"] = body.name
     if body.description is not None:
@@ -540,7 +541,7 @@ async def api_update_tool(tool_id: str, body: UpdateToolBody):
         row["icon"] = body.icon
     if body.fields_json is not None:
         row["fields_json"] = body.fields_json
-    if body.path_nodes is not None:
+    if 'path_nodes' in fields_set:
         row["path_nodes"] = body.path_nodes
     if body.auto_nodes is not None:
         row["auto_nodes"] = body.auto_nodes

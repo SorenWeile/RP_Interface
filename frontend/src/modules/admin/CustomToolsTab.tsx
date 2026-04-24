@@ -33,6 +33,7 @@ export default function CustomToolsTab({ onDeleted }: Props) {
     setConfirm(null)
     load()
     onDeleted?.()
+    window.dispatchEvent(new CustomEvent('rp:tools-changed'))
   }
 
   if (loading) return <p className="text-sm text-muted-foreground animate-pulse">Loading…</p>

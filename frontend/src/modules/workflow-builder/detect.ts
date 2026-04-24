@@ -94,7 +94,7 @@ export function guessLabel(title: string): string {
 }
 
 export function slugify(s: string): string {
-  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/, '') || 'field'
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'field'
 }
 
 // ── Classification ────────────────────────────────────────────────────────────

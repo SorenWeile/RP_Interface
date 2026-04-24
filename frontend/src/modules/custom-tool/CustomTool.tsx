@@ -71,8 +71,10 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
   const [productPath, setProductPath] = useState('')
   const [filePrefix,  setFilePrefix]  = useState('Shot001')
   const [batchCount,  setBatchCount]  = useState(1)
-  const [stage,       setStage]       = useState<Stage>({ status: 'idle' })
-  const [formKey,     setFormKey]     = useState(0)
+  const [stage,        setStage]        = useState<Stage>({ status: 'idle' })
+  const [formKey,      setFormKey]      = useState(0)
+  const [menuOpen,     setMenuOpen]     = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
 
   const disconnectWs = useRef<(() => void) | null>(null)
   const batchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -252,7 +254,6 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
 
   const batchDone = stage.status === 'batch' && stage.bs.queued === 0 && stage.bs.processing === 0
   const showActions = stage.status === 'idle' || stage.status === 'submitting'
-  const [menuOpen, setMenuOpen] = useState(false)
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -293,7 +294,7 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
                 {onDelete && (
                   <button
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-                    onClick={() => { setMenuOpen(false); onDelete() }}
+                    onClick={() => { setMenuOpen(false); setDeleteConfirm(true) }}
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete tool
                   </button>
@@ -486,6 +487,30 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
             {stage.message}
           </p>
           <Button variant="ghost" size="sm" onClick={resetAll}>Reset</Button>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && onDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setDeleteConfirm(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-foreground font-medium">Delete "{tool.name}"?</h3>
+            <p className="text-xs text-muted-foreground">
+              This cannot be undone. The workflow and all field configuration will be removed.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(false)}>Cancel</Button>
+              <Button variant="destructive" size="sm" onClick={onDelete}>
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
