@@ -102,7 +102,16 @@ export default function StorageStatus() {
               </div>
               {info.label && (
                 <p className="text-[10px] text-muted-foreground/60 pl-3.5 truncate" title={info.path}>
-                  {info.path.replace(/\\/g, '/').replace(/^\/\//, '').split('/').slice(0, 2).join('/')}
+                  {(p => {
+                    const fwd = p.replace(/\\/g, '/')
+                    if (fwd.startsWith('//')) {
+                      // UNC: //host/share/... → host/share
+                      return fwd.replace(/^\/\//, '').split('/').slice(0, 2).join('/')
+                    }
+                    // Linux mount: /nas/indgai/... → /nas/indgai
+                    const parts = fwd.split('/').filter(Boolean)
+                    return '/' + parts.slice(0, 2).join('/')
+                  })(info.path)}
                 </p>
               )}
             </div>

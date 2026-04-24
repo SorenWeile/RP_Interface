@@ -213,15 +213,42 @@ def _job_images(entry: dict) -> list:
 # Storage status
 # ---------------------------------------------------------------------------
 
+def _normalize(path: str) -> str:
+    """Normalize all backslashes to forward slashes."""
+    return path.replace("\\", "/")
+
+
 def _storage_label(path: str) -> str:
-    p = path.replace("\\\\", "//")
+    p = _normalize(path)
     if p.startswith("//"):
-        # Extract host from UNC: //host/share/...
-        parts = p.lstrip("/").split("/")
-        return parts[0] if parts else "NAS"
-    if any(p.startswith(prefix) for prefix in ("/runpod", "/workspace", "/volume")):
+        return "NAS"
+    if any(p.startswith(x) for x in ("/runpod", "/workspace", "/volume")):
         return "Volume"
+    if p.startswith("/nas") or p.startswith("/mnt"):
+        return "NAS"
     return "Local"
+
+
+def _accessible(path: str) -> bool:
+    """Check whether a storage path is reachable.
+
+    For UNC paths (\\server\share\sub) we probe the share root rather than the
+    subdirectory — the sub-folder may not exist yet on a fresh setup even though
+    the NAS itself is perfectly accessible.
+    """
+    if not path:
+        return False
+    try:
+        p = _normalize(path)
+        if p.startswith("//"):
+            parts = p.lstrip("/").split("/")
+            if len(parts) >= 2:
+                # Reconstruct Windows UNC share root: \\server\share
+                share_root = "\\\\" + parts[0] + "\\" + parts[1]
+                return os.path.isdir(share_root)
+        return os.path.isdir(path)
+    except Exception:
+        return False
 
 
 @app.get("/api/storage/status")
@@ -229,18 +256,10 @@ def storage_status():
     output_dir = os.getenv("COMFYUI_OUTPUT_DIR", "/workspace/ComfyUI/output")
     db_dir     = os.getenv("DB_DIR", "")
 
-    def accessible(p: str) -> bool:
-        try:
-            return bool(p) and os.path.isdir(p)
-        except Exception:
-            return False
-
-    output_ok = accessible(output_dir)
-    db_ok     = accessible(db_dir) if db_dir else None
-
     return {
-        "output": {"path": output_dir, "ok": output_ok,  "label": _storage_label(output_dir)},
-        "db":     {"path": db_dir,     "ok": db_ok,      "label": _storage_label(db_dir) if db_dir else None},
+        "output": {"path": output_dir, "ok": _accessible(output_dir), "label": _storage_label(output_dir)},
+        "db":     {"path": db_dir,     "ok": _accessible(db_dir) if db_dir else None,
+                   "label": _storage_label(db_dir) if db_dir else None},
     }
 
 
