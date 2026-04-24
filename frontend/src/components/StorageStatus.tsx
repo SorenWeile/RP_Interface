@@ -13,13 +13,15 @@ interface StorageStatusData {
 }
 
 export default function StorageStatus() {
-  const [data,    setData]    = useState<StorageStatusData | null>(null)
-  const [error,   setError]   = useState(false)
-  const timerRef              = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [data,        setData]        = useState<StorageStatusData | null>(null)
+  const [error,       setError]       = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
+  const timerRef                      = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetch_ = async () => {
     try {
       const res = await fetch('/api/storage/status')
+      if (res.status === 404) { setUnavailable(true); return }
       if (!res.ok) throw new Error()
       setData(await res.json())
       setError(false)
@@ -45,6 +47,9 @@ export default function StorageStatus() {
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [])
+
+  // Backend doesn't support this endpoint (old version) — hide the whole widget
+  if (unavailable) return null
 
   const rows: Array<{ key: string; info: StorageInfo; sublabel: string }> = data
     ? [
