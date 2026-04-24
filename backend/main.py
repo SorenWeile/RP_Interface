@@ -26,6 +26,7 @@ from workflows.image_prompting.image_prompting import load_image_prompting
 from workflows.video_creation.video_creation import load_video_creation, MIN_LENGTH, MAX_LENGTH
 import gallery as gallery_module
 import user_management as user_mgmt_module
+import tools as tools_module
 from config import (
     UPSCALE_REWORK_MODELS,
     DEFAULT_PANORAMA_PROMPT,
@@ -49,6 +50,7 @@ app = FastAPI(title="AI Toolhouse")
 app.include_router(gallery_module.router)
 app.include_router(user_mgmt_module.router)
 app.include_router(user_mgmt_module.auth_router)
+app.include_router(tools_module.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -88,6 +90,12 @@ async def on_startup():
         user_mgmt_module.init_user_db()
     except Exception as e:
         logger.warning(f"User DB init failed: {e}")
+
+    # Initialise tools DB (creates tables + seeds built-in tools)
+    try:
+        tools_module.init_tools_db()
+    except Exception as e:
+        logger.warning(f"Tools DB init failed: {e}")
 
 
 

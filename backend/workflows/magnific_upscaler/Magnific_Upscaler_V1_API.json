@@ -1,22 +1,4 @@
 {
-  "1": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
-    }
-  },
-  "2": {
-    "inputs": {
-      "value": "HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
   "3": {
     "inputs": {
       "value": "Deployed"
@@ -24,75 +6,6 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "98_USER"
-    }
-  },
-  "4": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "96_PRODUCT_PATH"
-    }
-  },
-  "5": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S_"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "97_FILENAME"
-    }
-  },
-  "6": {
-    "inputs": {
-      "string_a": [
-        "1",
-        0
-      ],
-      "string_b": [
-        "2",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "7": {
-    "inputs": {
-      "string_a": [
-        "6",
-        0
-      ],
-      "string_b": [
-        "4",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "8": {
-    "inputs": {
-      "string_a": [
-        "7",
-        0
-      ],
-      "string_b": [
-        "5",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
     }
   },
   "9": {
@@ -125,7 +38,7 @@
   "11": {
     "inputs": {
       "filename_prefix": [
-        "8",
+        "20",
         0
       ],
       "meta_name_0": "Seed",
@@ -186,6 +99,18 @@
     "class_type": "easy int",
     "_meta": {
       "title": "04_INPUT_ULTRA_DETAIL"
+    }
+  },
+  "20": {
+    "inputs": {
+      "client": "HD",
+      "product": "PanAmerica_RA1250S",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
+    },
+    "class_type": "INDGOutputPath",
+    "_meta": {
+      "title": "INDG Output Path"
     }
   }
 }

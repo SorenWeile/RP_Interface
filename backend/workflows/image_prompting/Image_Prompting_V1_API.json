@@ -12,7 +12,7 @@
       "response_modalities": "IMAGE",
       "system_prompt": "Status: Completed\nPrice: $0.1445\nTime elapsed: 64s",
       "images": [
-        "669",
+        "677",
         0
       ]
     },
@@ -24,7 +24,7 @@
   "648": {
     "inputs": {
       "filename_prefix": [
-        "675",
+        "676",
         0
       ],
       "meta_name_0": "Seed",
@@ -75,33 +75,6 @@
       "title": "Resize Image v2"
     }
   },
-  "655": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S_"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "97_FILENAME"
-    }
-  },
-  "656": {
-    "inputs": {
-      "value": "Deployed/HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
-  "657": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "96_PRODUCT_PATH"
-    }
-  },
   "658": {
     "inputs": {
       "value": "Deployed"
@@ -109,15 +82,6 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "98_USER"
-    }
-  },
-  "660": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
     }
   },
   "666": {
@@ -136,30 +100,6 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "11_INPUT_IMAGE_LATENT"
-    }
-  },
-  "669": {
-    "inputs": {
-      "images.image0": [
-        "667",
-        0
-      ],
-      "images.image1": [
-        "670",
-        0
-      ],
-      "images.image2": [
-        "671",
-        0
-      ],
-      "images.image3": [
-        "672",
-        0
-      ]
-    },
-    "class_type": "BatchImagesNode",
-    "_meta": {
-      "title": "Batch Images"
     }
   },
   "670": {
@@ -189,55 +129,40 @@
       "title": "14_INPUT_IMAGE_LATENT"
     }
   },
-  "673": {
+  "676": {
     "inputs": {
-      "string_a": [
-        "660",
-        0
-      ],
-      "string_b": [
-        "656",
-        0
-      ],
-      "delimiter": "/"
+      "client": "HD",
+      "product": "PanAmerica_RA1250S",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
     },
-    "class_type": "StringConcatenate",
+    "class_type": "INDGOutputPath",
     "_meta": {
-      "title": "Concatenate"
+      "title": "INDG Output Path"
     }
   },
-  "674": {
+  "677": {
     "inputs": {
-      "string_a": [
-        "673",
+      "image_1": [
+        "667",
         0
       ],
-      "string_b": [
-        "657",
+      "image_2": [
+        "670",
         0
       ],
-      "delimiter": "/"
+      "image_3": [
+        "671",
+        0
+      ],
+      "image_4": [
+        "672",
+        0
+      ]
     },
-    "class_type": "StringConcatenate",
+    "class_type": "INDGFlexibleImageBatch",
     "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "675": {
-    "inputs": {
-      "string_a": [
-        "674",
-        0
-      ],
-      "string_b": [
-        "655",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
+      "title": "INDG Flexible Image Batch"
     }
   }
 }

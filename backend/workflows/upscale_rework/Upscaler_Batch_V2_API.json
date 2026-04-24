@@ -8,51 +8,6 @@
       "title": "98_USER"
     }
   },
-  "3": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
-    }
-  },
-  "12": {
-    "inputs": {
-      "value": "4k"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "4kSting"
-    }
-  },
-  "13": {
-    "inputs": {
-      "value": "8k"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "8kString"
-    }
-  },
-  "15": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "96_PRODUCT_PATH"
-    }
-  },
-  "16": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S_"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "97_FILENAME"
-    }
-  },
   "18": {
     "inputs": {
       "image": "Screenshot 2025-11-21 125943.png"
@@ -656,7 +611,7 @@
   "99": {
     "inputs": {
       "filename_prefix": [
-        "177",
+        "182",
         0
       ],
       "meta_name_0": "Seed",
@@ -981,7 +936,7 @@
   "132": {
     "inputs": {
       "filename_prefix": [
-        "178",
+        "181",
         0
       ],
       "meta_name_0": "Seed",
@@ -1133,132 +1088,6 @@
       "title": "Load Upscale Model"
     }
   },
-  "171": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
-    }
-  },
-  "172": {
-    "inputs": {
-      "delimiter": "/",
-      "clean_whitespace": "true",
-      "text_a": [
-        "171",
-        0
-      ],
-      "text_b": [
-        "173",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
-    }
-  },
-  "173": {
-    "inputs": {
-      "value": "Deployed/HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
-  "174": {
-    "inputs": {
-      "delimiter": "/",
-      "clean_whitespace": "true",
-      "text_a": [
-        "172",
-        0
-      ],
-      "text_b": [
-        "15",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
-    }
-  },
-  "175": {
-    "inputs": {
-      "delimiter": "/",
-      "clean_whitespace": "true",
-      "text_a": [
-        "174",
-        0
-      ],
-      "text_b": [
-        "12",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
-    }
-  },
-  "176": {
-    "inputs": {
-      "delimiter": "/",
-      "clean_whitespace": "true",
-      "text_a": [
-        "174",
-        0
-      ],
-      "text_b": [
-        "13",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
-    }
-  },
-  "177": {
-    "inputs": {
-      "delimiter": "/",
-      "clean_whitespace": "true",
-      "text_a": [
-        "175",
-        0
-      ],
-      "text_b": [
-        "16",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
-    }
-  },
-  "178": {
-    "inputs": {
-      "delimiter": "/",
-      "clean_whitespace": "true",
-      "text_a": [
-        "176",
-        0
-      ],
-      "text_b": [
-        "16",
-        0
-      ]
-    },
-    "class_type": "Text Concatenate",
-    "_meta": {
-      "title": "Text Concatenate"
-    }
-  },
   "179": {
     "inputs": {
       "upscale_method": "nearest-exact",
@@ -1298,6 +1127,30 @@
     "class_type": "AILab_QwenVL_Advanced",
     "_meta": {
       "title": "QwenVL (Advanced)"
+    }
+  },
+  "181": {
+    "inputs": {
+      "client": "HD",
+      "product": "PanAmerica/8k",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
+    },
+    "class_type": "INDGOutputPath",
+    "_meta": {
+      "title": "INDG Output Path"
+    }
+  },
+  "182": {
+    "inputs": {
+      "client": "HD",
+      "product": "PanAmerica/4k",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
+    },
+    "class_type": "INDGOutputPath",
+    "_meta": {
+      "title": "INDG Output Path"
     }
   }
 }

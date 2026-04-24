@@ -535,33 +535,6 @@
       "title": "06_PROMPT_NEG_INSTRUCTION"
     }
   },
-  "162": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S_"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "97_FILENAME"
-    }
-  },
-  "163": {
-    "inputs": {
-      "value": "Deployed/HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
-  "164": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "96_PRODUCT_PATH"
-    }
-  },
   "165": {
     "inputs": {
       "value": "Deployed"
@@ -571,70 +544,10 @@
       "title": "98_USER"
     }
   },
-  "166": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
-    }
-  },
-  "167": {
-    "inputs": {
-      "string_a": [
-        "166",
-        0
-      ],
-      "string_b": [
-        "163",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "168": {
-    "inputs": {
-      "string_a": [
-        "167",
-        0
-      ],
-      "string_b": [
-        "164",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "169": {
-    "inputs": {
-      "string_a": [
-        "168",
-        0
-      ],
-      "string_b": [
-        "162",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
   "171": {
     "inputs": {
       "filename_prefix": [
-        "169",
+        "173",
         0
       ],
       "format": "auto",
@@ -698,6 +611,18 @@
     "class_type": "Seed",
     "_meta": {
       "title": "Seed"
+    }
+  },
+  "173": {
+    "inputs": {
+      "client": "HD",
+      "product": "PanAmerica",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
+    },
+    "class_type": "INDGOutputPath",
+    "_meta": {
+      "title": "INDG Output Path"
     }
   }
 }

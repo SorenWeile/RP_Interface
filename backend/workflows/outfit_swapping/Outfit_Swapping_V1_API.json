@@ -62,91 +62,6 @@
       "title": "18_INPUT_IMAGE_REF"
     }
   },
-  "10": {
-    "inputs": {
-      "images.image0": [
-        "1",
-        0
-      ],
-      "images.image1": [
-        "2",
-        0
-      ],
-      "images.image2": [
-        "3",
-        0
-      ],
-      "images.image3": [
-        "4",
-        0
-      ],
-      "images.image4": [
-        "5",
-        0
-      ],
-      "images.image5": [
-        "6",
-        0
-      ],
-      "images.image6": [
-        "7",
-        0
-      ],
-      "images.image7": [
-        "11",
-        0
-      ]
-    },
-    "class_type": "BatchImagesNode",
-    "_meta": {
-      "title": "Batch Images"
-    }
-  },
-  "11": {
-    "inputs": {
-      "image": "647993_3PW25002690X_KTM S-R10 HELMET_STREET Equipment copy.jpg"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "12_INPUT_IMAGE_REF"
-    }
-  },
-  "13": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
-    }
-  },
-  "14": {
-    "inputs": {
-      "value": "HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
-  "15": {
-    "inputs": {
-      "value": "Outfit"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "96_PRODUCT_PATH"
-    }
-  },
-  "16": {
-    "inputs": {
-      "value": "Outfitswap_"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "97_FILENAME"
-    }
-  },
   "20": {
     "inputs": {
       "value": "Deployed"
@@ -169,7 +84,7 @@
       "response_modalities": "IMAGE",
       "system_prompt": "Status: Completed\nPrice: $0.1445\nTime elapsed: 64s",
       "images": [
-        "10",
+        "31",
         0
       ]
     },
@@ -181,7 +96,7 @@
   "26": {
     "inputs": {
       "filename_prefix": [
-        "29",
+        "32",
         0
       ],
       "meta_name_0": "Seed",
@@ -208,57 +123,6 @@
       "title": "99_SAVE_IMAGE_OUTPUT"
     }
   },
-  "27": {
-    "inputs": {
-      "string_a": [
-        "13",
-        0
-      ],
-      "string_b": [
-        "14",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "28": {
-    "inputs": {
-      "string_a": [
-        "27",
-        0
-      ],
-      "string_b": [
-        "15",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "29": {
-    "inputs": {
-      "string_a": [
-        "28",
-        0
-      ],
-      "string_b": [
-        "16",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
   "30": {
     "inputs": {
       "value": "Add rider to the Bike, he is wearing a race suit,outfit, helmet, boots and gloves."
@@ -266,6 +130,54 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "102_POSITIVE_PROMPT_INPUT"
+    }
+  },
+  "31": {
+    "inputs": {
+      "image_1": [
+        "1",
+        0
+      ],
+      "image_2": [
+        "2",
+        0
+      ],
+      "image_3": [
+        "3",
+        0
+      ],
+      "image_4": [
+        "4",
+        0
+      ],
+      "image_5": [
+        "5",
+        0
+      ],
+      "image_6": [
+        "6",
+        0
+      ],
+      "image_7": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "INDGFlexibleImageBatch",
+    "_meta": {
+      "title": "INDG Flexible Image Batch"
+    }
+  },
+  "32": {
+    "inputs": {
+      "client": "HD",
+      "product": "Outfit",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
+    },
+    "class_type": "INDGOutputPath",
+    "_meta": {
+      "title": "INDG Output Path"
     }
   }
 }

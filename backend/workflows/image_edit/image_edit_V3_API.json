@@ -21,7 +21,7 @@
       "response_modalities": "IMAGE+TEXT",
       "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests. Make sure you keep the image as identical as possible.",
       "images": [
-        "66",
+        "69",
         0
       ]
     },
@@ -42,7 +42,7 @@
   "37": {
     "inputs": {
       "filename_prefix": [
-        "59",
+        "70",
         0
       ],
       "meta_name_0": "Seed",
@@ -73,24 +73,6 @@
       "title": "99_SAVE_IMAGE_OUTPUT"
     }
   },
-  "40": {
-    "inputs": {
-      "value": "ComfyUI"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "DEFAULT_PATH"
-    }
-  },
-  "45": {
-    "inputs": {
-      "value": "HD"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "95_CLIENT_PATH"
-    }
-  },
   "46": {
     "inputs": {
       "value": "Deployed"
@@ -98,75 +80,6 @@
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "98_USER"
-    }
-  },
-  "55": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "96_PRODUCT_PATH"
-    }
-  },
-  "56": {
-    "inputs": {
-      "value": "PanAmerica_RA1250S_"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "97_FILENAME"
-    }
-  },
-  "57": {
-    "inputs": {
-      "string_a": [
-        "40",
-        0
-      ],
-      "string_b": [
-        "45",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "58": {
-    "inputs": {
-      "string_a": [
-        "57",
-        0
-      ],
-      "string_b": [
-        "55",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
-    }
-  },
-  "59": {
-    "inputs": {
-      "string_a": [
-        "58",
-        0
-      ],
-      "string_b": [
-        "56",
-        0
-      ],
-      "delimiter": "/"
-    },
-    "class_type": "StringConcatenate",
-    "_meta": {
-      "title": "Concatenate"
     }
   },
   "61": {
@@ -196,34 +109,6 @@
       "title": "14_INPUT_IMAGE_REFERENCE_03"
     }
   },
-  "66": {
-    "inputs": {
-      "images.image0": [
-        "11",
-        0
-      ],
-      "images.image1": [
-        "61",
-        0
-      ],
-      "images.image2": [
-        "62",
-        0
-      ],
-      "images.image3": [
-        "63",
-        0
-      ],
-      "images.image4": [
-        "68",
-        0
-      ]
-    },
-    "class_type": "BatchImagesNode",
-    "_meta": {
-      "title": "Batch Images"
-    }
-  },
   "68": {
     "inputs": {
       "image": "ComfyUI_temp_ahlyn_00001_.png"
@@ -231,6 +116,46 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "15_INPUT_IMAGE_REFERENCE_04"
+    }
+  },
+  "69": {
+    "inputs": {
+      "image_1": [
+        "11",
+        0
+      ],
+      "image_2": [
+        "61",
+        0
+      ],
+      "image_3": [
+        "62",
+        0
+      ],
+      "image_4": [
+        "63",
+        0
+      ],
+      "image_5": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "INDGFlexibleImageBatch",
+    "_meta": {
+      "title": "INDG Flexible Image Batch"
+    }
+  },
+  "70": {
+    "inputs": {
+      "client": "HD",
+      "product": "PanAmerica_RA1250S",
+      "filename": "Shot001",
+      "base_path": "ComfyUI"
+    },
+    "class_type": "INDGOutputPath",
+    "_meta": {
+      "title": "INDG Output Path"
     }
   }
 }
