@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 load_dotenv()  # loads backend/.env before any other module reads env vars
 
 import io
+import sys
+import subprocess
 import os
 import uuid
 import json
@@ -69,6 +71,21 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def on_startup():
+    # Authenticate NAS share on Windows if credentials are configured
+    if sys.platform == "win32":
+        nas_share    = os.getenv("NAS_SHARE", "")
+        nas_user     = os.getenv("NAS_USERNAME", "")
+        nas_password = os.getenv("NAS_PASSWORD", "")
+        if nas_share and nas_user and nas_password:
+            result = subprocess.run(
+                ["net", "use", nas_share, f"/user:{nas_user}", nas_password],
+                capture_output=True, text=True,
+            )
+            if result.returncode == 0:
+                logger.info(f"NAS share authenticated: {nas_share}")
+            else:
+                logger.warning(f"net use failed for {nas_share}: {result.stderr.strip()}")
+
     # ComfyUI reachability check
     host = os.getenv("COMFYUI_HOST", COMFYUI_HOST)
     url = f"http://{host}"
