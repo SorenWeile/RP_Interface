@@ -12,9 +12,9 @@ interface Props {
 
 export default function ToolPreview({ fields, hasPathNode, toolName, toolDesc }: Props) {
   return (
-    <div className="sticky top-0 rounded-md border border-border overflow-hidden">
+    <div className="flex flex-col h-full rounded-md border border-border overflow-hidden">
       {/* Chrome bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
+      <div className="shrink-0 flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
         <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
           Live Preview · Disabled
         </span>
@@ -24,7 +24,7 @@ export default function ToolPreview({ fields, hasPathNode, toolName, toolDesc }:
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-4 bg-background overflow-y-auto max-h-[calc(100vh-220px)]">
+      <div className="flex-1 p-4 space-y-4 bg-background overflow-y-auto">
         {/* Tool header */}
         {toolName && (
           <div className="mb-2">
@@ -39,24 +39,32 @@ export default function ToolPreview({ fields, hasPathNode, toolName, toolDesc }:
           </div>
         )}
 
-        {groupFields(fields).map((grp, i) => (
-          <div key={i} className={grp.length > 1 ? 'flex gap-2' : undefined}>
-            {grp.map(f => (
-              <div key={f.id} className={`space-y-1.5${grp.length > 1 ? ' flex-1 min-w-0' : ''}`}>
-                <label className="text-xs text-muted-foreground uppercase tracking-widest">
-                  {f.label}
-                  {f.required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                <FieldRenderer
-                  field={f}
-                  value={f.default}
-                  onChange={() => {}}
-                  disabled
-                />
+        {groupFields(fields).map((grp, i) => {
+          const isGroup = grp.length > 1
+          return (
+            <div key={i} className="space-y-1.5">
+              {/* Group title replaces individual labels; single fields keep their own label */}
+              <label className="text-xs text-muted-foreground uppercase tracking-widest">
+                {isGroup
+                  ? (grp[0].group ?? grp[0].label)
+                  : grp[0].label}
+                {!isGroup && grp[0].required && <span className="text-destructive ml-1">*</span>}
+              </label>
+              <div className={isGroup ? 'flex gap-2' : undefined}>
+                {grp.map(f => (
+                  <div key={f.id} className={isGroup ? 'flex-1 min-w-0' : undefined}>
+                    <FieldRenderer
+                      field={f}
+                      value={f.default}
+                      onChange={() => {}}
+                      disabled
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ))}
+            </div>
+          )
+        })}
 
         {hasPathNode && (
           <>

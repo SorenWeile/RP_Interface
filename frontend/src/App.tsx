@@ -103,6 +103,7 @@ export default function App() {
   const hidesSidebar = nav.screen === 'module' && nav.module.hidesSidebar
   const noPadding    = nav.screen === 'module' && nav.module.noPadding
   const fullWidth    = nav.screen === 'module' && nav.module.fullWidth
+  const isWizard     = nav.screen === 'wizard'
   const showBackBtn  = nav.screen !== 'hub'
 
   // ── Auth gates ────────────────────────────────────────────────────────────
@@ -168,7 +169,8 @@ export default function App() {
         <main
           className={cn(
             'flex-1 overflow-hidden',
-            noPadding ? '' : 'overflow-y-auto p-8'
+            !noPadding && 'p-8',
+            !noPadding && !isWizard && 'overflow-y-auto',
           )}
         >
           {/* Hub */}
@@ -199,7 +201,7 @@ export default function App() {
 
           {/* Workflow Builder wizard */}
           {nav.screen === 'wizard' && (
-            <div className="max-w-4xl">
+            <div className="max-w-4xl h-full flex flex-col min-h-0">
               <WorkflowBuilder
                 editToolId={nav.editToolId}
                 onSave={handleWizardSave}

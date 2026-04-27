@@ -9,6 +9,17 @@ import type { DetectedInput, FieldDef, FieldType } from './types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+const TYPE_COLOR: Record<FieldType, string> = {
+  image:    'border-l-primary',
+  text:     'border-l-muted-foreground/40',
+  textarea: 'border-l-violet-500/60',
+  number:   'border-l-orange-400/70',
+  slider:   'border-l-amber-400/70',
+  select:   'border-l-green-500/60',
+  toggle:   'border-l-teal-500/60',
+  user:     'border-l-yellow-500/60',
+}
+
 const TYPE_OPTIONS: { value: FieldType; label: string }[] = [
   { value: 'image',    label: 'Image Upload' },
   { value: 'text',     label: 'Text' },
@@ -104,8 +115,9 @@ function FieldCard({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={cn(
-        'relative pl-6 pr-3 pt-2.5 pb-3 rounded-md border bg-card transition-colors',
-        isDragOver ? 'border-primary shadow-[0_0_0_1px_hsl(var(--primary))]' : 'border-border',
+        'relative pl-6 pr-3 pt-2.5 pb-3 rounded-md border-l-4 border border-border bg-card transition-colors',
+        TYPE_COLOR[field.type] ?? 'border-l-border',
+        isDragOver && 'border-primary shadow-[0_0_0_1px_hsl(var(--primary))]',
       )}
     >
       {/* Drag handle */}
@@ -374,9 +386,9 @@ export default function StepFields({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 h-full min-h-0">
       {/* ── LEFT ── */}
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-y-auto pb-4 min-h-0">
         <div>
           <h2 className="text-lg font-medium text-foreground">Configure Fields</h2>
           <p className="text-xs text-muted-foreground mt-1">

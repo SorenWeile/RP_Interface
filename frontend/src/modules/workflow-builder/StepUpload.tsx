@@ -134,8 +134,8 @@ export default function StepUpload({
   }, [workflowJson])
 
   return (
-    <div className="space-y-5">
-      <div>
+    <div className="flex flex-col h-full gap-5 min-h-0">
+      <div className="shrink-0">
         <h2 className="text-lg font-medium text-foreground">Upload Workflow</h2>
         <p className="text-xs text-muted-foreground mt-1">
           Drop a ComfyUI workflow exported in API format. Parsing happens in your browser.
@@ -143,7 +143,7 @@ export default function StepUpload({
       </div>
 
       {!workflowJson ? (
-        <>
+        <div className="flex flex-col flex-1 min-h-0 gap-3">
           <div
             className={cn(
               'border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-12 cursor-pointer transition-colors select-none',
@@ -173,11 +173,11 @@ export default function StepUpload({
             />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
-        </>
+        </div>
       ) : (
         <>
           {/* Parse summary */}
-          <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-green-500/30 bg-green-500/5">
+          <div className="shrink-0 flex items-center gap-3 px-4 py-3 rounded-md border border-green-500/30 bg-green-500/5">
             <Check className="w-4 h-4 text-green-500 shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="text-sm text-foreground flex items-center gap-2">
@@ -194,7 +194,7 @@ export default function StepUpload({
           </div>
 
           {/* Selection hint */}
-          <p className="text-xs text-muted-foreground">
+          <p className="shrink-0 text-xs text-muted-foreground">
             Check the inputs you want to expose as fields.{' '}
             <span className="text-foreground font-medium">{selectedNodeKeys.size} selected.</span>{' '}
             Seed and output-path rows are auto-handled and locked.
@@ -204,11 +204,8 @@ export default function StepUpload({
             <code className="text-[10px] bg-muted px-1 rounded">example.png</code> as its default.
           </p>
 
-          {/* Inspection table */}
-          <div
-            className="rounded-md border border-border overflow-x-auto overflow-y-auto"
-            style={{ maxHeight: 'calc(100vh - 380px)', minHeight: '200px' }}
-          >
+          {/* Inspection table — grows to fill remaining height */}
+          <div className="flex-1 min-h-0 rounded-md border border-border overflow-x-auto overflow-y-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/30 border-b border-border sticky top-0 z-10">
                 <tr>
@@ -294,7 +291,7 @@ export default function StepUpload({
             </table>
           </div>
 
-          <div className="flex justify-end">
+          <div className="shrink-0 flex justify-end">
             <Button onClick={onNext} disabled={selectedNodeKeys.size === 0}>
               Next <span className="ml-1">→</span>
             </Button>

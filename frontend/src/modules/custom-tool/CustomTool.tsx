@@ -311,25 +311,32 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
       {/* Fields */}
       {tool.fields.filter(f => f.type !== 'user').length > 0 && (
         <div className="space-y-4">
-          {groupFields(tool.fields.filter(f => f.type !== 'user')).map((grp, i) => (
-            <div key={i} className={grp.length > 1 ? 'flex gap-3' : undefined}>
-              {grp.map(f => (
-                <div key={f.id} className={`space-y-1.5${grp.length > 1 ? ' flex-1 min-w-0' : ''}`}>
-                  <label className="text-xs text-muted-foreground uppercase tracking-widest">
-                    {f.label}
-                    {f.required && <span className="text-destructive ml-1">*</span>}
-                  </label>
-                  <FieldRenderer
-                    key={`${formKey}-${f.id}`}
-                    field={f}
-                    value={values[f.id]}
-                    onChange={v => setFieldValue(f.id, v)}
-                    disabled={isBusy}
-                  />
+          {groupFields(tool.fields.filter(f => f.type !== 'user')).map((grp, i) => {
+            const isGroup = grp.length > 1
+            return (
+              <div key={i} className="space-y-1.5">
+                <label className="text-xs text-muted-foreground uppercase tracking-widest">
+                  {isGroup
+                    ? (grp[0].group ?? grp[0].label)
+                    : grp[0].label}
+                  {!isGroup && grp[0].required && <span className="text-destructive ml-1">*</span>}
+                </label>
+                <div className={isGroup ? 'flex gap-3' : undefined}>
+                  {grp.map(f => (
+                    <div key={f.id} className={isGroup ? 'flex-1 min-w-0' : undefined}>
+                      <FieldRenderer
+                        key={`${formKey}-${f.id}`}
+                        field={f}
+                        value={values[f.id]}
+                        onChange={v => setFieldValue(f.id, v)}
+                        disabled={isBusy}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ))}
+              </div>
+            )
+          })}
         </div>
       )}
 

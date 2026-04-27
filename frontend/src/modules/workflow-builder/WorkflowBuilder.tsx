@@ -160,9 +160,9 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full gap-6 min-h-0">
       {/* Header row */}
-      <div className="flex items-center justify-between">
+      <div className="shrink-0 flex items-center justify-between">
         <Stepper step={step} />
         <Button
           variant="ghost"
@@ -177,45 +177,51 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
       </div>
 
       {step === 1 && (
-        <StepUpload
-          workflowJson={workflowJson}
-          setWorkflowJson={setWorkflowJson}
-          fileName={fileName}
-          setFileName={setFileName}
-          detected={detected}
-          setDetected={setDetected}
-          selectedNodeKeys={selectedNodeKeys}
-          setSelectedNodeKeys={setSelectedNodeKeys}
-          imageDefaultKeys={imageDefaultKeys}
-          setImageDefaultKeys={setImageDefaultKeys}
-          onNext={handleStep1Next}
-        />
+        <div className="flex-1 min-h-0">
+          <StepUpload
+            workflowJson={workflowJson}
+            setWorkflowJson={setWorkflowJson}
+            fileName={fileName}
+            setFileName={setFileName}
+            detected={detected}
+            setDetected={setDetected}
+            selectedNodeKeys={selectedNodeKeys}
+            setSelectedNodeKeys={setSelectedNodeKeys}
+            imageDefaultKeys={imageDefaultKeys}
+            setImageDefaultKeys={setImageDefaultKeys}
+            onNext={handleStep1Next}
+          />
+        </div>
       )}
 
       {step === 2 && (
-        <StepFields
-          detected={detected}
-          fields={fields}
-          setFields={setFields}
-          pathNodeId={pathNodeId}
-          setPathNodeId={setPathNodeId}
-          outputPathNodes={outputPathNodes}
-          onBack={editToolId ? undefined : () => setStep(1)}
-          onNext={() => setStep(3)}
-        />
+        <div className="flex-1 min-h-0">
+          <StepFields
+            detected={detected}
+            fields={fields}
+            setFields={setFields}
+            pathNodeId={pathNodeId}
+            setPathNodeId={setPathNodeId}
+            outputPathNodes={outputPathNodes}
+            onBack={editToolId ? undefined : () => setStep(1)}
+            onNext={() => setStep(3)}
+          />
+        </div>
       )}
 
       {step === 3 && (
-        <StepMeta
-          toolName={toolName}     setToolName={setToolName}
-          toolDesc={toolDesc}     setToolDesc={setToolDesc}
-          toolIcon={toolIcon}     setToolIcon={setToolIcon}
-          fields={fields}
-          hasPathNode={pathNodeId !== null}
-          onBack={() => setStep(2)}
-          onSave={handleSave}
-          saving={saving}
-        />
+        <div className="overflow-y-auto">
+          <StepMeta
+            toolName={toolName}     setToolName={setToolName}
+            toolDesc={toolDesc}     setToolDesc={setToolDesc}
+            toolIcon={toolIcon}     setToolIcon={setToolIcon}
+            fields={fields}
+            hasPathNode={pathNodeId !== null}
+            onBack={() => setStep(2)}
+            onSave={handleSave}
+            saving={saving}
+          />
+        </div>
       )}
     </div>
   )
