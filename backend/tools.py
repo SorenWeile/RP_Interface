@@ -27,13 +27,12 @@ from pydantic import BaseModel
 import comfy_client
 import user_management as user_mgmt_module
 from tools_seed import BUILTIN_TOOLS
+from config import MIN_BATCH_COUNT, MAX_BATCH_COUNT, MAX_HISTORY_ITEMS, DEFAULT_TOOL_ICON, MAX_SEED
 
 import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
-
-_MAX_SEED = 2**53 - 1
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +105,7 @@ def _seed_builtin_tools() -> None:
                     tool["id"],
                     tool["name"],
                     tool.get("description", ""),
-                    tool.get("icon", "Layers"),
+                    tool.get("icon", DEFAULT_TOOL_ICON),
                     tool["fields_json"],
                     tool.get("path_nodes"),
                     tool.get("auto_nodes", "[]"),
@@ -175,7 +174,7 @@ def save_tool(tool: dict) -> None:
                 tool["id"],
                 tool["name"],
                 tool.get("description", ""),
-                tool.get("icon", "Layers"),
+                tool.get("icon", DEFAULT_TOOL_ICON),
                 tool.get("is_builtin", 0),
                 tool["fields_json"],
                 tool.get("path_nodes"),
@@ -255,7 +254,7 @@ def apply_patches(tool_row: dict, values: dict, username: str = "") -> dict:
         if not node:
             continue
         if spec["strategy"] == "random_seed":
-            node["inputs"][spec["input_key"]] = random.randint(0, _MAX_SEED)
+            node["inputs"][spec["input_key"]] = random.randint(0, MAX_SEED)
         elif spec["strategy"] == "username":
             node["inputs"][spec["input_key"]] = username
 
@@ -303,20 +302,7 @@ def _get_batch_runs(batch_id: str) -> list:
         conn.close()
 
 
-def _resolve_username(token: Optional[str]) -> str:
-    if not token:
-        return "unknown"
-    user_id = user_mgmt_module._validate_user_token(token)
-    if user_id is None:
-        return "unknown"
-    if user_id == 0:
-        return "admin"
-    conn = user_mgmt_module._get_conn()
-    try:
-        row = conn.execute("SELECT username FROM users WHERE id=?", (user_id,)).fetchone()
-        return row["username"] if row else "unknown"
-    finally:
-        conn.close()
+_resolve_username = user_mgmt_module.resolve_username
 
 
 # ---------------------------------------------------------------------------
@@ -342,7 +328,7 @@ class CreateToolBody(BaseModel):
     id: Optional[str] = None
     name: str
     description: str = ""
-    icon: str = "Layers"
+    icon: str = DEFAULT_TOOL_ICON
     fields_json: str
     path_nodes: Optional[str] = None
     auto_nodes: str = "[]"
@@ -399,7 +385,7 @@ async def api_get_batch_status(batch_id: str):
         raise HTTPException(status_code=404, detail="Batch not found")
 
     try:
-        history = await comfy_client.get_all_history(max_items=500)
+        history = await comfy_client.get_all_history(max_items=MAX_HISTORY_ITEMS)
     except Exception:
         history = {}
 
@@ -462,7 +448,7 @@ async def api_download_batch(batch_id: str):
         raise HTTPException(status_code=404, detail="Batch not found")
 
     try:
-        history = await comfy_client.get_all_history(max_items=500)
+        history = await comfy_client.get_all_history(max_items=MAX_HISTORY_ITEMS)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Could not reach ComfyUI: {e}")
 
@@ -494,7 +480,7 @@ async def api_download_batch(batch_id: str):
                     data = _strip_png_metadata(data)
                 zf.writestr(img["filename"], data)
             except Exception as e:
-                print(f"[tools batch download] WARNING: could not fetch {img['filename']}: {e}")
+                logger.warning(f"[tools batch download] could not fetch {img['filename']}: {e}")
 
     buf.seek(0)
     return StreamingResponse(
@@ -582,7 +568,6 @@ async def api_run_tool(tool_id: str, body: RunToolBody, x_user_token: Optional[s
 async def api_run_tool_batch(
     tool_id: str, body: BatchRunBody, x_user_token: Optional[str] = Header(None)
 ):
-    from config import MIN_BATCH_COUNT, MAX_BATCH_COUNT
     if not MIN_BATCH_COUNT <= body.count <= MAX_BATCH_COUNT:
         raise HTTPException(status_code=422, detail=f"count must be between {MIN_BATCH_COUNT} and {MAX_BATCH_COUNT}")
 

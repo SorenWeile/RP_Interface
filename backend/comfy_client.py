@@ -9,12 +9,15 @@ Auth env vars:
                       See: https://docs.comfy.org/development/comfyui-server/api-key-integration
 """
 
+import logging
 import os
 import asyncio
 import httpx
 import websockets
 import json
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 COMFYUI_HOST        = os.getenv("COMFYUI_HOST", "127.0.0.1:3001")
 COMFYUI_API_KEY     = os.getenv("COMFYUI_API_KEY", "")
@@ -52,7 +55,7 @@ async def upload_image(image_bytes: bytes, filename: str) -> str:
         )
         if response.status_code != 200:
             error_detail = f"ComfyUI upload failed for '{filename}': {response.status_code} - {response.text}"
-            print(f"[upload_image] {error_detail}")
+            logger.error(f"[upload_image] {error_detail}")
             raise RuntimeError(error_detail)
         
         # Parse the response to get the assigned filename
@@ -61,15 +64,13 @@ async def upload_image(image_bytes: bytes, filename: str) -> str:
             assigned_name = result.get("name")
             if not assigned_name:
                 error_detail = f"ComfyUI upload response missing filename: {result}"
-                print(f"[upload_image] {error_detail}")
+                logger.error(f"[upload_image] {error_detail}")
                 raise RuntimeError(error_detail)
             return assigned_name
         except Exception as e:
             error_detail = f"Failed to parse ComfyUI upload response: {e}"
-            print(f"[upload_image] {error_detail}")
+            logger.error(f"[upload_image] {error_detail}")
             raise RuntimeError(error_detail)
-        data = response.json()
-        return data["name"]
 
 
 async def queue_workflow(workflow: dict, client_id: str) -> str:

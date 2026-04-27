@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()  # loads backend/.env before any other module reads env vars
 
 import io
+import re
 import sys
 import subprocess
 import os
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Header
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,6 +32,7 @@ from workflows.image_edit.image_edit import load_image_edit
 from workflows.image_prompting.image_prompting import load_image_prompting
 from workflows.video_creation.video_creation import load_video_creation, MIN_LENGTH, MAX_LENGTH
 import gallery as gallery_module
+from gallery import _strip_png_metadata
 import user_management as user_mgmt_module
 import tools as tools_module
 from config import (
@@ -45,6 +48,7 @@ from config import (
     COMFYUI_HOST,
     COMFYUI_TIMEOUT,
     ALLOWED_IMAGE_EXTENSIONS,
+    MAX_HISTORY_ITEMS,
 )
 
 # Configure logging
@@ -123,21 +127,15 @@ async def on_startup():
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_username(token: Optional[str]) -> str:
-    """Return the username for a user token, or 'admin'/'unknown' as fallback."""
-    if not token:
-        return "unknown"
-    user_id = user_mgmt_module._validate_user_token(token)
-    if user_id is None:
-        return "unknown"
-    if user_id == 0:
-        return "admin"
-    conn = user_mgmt_module._get_conn()
-    try:
-        row = conn.execute("SELECT username FROM users WHERE id=?", (user_id,)).fetchone()
-        return row["username"] if row else "unknown"
-    finally:
-        conn.close()
+_resolve_username = user_mgmt_module.resolve_username
+
+
+def _validate_image(filename: str) -> None:
+    """Raise HTTP 422 if filename is empty, non-string, or has an unsupported extension."""
+    if not filename or not isinstance(filename, str):
+        raise HTTPException(422, f"Invalid image filename: {filename}")
+    if not any(filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
+        raise HTTPException(422, f"Unsupported image format: {filename}")
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +272,7 @@ async def upload(file: UploadFile = File(...)):
         assigned_name = await comfy_client.upload_image(data, file.filename or "upload.png")
         return {"filename": assigned_name}
     except Exception as e:
-        print(f"[upload] ERROR: {type(e).__name__}: {e}")
+        logger.error(f"[upload] ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
@@ -297,8 +295,7 @@ async def run_magnific_upscaler(params: MagnificUpscalerParams, x_user_token: Op
         raise HTTPException(422, "filename is required")
     if params.scale_factor not in {"2x", "4x", "8x", "16x"}:
         raise HTTPException(422, "scale_factor must be one of 2x, 4x, 8x, 16x")
-    if not any(params.filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
-        raise HTTPException(422, f"Unsupported image format: {params.filename}")
+    _validate_image(params.filename)
     try:
         await _queue_cleanup()
         client_id = str(uuid.uuid4())
@@ -334,14 +331,14 @@ class UpscaleReworkParams(BaseModel):
 
 @app.post("/api/workflow/upscale_rework")
 async def run_upscale_rework(params: UpscaleReworkParams, x_user_token: Optional[str] = Header(None)):
-    # Validate
+    if not params.models:
+        raise HTTPException(422, "Select at least one model")
     invalid = [m for m in params.models if m not in UPSCALE_REWORK_MODELS]
     if invalid:
         raise HTTPException(422, f"Unknown model(s): {invalid}")
-    if not params.models:
-        raise HTTPException(422, "Select at least one model")
     if not MIN_RUNS_PER_MODEL <= params.runs_per_model <= MAX_RUNS_PER_MODEL:
         raise HTTPException(422, "runs_per_model must be between 1 and 10")
+    _validate_image(params.filename)
 
     username = _resolve_username(x_user_token)
     batch_id = str(uuid.uuid4())
@@ -418,7 +415,7 @@ async def get_batch_status(batch_id: str):
     # Two ComfyUI calls regardless of batch size:
     # 1) all completed history, 2) current queue state
     try:
-        history = await comfy_client.get_all_history(max_items=500)
+        history = await comfy_client.get_all_history(max_items=MAX_HISTORY_ITEMS)
     except Exception:
         history = {}
 
@@ -501,13 +498,12 @@ async def cancel_batch(batch_id: str):
 
 @app.get("/api/batch/{batch_id}/download")
 async def download_batch_zip(batch_id: str):
-    from fastapi.responses import StreamingResponse
     batch = _batches.get(batch_id)
     if not batch:
         raise HTTPException(404, "Batch not found")
 
     try:
-        history = await comfy_client.get_all_history(max_items=500)
+        history = await comfy_client.get_all_history(max_items=MAX_HISTORY_ITEMS)
     except Exception as e:
         raise HTTPException(502, f"Could not reach ComfyUI: {e}")
 
@@ -529,11 +525,10 @@ async def download_batch_zip(batch_id: str):
                 )
                 # Strip metadata from PNG files
                 if img["filename"].lower().endswith('.png'):
-                    from gallery import _strip_png_metadata
                     data = _strip_png_metadata(data)
                 zf.writestr(img["filename"], data)
             except Exception as e:
-                print(f"[download:{batch_id}] WARNING: could not fetch {img['filename']}: {e}")
+                logger.warning(f"[download:{batch_id}] could not fetch {img['filename']}: {e}")
 
     buf.seek(0)
     prefix = batch.filename_prefix or "batch"
@@ -549,7 +544,7 @@ async def download_batch_zip(batch_id: str):
 
 class OutfitSwappingParams(BaseModel):
     main_image: str           # 11_INPUT_IMAGE_LATENT
-    ref_images: List[str]     # up to 7 reference image filenames
+    ref_images: List[str]     # up to 6 reference image filenames
     prompt: str               # 05_PROMPT_POSITIVE_INSTRUCTION (goes to node 30)
     client_path: str          # 95_CLIENT_PATH
     product_path: str         # 96_PRODUCT_PATH
@@ -563,14 +558,9 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
     if len(params.ref_images) > 6:
         raise HTTPException(422, "At most 6 reference images are supported")
     
-    # Validate all image filenames
-    all_images = [params.main_image] + params.ref_images
-    for img_filename in all_images:
-        if not img_filename or not isinstance(img_filename, str):
-            raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
-            raise HTTPException(422, f"Unsupported image format: {img_filename}")
-    
+    for img_filename in [params.main_image] + params.ref_images:
+        _validate_image(img_filename)
+
     try:
         await _queue_cleanup()
         client_id = str(uuid.uuid4())
@@ -588,12 +578,10 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
         return {"prompt_id": prompt_id, "client_id": client_id}
     except Exception as e:
         error_msg = str(e)
-        print(f"[outfit_swapping] ERROR: {type(e).__name__}: {e}")
+        logger.error(f"[outfit_swapping] ERROR: {type(e).__name__}: {e}")
         
         # Provide more specific error messages for common issues
         if "Invalid image file" in error_msg:
-            # Extract filenames from the error message
-            import re
             invalid_files = re.findall(r'Invalid image file: ([^\']+)', error_msg)
             if invalid_files:
                 raise HTTPException(
@@ -601,7 +589,7 @@ async def run_outfit_swapping(params: OutfitSwappingParams, x_user_token: Option
                     detail=f"The following images could not be loaded by ComfyUI. "
                           f"Please ensure these files were uploaded successfully: {', '.join(invalid_files)}"
                 )
-        
+
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
@@ -658,14 +646,9 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
     if len(params.ref_images) > 4:
         raise HTTPException(422, "At most 4 reference images are supported")
     
-    # Validate all image filenames
-    all_images = [params.filename] + params.ref_images
-    for img_filename in all_images:
-        if not img_filename or not isinstance(img_filename, str):
-            raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
-            raise HTTPException(422, f"Unsupported image format: {img_filename}")
-    
+    for img_filename in [params.filename] + params.ref_images:
+        _validate_image(img_filename)
+
     try:
         await _queue_cleanup()
         client_id = str(uuid.uuid4())
@@ -687,8 +670,6 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
         
         # Provide more specific error messages for common issues
         if "Invalid image file" in error_msg:
-            # Extract filenames from the error message
-            import re
             invalid_files = re.findall(r'Invalid image file: ([^\']+)', error_msg)
             if invalid_files:
                 raise HTTPException(
@@ -696,7 +677,7 @@ async def run_image_edit(params: ImageEditParams, x_user_token: Optional[str] = 
                     detail=f"The following images could not be loaded by ComfyUI. "
                           f"Please ensure these files were uploaded successfully: {', '.join(invalid_files)}"
                 )
-        
+
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
@@ -723,13 +704,8 @@ async def run_image_edit_batch(params: ImageEditBatchParams, x_user_token: Optio
     if not MIN_BATCH_COUNT <= params.count <= MAX_BATCH_COUNT:
         raise HTTPException(422, "count must be between 1 and 10")
 
-    # Validate all image filenames
-    all_images = [params.filename] + params.ref_images
-    for img_filename in all_images:
-        if not img_filename or not isinstance(img_filename, str):
-            raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+    for img_filename in [params.filename] + params.ref_images:
+        _validate_image(img_filename)
 
     username = _resolve_username(x_user_token)
     batch_id = str(uuid.uuid4())
@@ -801,10 +777,7 @@ async def run_image_prompting(params: ImagePromptingParams, x_user_token: Option
         raise HTTPException(422, "At most 4 reference images are supported")
 
     for img_filename in params.ref_images:
-        if not img_filename or not isinstance(img_filename, str):
-            raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
-            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+        _validate_image(img_filename)
 
     try:
         await _queue_cleanup()
@@ -846,10 +819,7 @@ async def run_image_prompting_batch(params: ImagePromptingBatchParams, x_user_to
         raise HTTPException(422, "count must be between 1 and 10")
 
     for img_filename in params.ref_images:
-        if not img_filename or not isinstance(img_filename, str):
-            raise HTTPException(422, f"Invalid image filename: {img_filename}")
-        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
-            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+        _validate_image(img_filename)
 
     username = _resolve_username(x_user_token)
     batch_id = str(uuid.uuid4())
@@ -925,8 +895,7 @@ async def run_video_creation(params: VideoCreationParams, x_user_token: Optional
         raise HTTPException(422, f"length must be between {MIN_LENGTH} and {MAX_LENGTH}")
 
     for img_filename in [params.first_frame, params.last_frame]:
-        if not any(img_filename.lower().endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS):
-            raise HTTPException(422, f"Unsupported image format: {img_filename}")
+        _validate_image(img_filename)
 
     try:
         await _queue_cleanup()
@@ -1049,14 +1018,12 @@ async def get_status(prompt_id: str):
 
 @app.get("/api/image")
 async def proxy_image(filename: str, subfolder: str = "", type: str = "output"):
-    from fastapi.responses import Response
     data = await comfy_client.get_image(filename, subfolder, type)
     return Response(content=data, media_type="image/png")
 
 
 @app.get("/api/video")
 async def proxy_video(filename: str, subfolder: str = "", type: str = "output"):
-    from fastapi.responses import Response
     data = await comfy_client.get_image(filename, subfolder, type)
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     media_type = {"mp4": "video/mp4", "webm": "video/webm", "gif": "image/gif"}.get(ext, "video/mp4")

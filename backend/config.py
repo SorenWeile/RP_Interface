@@ -36,3 +36,10 @@ COMFYUI_TIMEOUT = 3.0
 
 # File extensions
 ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+
+# ComfyUI history fetch limit
+MAX_HISTORY_ITEMS = 500
+
+# Workflow / tool defaults
+DEFAULT_TOOL_ICON = "Layers"
+MAX_SEED = 2**53 - 1

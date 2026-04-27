@@ -17,12 +17,15 @@ Routers:
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 import sqlite3
 import time
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
@@ -149,7 +152,7 @@ def init_user_db() -> None:
         except sqlite3.OperationalError:
             pass  # column already exists
 
-        print(f"[user_db] Initialized at {_db_path()}")
+        logger.info(f"[user_db] Initialized at {_db_path()}")
     finally:
         conn.close()
 
@@ -202,6 +205,23 @@ def _create_user_token(user_id: int) -> str:
 
 def _validate_user_token(token: str) -> Optional[int]:
     return _check_token(_user_sessions, token)
+
+
+def resolve_username(token: Optional[str]) -> str:
+    """Return the username for a user token, or 'admin'/'unknown' as fallback."""
+    if not token:
+        return "unknown"
+    user_id = _validate_user_token(token)
+    if user_id is None:
+        return "unknown"
+    if user_id == 0:
+        return "admin"
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT username FROM users WHERE id=?", (user_id,)).fetchone()
+        return row["username"] if row else "unknown"
+    finally:
+        conn.close()
 
 
 async def require_token(x_admin_token: Optional[str] = Header(None)) -> int:

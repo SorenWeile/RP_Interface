@@ -12,6 +12,43 @@ let mainWindow = null;
 function frontendPath() {
     return path_1.default.join(__dirname, '..', 'dist-frontend', 'index.html');
 }
+// ── Session-level request interceptor ────────────────────────────────────────
+//
+// When the React app is loaded from file://, any resource path starting with /
+// (img src, video src, download links, WebSocket upgrades …) resolves to the
+// local filesystem instead of the Docker backend.
+//
+// We intercept at the Electron session level so every request type is caught —
+// not just fetch() calls. Any file:// request whose path contains /api/ is
+// transparently forwarded to the configured backend URL.
+function activeBackendUrl() {
+    const which = store.get('activeBackend', 'local');
+    return which === 'runpod'
+        ? store.get('runpodUrl', '')
+        : store.get('localUrl', '');
+}
+function installApiRedirect() {
+    electron_1.session.defaultSession.webRequest.onBeforeRequest({ urls: ['file://*/*'] }, (details, callback) => {
+        const backendUrl = activeBackendUrl();
+        if (!backendUrl) {
+            callback({});
+            return;
+        }
+        try {
+            const parsed = new URL(details.url);
+            // On Windows, pathname is e.g. /C:/api/gallery/image/...
+            // On all platforms the segment we care about starts with /api/
+            const apiIdx = parsed.pathname.indexOf('/api/');
+            if (apiIdx !== -1) {
+                const apiPath = parsed.pathname.slice(apiIdx) + parsed.search;
+                callback({ redirectURL: `${backendUrl}${apiPath}` });
+                return;
+            }
+        }
+        catch { /* ignore malformed URLs */ }
+        callback({});
+    });
+}
 // ── Window factory ────────────────────────────────────────────────────────────
 function createWindow() {
     const win = new electron_1.BrowserWindow({
@@ -19,7 +56,8 @@ function createWindow() {
         height: 900,
         minWidth: 1024,
         minHeight: 700,
-        title: 'RP Interface',
+        title: 'AI Toolhouse',
+        icon: path_1.default.join(__dirname, '..', 'dist-frontend', 'ai_toolhouse.png'),
         backgroundColor: '#0f0f0f',
         webPreferences: {
             preload: path_1.default.join(__dirname, 'preload.js'),
@@ -27,8 +65,7 @@ function createWindow() {
             nodeIntegration: false,
         },
     });
-    const backendUrl = store.get('backendUrl', '');
-    if (backendUrl) {
+    if (activeBackendUrl()) {
         win.loadFile(frontendPath());
     }
     else {
@@ -44,7 +81,7 @@ function loadSettings(win) {
 function buildMenu() {
     const template = [
         {
-            label: 'RP Interface',
+            label: 'AI Toolhouse',
             submenu: [
                 {
                     label: 'Settings…',
@@ -52,6 +89,35 @@ function buildMenu() {
                     click: () => {
                         if (mainWindow)
                             loadSettings(mainWindow);
+                    },
+                },
+                { type: 'separator' },
+                {
+                    label: 'Switch to Local Docker',
+                    click: () => {
+                        const url = store.get('localUrl', '');
+                        if (!url) {
+                            if (mainWindow)
+                                loadSettings(mainWindow);
+                            return;
+                        }
+                        store.set('activeBackend', 'local');
+                        if (mainWindow)
+                            mainWindow.loadFile(frontendPath());
+                    },
+                },
+                {
+                    label: 'Switch to RunPod Pod',
+                    click: () => {
+                        const url = store.get('runpodUrl', '');
+                        if (!url) {
+                            if (mainWindow)
+                                loadSettings(mainWindow);
+                            return;
+                        }
+                        store.set('activeBackend', 'runpod');
+                        if (mainWindow)
+                            mainWindow.loadFile(frontendPath());
                     },
                 },
                 { type: 'separator' },
@@ -82,19 +148,37 @@ function buildMenu() {
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 // Synchronous read — called by preload before any renderer script runs.
 electron_1.ipcMain.on('get-backend-url-sync', (event) => {
-    event.returnValue = store.get('backendUrl', '');
+    event.returnValue = activeBackendUrl();
 });
-electron_1.ipcMain.handle('get-backend-url', () => store.get('backendUrl', ''));
-electron_1.ipcMain.handle('save-backend-url', (_event, url) => {
-    store.set('backendUrl', url.replace(/\/+$/, ''));
+electron_1.ipcMain.handle('get-backend-url', () => activeBackendUrl());
+electron_1.ipcMain.handle('get-backend-config', () => ({
+    localUrl: store.get('localUrl', ''),
+    runpodUrl: store.get('runpodUrl', ''),
+    activeBackend: store.get('activeBackend', 'local'),
+}));
+electron_1.ipcMain.handle('save-backend-config', (_event, config) => {
+    store.set('localUrl', config.localUrl.replace(/\/+$/, ''));
+    store.set('runpodUrl', config.runpodUrl.replace(/\/+$/, ''));
+    store.set('activeBackend', config.activeBackend);
     if (mainWindow) {
-        // Reload the local React app — preload will re-read the new URL from store.
         mainWindow.loadFile(frontendPath());
     }
     return { success: true };
 });
+// Legacy single-URL handler kept so old preload builds don't break.
+electron_1.ipcMain.handle('save-backend-url', (_event, url) => {
+    const which = store.get('activeBackend', 'local');
+    if (which === 'runpod')
+        store.set('runpodUrl', url.replace(/\/+$/, ''));
+    else
+        store.set('localUrl', url.replace(/\/+$/, ''));
+    if (mainWindow)
+        mainWindow.loadFile(frontendPath());
+    return { success: true };
+});
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 electron_1.app.whenReady().then(() => {
+    installApiRedirect();
     buildMenu();
     mainWindow = createWindow();
     electron_1.app.on('activate', () => {

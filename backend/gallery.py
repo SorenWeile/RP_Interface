@@ -6,7 +6,9 @@ metadata extraction, favorites (SQLite), and ZIP downloads.
 
 import io
 import json
+import logging
 import os
+import shutil
 import sqlite3
 import threading
 import time
@@ -14,6 +16,8 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from fastapi.responses import FileResponse, StreamingResponse
@@ -24,7 +28,7 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
-    print("WARNING: Pillow not installed — thumbnails and metadata extraction disabled.")
+    logger.warning("Pillow not installed — thumbnails and metadata extraction disabled.")
 
 router = APIRouter(prefix="/api/gallery", tags=["gallery"])
 
@@ -37,41 +41,33 @@ def _get_current_user_id(x_user_token: Optional[str] = Header(None)) -> Optional
     try:
         from user_management import _validate_user_token
         if x_user_token is None:
-            print("[gallery] No user token provided in headers")
             return None
         user_id = _validate_user_token(x_user_token)
-        print(f"[gallery] Token validation result: user_id={user_id}")
         return user_id
     except Exception as e:
-        print(f"[gallery] Error validating token: {e}")
+        logger.debug(f"[gallery] Error validating token: {e}")
         return None
 
 
 def _user_has_path_access(user_id: int, image_path: str) -> bool:
     """Check if user has access to the given image path based on their assigned clients/projects."""
-    print(f"[gallery] _user_has_path_access called with user_id={user_id}, image_path={image_path}")
-
     if user_id == 0:  # Admin can access everything
-        print(f"[gallery] User is admin, access granted")
         return True
 
     try:
         from user_management import _get_conn
         conn = _get_conn()
         try:
-            # Get user's username
             username_row = conn.execute(
                 "SELECT username FROM users WHERE id = ?",
                 (user_id,),
             ).fetchone()
 
             if not username_row:
-                print(f"[gallery] User ID {user_id} not found in database")
                 return False
 
             username = username_row["username"]
-            print(f"[gallery] User identified as: {username}")
-            
+
             # Get user's assigned projects
             projects = conn.execute(
                 "SELECT p.project_id, p.client_id FROM user_projects up "
@@ -89,9 +85,7 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
             # Build list of allowed path prefixes: "client_id/project_id"
             allowed_prefixes = set()
             client_map = {c["id"]: c["client_id"] for c in clients}
-            print(f"[gallery] Client map: {client_map}")
-            print(f"[gallery] Projects: {[dict(p) for p in projects]}")
-            
+
             for project in projects:
                 client_id = project["client_id"]
                 project_id = project["project_id"]
@@ -102,87 +96,57 @@ def _user_has_path_access(user_id: int, image_path: str) -> bool:
                 else:
                     allowed_prefixes.add(project_id)
             
-            # Check if image path starts with any allowed prefix
             if not allowed_prefixes:
-                print(f"[gallery] Access denied: user has no assigned prefixes")
                 return False
 
-            # Normalize path for comparison (case-insensitive)
             norm_path = image_path.replace("\\", "/").lower()
-
-            # Debug: Log what we're checking
-            print(f"[gallery] Checking access for user {username} to path: {image_path}")
-            print(f"[gallery] Normalized path: {norm_path}")
-            print(f"[gallery] Allowed prefixes: {allowed_prefixes}")
-
-            # First check: does the path match the user's assigned projects?
-            # This determines if the user can even SEE this folder
             lower_prefixes = [p.lower() for p in allowed_prefixes]
-            path_matches_project = False
+            path_matches_project = any(
+                norm_path.startswith(lp + "/") or norm_path == lp or lp in norm_path
+                for lp in lower_prefixes
+            )
 
-            for prefix, lower_prefix in zip(allowed_prefixes, lower_prefixes):
-                if (norm_path.startswith(lower_prefix + "/") or
-                    norm_path == lower_prefix or
-                    lower_prefix in norm_path):
-                    print(f"[gallery] Path matches user's project: {prefix}")
-                    path_matches_project = True
-                    break
-
-            # If path doesn't match user's projects, deny access immediately
             if not path_matches_project:
-                print(f"[gallery] Access denied: path not in user's assigned projects")
                 return False
 
-            # Path matches user's project - now check if they created this image
+            # Path matches user's project — check ownership via image metadata
             full_path = _safe_path(image_path)
             if full_path and os.path.exists(full_path) and PIL_AVAILABLE:
                 try:
                     meta = _get_image_metadata(full_path)
-                    print(f"[gallery] Checking image metadata for user ownership")
-
-                    # Check if this image was created by the current user
-                    # First try custom_metadata (newer format)
                     user_field = None
-                    parameters = meta.get("parameters", {})
-                    if "custom_metadata" in parameters:
-                        custom_meta_str = parameters["custom_metadata"]
+
+                    # Try custom_metadata first (newer format)
+                    custom_meta_str = meta.get("parameters", {}).get("custom_metadata")
+                    if custom_meta_str:
                         try:
                             custom_meta = json.loads(custom_meta_str) if isinstance(custom_meta_str, str) else custom_meta_str
                             if isinstance(custom_meta, dict):
                                 user_field = custom_meta.get("USER", "")
-                                print(f"[gallery] Found USER in custom_metadata: {user_field}")
-                        except Exception as e:
-                            print(f"[gallery] Error parsing custom_metadata: {e}")
+                        except Exception:
+                            pass
 
                     # Fallback: check workflow nodes for 98_USER (older format)
                     if not user_field:
                         workflow = meta.get("workflow", {})
                         if isinstance(workflow, dict):
-                            for node_id, node_data in workflow.items():
+                            for node_data in workflow.values():
                                 if isinstance(node_data, dict):
                                     meta_info = node_data.get("_meta", {})
                                     if isinstance(meta_info, dict) and meta_info.get("title") == "98_USER":
                                         user_field = node_data.get("inputs", {}).get("value", "")
-                                        print(f"[gallery] Found USER in workflow node: {user_field}")
                                         break
 
-                    if user_field and str(user_field).strip():
-                        print(f"[gallery] Comparing metadata user '{user_field}' with current user '{username}'")
-                        if str(user_field).strip().lower() == username.lower():
-                            print(f"[gallery] Access granted: image belongs to user {username}")
-                            return True
-                    else:
-                        print(f"[gallery] No user field found in metadata")
+                    if user_field and str(user_field).strip().lower() == username.lower():
+                        return True
                 except Exception as e:
-                    print(f"[gallery] Error reading metadata for permission check: {e}")
-            
-            print(f"[gallery] Access denied for user {username} to path: {norm_path}")
+                    logger.debug(f"[gallery] Error reading metadata for permission check: {e}")
             return False
             
         finally:
             conn.close()
     except Exception as e:
-        print(f"[gallery] Error checking path access: {e}")
+        logger.debug(f"[gallery] Error checking path access: {e}")
         return False
 
 
@@ -235,7 +199,7 @@ def init_gallery_db() -> None:
     # Sync files from disk so favorites can be toggled immediately
     images = _get_images_recursive(output_dir)
     _sync_files_to_db(images)
-    print(f"[gallery] DB ready at {_DB_FILE} ({len(images)} images synced)")
+    logger.info(f"[gallery] DB ready at {_DB_FILE} ({len(images)} images synced)")
 
 
 def _db() -> sqlite3.Connection:
@@ -375,7 +339,7 @@ def _get_items_in_dir(directory: str, current_path: str = "") -> dict:
                     }
                 )
     except Exception as e:
-        print(f"[gallery] Error reading dir: {e}")
+        logger.debug(f"[gallery] Error reading dir: {e}")
     items["folders"].sort(key=lambda x: x["name"].lower())
     items["images"].sort(key=lambda x: x["modified"], reverse=True)
     return items
@@ -418,7 +382,7 @@ def _build_tree(directory: str, current_path: str = "") -> list:
         folders.sort(key=lambda x: x["name"].lower())
         tree.extend(folders)
     except Exception as e:
-        print(f"[gallery] Tree error: {e}")
+        logger.debug(f"[gallery] Tree error: {e}")
     return tree
 
 
@@ -459,7 +423,7 @@ def _get_thumbnail_path(rel_path: str) -> Optional[str]:
             img.save(thumb, "JPEG", quality=85, optimize=True)
         return thumb
     except Exception as e:
-        print(f"[gallery] Thumbnail error for {rel_path}: {e}")
+        logger.debug(f"[gallery] Thumbnail error for {rel_path}: {e}")
         return None
 
 
@@ -509,7 +473,7 @@ def _strip_png_metadata(image_data: bytes) -> bytes:
         return output.getvalue()
         
     except Exception as e:
-        print(f"[gallery] Error stripping metadata: {e}")
+        logger.debug(f"[gallery] Error stripping metadata: {e}")
         return image_data
 
 
@@ -549,7 +513,7 @@ def _parse_workflow_summary(workflow: dict) -> dict:
                         entry["params"][key] = val
                     summary["nodes"].append(entry)
     except Exception as e:
-        print(f"[gallery] Workflow parse error: {e}")
+        logger.debug(f"[gallery] Workflow parse error: {e}")
     return summary
 
 
@@ -916,7 +880,6 @@ def gallery_delete_folder(folder_path: str, x_user_token: Optional[str] = Header
             conn.execute(f"DELETE FROM files WHERE path IN ({ph})", rel_paths)
             conn.commit()
     # Delete the folder tree
-    import shutil
     shutil.rmtree(full)
     # Invalidate tree cache
     global _tree_cache, _tree_cache_time
@@ -967,8 +930,6 @@ def gallery_delete_images(req: DeleteImagesRequest, x_user_token: Optional[str] 
 
 @router.post("/move")
 def gallery_move(req: MoveRequest, x_user_token: Optional[str] = Header(None)):
-    import shutil
-    
     # Check user authentication and permissions
     user_id = _get_current_user_id(x_user_token)
     if user_id is None:
@@ -1076,127 +1037,3 @@ def gallery_rename(req: RenameRequest, x_user_token: Optional[str] = Header(None
 @router.get("/health")
 def gallery_health():
     return {"status": "healthy", "output_dir": _output_dir(), "db": _DB_FILE}
-
-@router.get("/debug-permissions")
-def debug_permissions(x_user_token: Optional[str] = Header(None)):
-    """Debug endpoint to check user permissions - for testing only"""
-    print(f"[gallery] Debug permissions called with token: {x_user_token}")
-    
-    # Test basic token validation
-    try:
-        from user_management import _validate_user_token
-        if x_user_token is None:
-            print("[gallery] No token provided")
-            return {"user": None, "error": "No token provided"}
-        
-        user_id = _validate_user_token(x_user_token)
-        print(f"[gallery] Token validated, user_id: {user_id}")
-        
-        if user_id is None:
-            print("[gallery] Token validation failed")
-            return {"user": None, "error": "Token validation failed"}
-        
-        # Get username
-        from user_management import _get_conn
-        conn = _get_conn()
-        try:
-            row = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
-            username = row["username"] if row else "unknown"
-            print(f"[gallery] User found: {username}")
-            return {"user_id": user_id, "username": username, "error": None}
-        finally:
-            conn.close()
-            
-    except Exception as e:
-        print(f"[gallery] Debug error: {e}")
-        return {"user": None, "error": str(e)}
-
-@router.get("/debug-image-metadata/{image_path:path}")
-def debug_image_metadata(image_path: str):
-    """Debug endpoint to read image metadata - for testing only"""
-    full_path = _safe_path(image_path)
-    if not full_path or not os.path.exists(full_path):
-        raise HTTPException(status_code=404, detail="Image not found")
-    
-    if not PIL_AVAILABLE:
-        return {"error": "PIL not available"}
-    
-    try:
-        meta = _get_image_metadata(full_path)
-        workflow = meta.get("workflow", {})
-        
-        # Extract user information
-        user_info = {}
-        if isinstance(workflow, dict):
-            for key in ["98_USER", "user", "username"]:
-                if key in workflow:
-                    user_info[key] = workflow[key]
-        
-        return {
-            "path": image_path,
-            "metadata": meta,
-            "user_info": user_info,
-            "workflow_keys": list(workflow.keys()) if isinstance(workflow, dict) else []
-        }
-    except Exception as e:
-        return {"error": str(e)}
-    user_id = _get_current_user_id(request)
-    if user_id is None:
-        return {"user": None, "error": "Not authenticated"}
-    
-    try:
-        from user_management import _get_conn
-        conn = _get_conn()
-        try:
-            # Get user info
-            username_row = conn.execute(
-                "SELECT username, is_admin FROM users WHERE id = ?",
-                (user_id,),
-            ).fetchone()
-            
-            if not username_row:
-                return {"user_id": user_id, "error": "User not found"}
-            
-            username = username_row["username"]
-            is_admin = bool(username_row["is_admin"])
-            
-            # Get user's projects and clients
-            projects = conn.execute(
-                "SELECT p.project_id, p.client_id FROM user_projects up "
-                "JOIN projects p ON p.id = up.project_id WHERE up.user_id = ?",
-                (user_id,),
-            ).fetchall()
-            
-            clients = conn.execute(
-                "SELECT c.client_id FROM user_clients uc "
-                "JOIN clients c ON c.id = uc.client_id WHERE uc.user_id = ?",
-                (user_id,),
-            ).fetchall()
-            
-            # Build allowed prefixes
-            allowed_prefixes = set()
-            client_map = {c["id"]: c["client_id"] for c in clients}
-            
-            for project in projects:
-                client_id = project["client_id"]
-                project_id = project["project_id"]
-                if client_id:
-                    client_str = client_map.get(client_id)
-                    if client_str:
-                        allowed_prefixes.add(f"{client_str}/{project_id}")
-                else:
-                    allowed_prefixes.add(project_id)
-            
-            return {
-                "user_id": user_id,
-                "username": username,
-                "is_admin": is_admin,
-                "allowed_prefixes": list(allowed_prefixes),
-                "projects": [dict(p) for p in projects],
-                "clients": [dict(c) for c in clients]
-            }
-            
-        finally:
-            conn.close()
-    except Exception as e:
-        return {"user_id": user_id, "error": str(e)}
