@@ -171,6 +171,7 @@ export default function App() {
             'flex-1 overflow-hidden',
             !noPadding && 'p-8',
             !noPadding && !isWizard && 'overflow-y-auto',
+            isWizard && 'flex flex-col min-h-0',
           )}
         >
           {/* Hub */}
@@ -201,7 +202,7 @@ export default function App() {
 
           {/* Workflow Builder wizard */}
           {nav.screen === 'wizard' && (
-            <div className="max-w-4xl h-full flex flex-col min-h-0">
+            <div className="max-w-4xl flex-1 flex flex-col min-h-0">
               <WorkflowBuilder
                 editToolId={nav.editToolId}
                 onSave={handleWizardSave}

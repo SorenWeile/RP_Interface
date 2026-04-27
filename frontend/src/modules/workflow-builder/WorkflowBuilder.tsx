@@ -160,7 +160,7 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
   }
 
   return (
-    <div className="flex flex-col h-full gap-6 min-h-0">
+    <div className="flex flex-col flex-1 gap-6 min-h-0">
       {/* Header row */}
       <div className="shrink-0 flex items-center justify-between">
         <Stepper step={step} />
