@@ -1,7 +1,7 @@
 {
   "11": {
     "inputs": {
-      "image": "ComfyUI_temp_ahlyn_00001_.png"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -84,7 +84,7 @@
   },
   "61": {
     "inputs": {
-      "image": "ComfyUI_temp_ahlyn_00001_.png"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -93,7 +93,7 @@
   },
   "62": {
     "inputs": {
-      "image": "ComfyUI_temp_ahlyn_00001_.png"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -102,7 +102,7 @@
   },
   "63": {
     "inputs": {
-      "image": "ComfyUI_temp_ahlyn_00001_.png"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -111,7 +111,7 @@
   },
   "68": {
     "inputs": {
-      "image": "ComfyUI_temp_ahlyn_00001_.png"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {

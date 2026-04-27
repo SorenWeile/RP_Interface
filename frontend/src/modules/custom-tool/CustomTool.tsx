@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/components/Toaster'
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 import FieldRenderer from './FieldRenderer'
+import { groupFields } from '@/modules/workflow-builder/detect'
 import type { FieldDef, ParsedToolDef, ToolBatchStatus, ToolDef } from '@/modules/workflow-builder/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -308,21 +309,25 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
       <Separator />
 
       {/* Fields */}
-      {tool.fields.length > 0 && (
+      {tool.fields.filter(f => f.type !== 'user').length > 0 && (
         <div className="space-y-4">
-          {tool.fields.map(f => (
-            <div key={f.id} className="space-y-1.5">
-              <label className="text-xs text-muted-foreground uppercase tracking-widest">
-                {f.label}
-                {f.required && <span className="text-destructive ml-1">*</span>}
-              </label>
-              <FieldRenderer
-                key={`${formKey}-${f.id}`}
-                field={f}
-                value={values[f.id]}
-                onChange={v => setFieldValue(f.id, v)}
-                disabled={isBusy}
-              />
+          {groupFields(tool.fields.filter(f => f.type !== 'user')).map((grp, i) => (
+            <div key={i} className={grp.length > 1 ? 'flex gap-3' : undefined}>
+              {grp.map(f => (
+                <div key={f.id} className={`space-y-1.5${grp.length > 1 ? ' flex-1 min-w-0' : ''}`}>
+                  <label className="text-xs text-muted-foreground uppercase tracking-widest">
+                    {f.label}
+                    {f.required && <span className="text-destructive ml-1">*</span>}
+                  </label>
+                  <FieldRenderer
+                    key={`${formKey}-${f.id}`}
+                    field={f}
+                    value={values[f.id]}
+                    onChange={v => setFieldValue(f.id, v)}
+                    disabled={isBusy}
+                  />
+                </div>
+              ))}
             </div>
           ))}
         </div>

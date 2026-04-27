@@ -1,5 +1,21 @@
 import type { FieldDef, DetectedInput, FieldType } from './types'
 
+// ── Group helpers ─────────────────────────────────────────────────────────────
+
+/** Groups consecutive FieldDefs sharing the same non-empty .group value into rows. */
+export function groupFields(fields: FieldDef[]): FieldDef[][] {
+  const rows: FieldDef[][] = []
+  for (const f of fields) {
+    const last = rows[rows.length - 1]
+    if (f.group && last && last[0].group === f.group) {
+      last.push(f)
+    } else {
+      rows.push([f])
+    }
+  }
+  return rows
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function detectInputs(workflow: Record<string, unknown>): DetectedInput[] {
@@ -38,7 +54,6 @@ export function buildFieldDef(d: DetectedInput): FieldDef {
   const label = guessLabel(d.title)
   const type: FieldType =
     d.detected_type === 'auto_seed' ||
-    d.detected_type === 'auto_user' ||
     d.detected_type === 'output_path' ||
     d.detected_type === 'wired'
       ? 'text'
@@ -105,9 +120,6 @@ function classify(
   key: string,
   value: unknown,
 ): DetectedInput['detected_type'] {
-  // Auto: username injection
-  if (/98_USER|_USER$/i.test(title)) return 'auto_user'
-
   // Auto: seed
   if (key === 'seed' || /\bseed\b/i.test(key) || /seed/i.test(classType)) {
     if (typeof value === 'number') return 'auto_seed'

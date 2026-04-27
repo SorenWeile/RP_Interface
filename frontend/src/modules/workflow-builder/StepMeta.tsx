@@ -96,7 +96,7 @@ export default function StepMeta({
       </div>
 
       {/* Tile preview */}
-      <div className="space-y-1.5">
+      <div className="space-y-3">
         <label className="text-xs text-muted-foreground uppercase tracking-widest">Preview tile</label>
         <div className="inline-flex items-start gap-3 p-4 rounded-md border border-border bg-card max-w-sm">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

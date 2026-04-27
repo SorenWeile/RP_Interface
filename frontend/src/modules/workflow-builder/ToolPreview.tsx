@@ -1,5 +1,6 @@
 import ClientProjectPicker from '@/components/ClientProjectPicker'
 import FieldRenderer from '@/modules/custom-tool/FieldRenderer'
+import { groupFields } from './detect'
 import type { FieldDef } from './types'
 
 interface Props {
@@ -38,18 +39,22 @@ export default function ToolPreview({ fields, hasPathNode, toolName, toolDesc }:
           </div>
         )}
 
-        {fields.map(f => (
-          <div key={f.id} className="space-y-1.5">
-            <label className="text-xs text-muted-foreground uppercase tracking-widest">
-              {f.label}
-              {f.required && <span className="text-destructive ml-1">*</span>}
-            </label>
-            <FieldRenderer
-              field={f}
-              value={f.default}
-              onChange={() => {}}
-              disabled
-            />
+        {groupFields(fields).map((grp, i) => (
+          <div key={i} className={grp.length > 1 ? 'flex gap-2' : undefined}>
+            {grp.map(f => (
+              <div key={f.id} className={`space-y-1.5${grp.length > 1 ? ' flex-1 min-w-0' : ''}`}>
+                <label className="text-xs text-muted-foreground uppercase tracking-widest">
+                  {f.label}
+                  {f.required && <span className="text-destructive ml-1">*</span>}
+                </label>
+                <FieldRenderer
+                  field={f}
+                  value={f.default}
+                  onChange={() => {}}
+                  disabled
+                />
+              </div>
+            ))}
           </div>
         ))}
 

@@ -17,6 +17,7 @@ const TYPE_OPTIONS: { value: FieldType; label: string }[] = [
   { value: 'slider',   label: 'Slider' },
   { value: 'select',   label: 'Select' },
   { value: 'toggle',   label: 'Toggle' },
+  { value: 'user',     label: 'User (auto)' },
 ]
 
 const SELECT_CLS =
@@ -159,6 +160,26 @@ function FieldCard({
             <span className="text-xs text-muted-foreground">{field.required ? 'Yes' : 'No'}</span>
           </label>
         </div>
+
+        {/* Group — only for image fields */}
+        {field.type === 'image' && (
+          <div className="col-span-2 space-y-1">
+            <label className={labelCls}>Group <span className="normal-case font-normal">(same name = side-by-side)</span></label>
+            <Input
+              value={field.group ?? ''}
+              placeholder="e.g. reference_images"
+              onChange={e => onUpdate({ group: e.target.value || undefined })}
+              className={inputCls}
+            />
+          </div>
+        )}
+
+        {/* User type info */}
+        {field.type === 'user' && (
+          <div className="col-span-2 px-2 py-1.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-[10px] text-yellow-400">
+            Username is automatically injected at runtime — no user input needed.
+          </div>
+        )}
 
         {/* Type-specific options */}
         {(field.type === 'text' || field.type === 'textarea') && (
@@ -315,7 +336,6 @@ export default function StepFields({
         !usedKeys.has(k) &&
         !pathNodeInputKeys.has(k) &&
         d.detected_type !== 'auto_seed' &&
-        d.detected_type !== 'auto_user' &&
         d.detected_type !== 'output_path'
       )
     }),

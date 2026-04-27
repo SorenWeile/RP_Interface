@@ -86,41 +86,58 @@ def _create_tables() -> None:
 
 def _seed_builtin_tools() -> None:
     conn = _get_conn()
-    seeded = 0
+    inserted = updated = 0
     try:
         for tool in BUILTIN_TOOLS:
             existing = conn.execute(
                 "SELECT id FROM tools WHERE id = ?", (tool["id"],)
             ).fetchone()
             if existing:
-                continue
-            conn.execute(
-                """
-                INSERT INTO tools
-                    (id, name, description, icon, is_builtin,
-                     fields_json, path_nodes, auto_nodes, workflow, created_at)
-                VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
-                """,
-                (
-                    tool["id"],
-                    tool["name"],
-                    tool.get("description", ""),
-                    tool.get("icon", DEFAULT_TOOL_ICON),
-                    tool["fields_json"],
-                    tool.get("path_nodes"),
-                    tool.get("auto_nodes", "[]"),
-                    tool["workflow"],
-                    datetime.datetime.utcnow().isoformat() + "Z",
-                ),
-            )
-            seeded += 1
+                # Always sync workflow + metadata so JSON file changes propagate to the DB.
+                conn.execute(
+                    """
+                    UPDATE tools SET
+                        name=?, description=?, icon=?,
+                        fields_json=?, path_nodes=?, auto_nodes=?, workflow=?
+                    WHERE id=?
+                    """,
+                    (
+                        tool["name"],
+                        tool.get("description", ""),
+                        tool.get("icon", DEFAULT_TOOL_ICON),
+                        tool["fields_json"],
+                        tool.get("path_nodes"),
+                        tool.get("auto_nodes", "[]"),
+                        tool["workflow"],
+                        tool["id"],
+                    ),
+                )
+                updated += 1
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO tools
+                        (id, name, description, icon, is_builtin,
+                         fields_json, path_nodes, auto_nodes, workflow, created_at)
+                    VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        tool["id"],
+                        tool["name"],
+                        tool.get("description", ""),
+                        tool.get("icon", DEFAULT_TOOL_ICON),
+                        tool["fields_json"],
+                        tool.get("path_nodes"),
+                        tool.get("auto_nodes", "[]"),
+                        tool["workflow"],
+                        datetime.datetime.utcnow().isoformat() + "Z",
+                    ),
+                )
+                inserted += 1
         conn.commit()
     finally:
         conn.close()
-    if seeded:
-        logger.info(f"[tools_db] Seeded {seeded} built-in tool(s).")
-    else:
-        logger.info("[tools_db] Built-in tools already present, skipping seed.")
+    logger.info(f"[tools_db] Built-in tools: {inserted} inserted, {updated} updated.")
 
 
 def init_tools_db() -> None:

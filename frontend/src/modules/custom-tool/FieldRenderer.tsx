@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { User } from 'lucide-react'
 import { uploadImage } from '@/api/client'
 import { Input } from '@/components/ui/input'
 import DropZone, { type ImageSlot } from '@/components/DropZone'
@@ -144,6 +145,14 @@ export default function FieldRenderer({ field, value, onChange, disabled }: Prop
         </label>
       )
     }
+
+    case 'user':
+      return (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-muted/30 text-xs text-muted-foreground select-none">
+          <User className="w-3.5 h-3.5 shrink-0" />
+          Auto-injected: logged-in username
+        </div>
+      )
 
     default:
       return null

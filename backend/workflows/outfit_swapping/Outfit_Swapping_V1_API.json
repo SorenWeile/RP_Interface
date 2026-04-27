@@ -1,7 +1,7 @@
 {
   "1": {
     "inputs": {
-      "image": "ktm_empty.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -10,7 +10,7 @@
   },
   "2": {
     "inputs": {
-      "image": "652707_MY26_KTM 990 RC R_STATIC_STATICS_STATICS copy.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -19,7 +19,7 @@
   },
   "3": {
     "inputs": {
-      "image": "727723_3PW26000150X_GP PRO R4 GLOVES_Composing copy.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -28,7 +28,7 @@
   },
   "4": {
     "inputs": {
-      "image": "727719_3PW26000140X_KTM RADIUS V3 1PCS LEATHER SUIT_DETAIL 3 copy.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -37,7 +37,7 @@
   },
   "5": {
     "inputs": {
-      "image": "727726_3PW26000160X_SUPERTECH R VENT BLK-ORANGE_FRONT copy.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -46,7 +46,7 @@
   },
   "6": {
     "inputs": {
-      "image": "727721_3PW26000140X_KTM RADIUS V3 1PCS LEATHER SUIT_FRONT copy.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -55,7 +55,7 @@
   },
   "7": {
     "inputs": {
-      "image": "727717_3PW26000140X_KTM RADIUS V3 1PCS LEATHER SUIT_DETAIL 1 copy.jpg"
+      "image": "example.png"
     },
     "class_type": "LoadImage",
     "_meta": {

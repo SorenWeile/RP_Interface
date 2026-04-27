@@ -9,6 +9,7 @@ export type FieldType =
   | 'slider'
   | 'select'
   | 'toggle'
+  | 'user'   // auto-injected: logged-in username
 
 export interface FieldDef {
   id: string
@@ -24,6 +25,7 @@ export interface FieldDef {
   step?: number
   default?: unknown
   options?: string[]
+  group?: string   // fields sharing a group name render side-by-side
 }
 
 export interface PathNodes {
