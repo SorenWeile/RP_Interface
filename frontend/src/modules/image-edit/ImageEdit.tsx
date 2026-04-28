@@ -190,94 +190,93 @@ export default function ImageEdit() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="flex gap-0 min-h-full">
 
-      {/* Input image */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Input Image</label>
-        <DropZone
-          slot={slot}
-          label="Drop image here or click to browse"
-          disabled={isBusy}
-          onFile={handleFile}
-          onClear={clearMain}
-        />
-      </div>
+      {/* ── Left column: inputs ───────────────────────────────────────── */}
+      <div className="flex-[2] min-w-0 space-y-5 pr-8">
 
-      {/* Reference images */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Reference Images (Optional)</label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {refSlots.map((refSlot, index) => (
-            <DropZone
-              key={index}
-              slot={refSlot}
-              label={`Ref ${index + 1}`}
-              disabled={isBusy}
-              onFile={(file) => handleRefFile(index, file)}
-              onClear={() => clearRef(index)}
-              size="sm"
-            />
-          ))}
+        {/* Input image */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Input Image</label>
+          <DropZone
+            slot={slot}
+            label="Drop image here or click to browse"
+            disabled={isBusy}
+            onFile={handleFile}
+            onClear={clearMain}
+          />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Upload up to 4 reference images to guide the editing process
-        </p>
-      </div>
 
-      <Separator />
-
-      {/* Prompt + count slider */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-4">
-          <label className="text-xs text-muted-foreground uppercase tracking-widest shrink-0">
-            Edit Instruction
-          </label>
-          {/* Runs slider */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-muted-foreground">Runs</span>
-            <input
-              type="range"
-              min={1}
-              max={10}
-              value={count}
-              disabled={isBusy}
-              onChange={e => setCount(Number(e.target.value))}
-              className="w-24 accent-primary disabled:opacity-50"
-            />
-            <span className="text-xs font-medium text-foreground w-4 text-right">{count}</span>
+        {/* Reference images */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Reference Images (Optional)</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {refSlots.map((refSlot, index) => (
+              <DropZone
+                key={index}
+                slot={refSlot}
+                label={`Ref ${index + 1}`}
+                disabled={isBusy}
+                onFile={(file) => handleRefFile(index, file)}
+                onClear={() => clearRef(index)}
+                size="sm"
+              />
+            ))}
           </div>
+          <p className="text-xs text-muted-foreground">
+            Upload up to 4 reference images to guide the editing process
+          </p>
         </div>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+
+        <Separator />
+
+        {/* Prompt + count slider */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-4">
+            <label className="text-xs text-muted-foreground uppercase tracking-widest shrink-0">
+              Edit Instruction
+            </label>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground">Runs</span>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                value={count}
+                disabled={isBusy}
+                onChange={e => setCount(Number(e.target.value))}
+                className="w-24 accent-primary disabled:opacity-50"
+              />
+              <span className="text-xs font-medium text-foreground w-4 text-right">{count}</span>
+            </div>
+          </div>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={isBusy}
+            rows={6}
+            className={cn(
+              'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+              'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+              'resize-none disabled:opacity-60',
+            )}
+            placeholder='Describe the edit to apply, e.g. "change the color of the bike to bright yellow"'
+          />
+        </div>
+
+        <Separator />
+
+        <ClientProjectPicker
+          clientPath={clientPath}
+          productPath={productPath}
+          filePrefix={filePrefix}
+          onClientPath={setClientPath}
+          onProductPath={setProductPath}
+          onFilePrefix={setFilePrefix}
           disabled={isBusy}
-          rows={6}
-          className={cn(
-            'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-            'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-            'resize-none disabled:opacity-60',
-          )}
-          placeholder='Describe the edit to apply, e.g. "change the color of the bike to bright yellow"'
         />
-      </div>
 
-      <Separator />
-
-      {/* Output path */}
-      <ClientProjectPicker
-        clientPath={clientPath}
-        productPath={productPath}
-        filePrefix={filePrefix}
-        onClientPath={setClientPath}
-        onProductPath={setProductPath}
-        onFilePrefix={setFilePrefix}
-        disabled={isBusy}
-      />
-
-      {/* Submit */}
-      {(stage.status === 'idle' || stage.status === 'submitting') && (
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex items-center gap-3">
           <Button className="flex-1" onClick={submit} disabled={!canSubmit}>
             {stage.status === 'submitting'
               ? 'Queuing…'
@@ -287,101 +286,107 @@ export default function ImageEdit() {
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Batch progress */}
-      {(stage.status === 'running' || stage.status === 'complete') && (() => {
-        const { batch } = stage
-        const pct = batch.total > 0 ? Math.round((batch.nDone / batch.total) * 100) : 0
+      {/* Divider */}
+      <div className="border-l border-border shrink-0 mr-8" />
 
-        return (
-          <div className="space-y-4">
+      {/* ── Right column: results ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-4">
 
-            {/* Overall progress */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>
-                  {stage.status === 'complete'
-                    ? `Complete — ${batch.nDone} done${batch.nError > 0 ? `, ${batch.nError} errors` : ''}`
-                    : `${batch.nDone} / ${batch.total} done  ·  ${batch.nProcessing} processing  ·  ${batch.nQueued} queued`}
-                </span>
-                <span>{pct}%</span>
-              </div>
-              <Progress value={pct} className="h-1.5" />
-            </div>
-
-            {/* Run dots */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-16 shrink-0">Runs</span>
-              <div className="flex gap-1 flex-wrap">
-                {Array.from({ length: batch.total }).map((_, i) => {
-                  const job = batch.jobs.find(j => j.run === i + 1)
-                  return <RunDot key={i} status={job?.status ?? 'pending'} />
-                })}
-              </div>
-              <span className="text-xs text-muted-foreground ml-1">
-                {batch.nDone}/{batch.total}
-              </span>
-            </div>
-
-            <Separator />
-
-            {/* Actions */}
-            <div className="flex gap-3 flex-wrap">
-              {stage.status === 'running' && (
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  Cancel pending
-                </Button>
-              )}
-              {stage.status === 'complete' && (
-                <>
-                  {batch.total === 1 && batch.jobs[0]?.images?.length > 0 ? (
-                    batch.jobs[0].images.map((img, i) => (
-                      <Button key={i} variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(imageUrl(img.filename, img.subfolder ?? '', img.type ?? 'output'), img.filename) }}>
-                        Download {img.filename}
-                      </Button>
-                    ))
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={async () => {
-                      const id = toast('Preparing ZIP…', 'loading', 0)
-                      try {
-                        const res = await fetch(`/api/batch/${batch.batchId}/download`)
-                        if (!res.ok) throw new Error('Download failed')
-                        const blob = await res.blob()
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement('a')
-                        a.href = url
-                        a.download = `batch_${batch.batchId}.zip`
-                        a.click()
-                        URL.revokeObjectURL(url)
-                        toast('ZIP downloaded!', 'success')
-                      } catch {
-                        toast('Download failed', 'error')
-                      } finally {
-                        dismiss(id)
-                      }
-                    }}>
-                      Download ZIP
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={reset}>New run</Button>
-                  <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
-                </>
-              )}
-            </div>
+        {/* Idle placeholder */}
+        {(stage.status === 'idle' || stage.status === 'submitting') && (
+          <div className="h-48 flex items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Results will appear here
           </div>
-        )
-      })()}
+        )}
 
-      {/* Error */}
-      {stage.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
-            {stage.message}
-          </p>
-          <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
-        </div>
-      )}
+        {/* Batch progress / complete */}
+        {(stage.status === 'running' || stage.status === 'complete') && (() => {
+          const { batch } = stage
+          const pct = batch.total > 0 ? Math.round((batch.nDone / batch.total) * 100) : 0
+          return (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {stage.status === 'complete'
+                      ? `Complete — ${batch.nDone} done${batch.nError > 0 ? `, ${batch.nError} errors` : ''}`
+                      : `${batch.nDone} / ${batch.total} done  ·  ${batch.nProcessing} processing  ·  ${batch.nQueued} queued`}
+                  </span>
+                  <span>{pct}%</span>
+                </div>
+                <Progress value={pct} className="h-1.5" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-16 shrink-0">Runs</span>
+                <div className="flex gap-1 flex-wrap">
+                  {Array.from({ length: batch.total }).map((_, i) => {
+                    const job = batch.jobs.find(j => j.run === i + 1)
+                    return <RunDot key={i} status={job?.status ?? 'pending'} />
+                  })}
+                </div>
+                <span className="text-xs text-muted-foreground ml-1">{batch.nDone}/{batch.total}</span>
+              </div>
+              <Separator />
+              <div className="flex gap-3 flex-wrap">
+                {stage.status === 'running' && (
+                  <Button variant="outline" size="sm" onClick={handleCancel}>Cancel pending</Button>
+                )}
+                {stage.status === 'complete' && (
+                  <>
+                    {batch.total === 1 && batch.jobs[0]?.images?.length > 0 ? (
+                      batch.jobs[0].images.map((img, i) => (
+                        <Button key={i} variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(imageUrl(img.filename, img.subfolder ?? '', img.type ?? 'output'), img.filename) }}>
+                          Download {img.filename}
+                        </Button>
+                      ))
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        const id = toast('Preparing ZIP…', 'loading', 0)
+                        try {
+                          const res = await fetch(`/api/batch/${batch.batchId}/download`)
+                          if (!res.ok) throw new Error('Download failed')
+                          const blob = await res.blob()
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `batch_${batch.batchId}.zip`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                          toast('ZIP downloaded!', 'success')
+                        } catch {
+                          toast('Download failed', 'error')
+                        } finally {
+                          dismiss(id)
+                        }
+                      }}>
+                        Download ZIP
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+                    <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
+                  </>
+                )}
+              </div>
+              {/* Result images */}
+              {stage.status === 'complete' && batch.total === 1 && batch.jobs[0]?.images?.map(img => (
+                <img key={img.filename} src={imageUrl(img.filename, img.subfolder ?? '', img.type ?? 'output')} alt="result" className="w-full rounded border border-border" />
+              ))}
+            </div>
+          )
+        })()}
+
+        {/* Error */}
+        {stage.status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+              {stage.message}
+            </p>
+            <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

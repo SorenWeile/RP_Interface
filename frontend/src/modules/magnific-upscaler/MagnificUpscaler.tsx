@@ -164,86 +164,67 @@ export default function MagnificUpscaler() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="flex gap-0 min-h-full">
 
-      {/* Input image */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Input Image</label>
-        <DropZone
-          slot={slot}
-          label="Drop image here or click to browse"
-          disabled={isBusy}
-          onFile={handleFile}
-          onClear={clearSlot}
-        />
-      </div>
+      {/* ── Left column: inputs ───────────────────────────────────────── */}
+      <div className="flex-[2] min-w-0 space-y-5 pr-8">
 
-      <Separator />
-
-      {/* Magnific parameters */}
-      <div className="space-y-4">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Upscale Settings</label>
-
-        {/* Scale factor */}
+        {/* Input image */}
         <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">Scale Factor</label>
-          <div className="flex gap-2">
-            {SCALE_OPTIONS.map(opt => (
-              <button
-                key={opt}
-                onClick={() => setScaleFactor(opt)}
-                disabled={isBusy}
-                className={cn(
-                  'flex-1 rounded border px-3 py-1.5 text-sm font-medium transition-colors',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  scaleFactor === opt
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border bg-background hover:bg-accent text-foreground',
-                )}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Input Image</label>
+          <DropZone
+            slot={slot}
+            label="Drop image here or click to browse"
+            disabled={isBusy}
+            onFile={handleFile}
+            onClear={clearSlot}
+          />
         </div>
 
-        {/* Int sliders */}
-        <IntInput
-          label="Sharpen"
-          value={sharpen}
-          onChange={setSharpen}
+        <Separator />
+
+        {/* Magnific parameters */}
+        <div className="space-y-4">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Upscale Settings</label>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Scale Factor</label>
+            <div className="flex gap-2">
+              {SCALE_OPTIONS.map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => setScaleFactor(opt)}
+                  disabled={isBusy}
+                  className={cn(
+                    'flex-1 rounded border px-3 py-1.5 text-sm font-medium transition-colors',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    scaleFactor === opt
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border bg-background hover:bg-accent text-foreground',
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+          <IntInput label="Sharpen" value={sharpen} onChange={setSharpen} disabled={isBusy} />
+          <IntInput label="Smart Grain" value={smartGrain} onChange={setSmartGrain} disabled={isBusy} />
+          <IntInput label="Ultra Detail" value={ultraDetail} onChange={setUltraDetail} disabled={isBusy} />
+        </div>
+
+        <Separator />
+
+        <ClientProjectPicker
+          clientPath={clientPath}
+          productPath={productPath}
+          filePrefix={filePrefix}
+          onClientPath={setClientPath}
+          onProductPath={setProductPath}
+          onFilePrefix={setFilePrefix}
           disabled={isBusy}
         />
-        <IntInput
-          label="Smart Grain"
-          value={smartGrain}
-          onChange={setSmartGrain}
-          disabled={isBusy}
-        />
-        <IntInput
-          label="Ultra Detail"
-          value={ultraDetail}
-          onChange={setUltraDetail}
-          disabled={isBusy}
-        />
-      </div>
 
-      <Separator />
-
-      {/* Output path */}
-      <ClientProjectPicker
-        clientPath={clientPath}
-        productPath={productPath}
-        filePrefix={filePrefix}
-        onClientPath={setClientPath}
-        onProductPath={setProductPath}
-        onFilePrefix={setFilePrefix}
-        disabled={isBusy}
-      />
-
-      {/* Submit */}
-      {(stage.status === 'idle' || stage.status === 'submitting') && (
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex items-center gap-3">
           <Button className="flex-1" onClick={submit} disabled={!canSubmit}>
             {stage.status === 'submitting' ? 'Queuing…' : `Upscale ${scaleFactor}`}
           </Button>
@@ -251,51 +232,60 @@ export default function MagnificUpscaler() {
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Progress */}
-      {stage.status === 'processing' && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Processing…</span>
-            <span>{stage.pct}%</span>
+      {/* Divider */}
+      <div className="border-l border-border shrink-0 mr-8" />
+
+      {/* ── Right column: results ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-4">
+
+        {/* Idle placeholder */}
+        {(stage.status === 'idle' || stage.status === 'submitting') && (
+          <div className="h-48 flex items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Results will appear here
           </div>
-          <Progress value={stage.pct} className="h-1.5" />
-        </div>
-      )}
+        )}
 
-      {/* Done */}
-      {stage.status === 'done' && (
-        <div className="space-y-4">
-          <div className="flex gap-3 flex-wrap">
-            {stage.images.map((img, i) => (
-              <Button key={i} variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename) }}>
-                Download {img.filename}
-              </Button>
+        {/* Progress */}
+        {stage.status === 'processing' && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="animate-pulse">Processing…</span>
+              <span>{stage.pct}%</span>
+            </div>
+            <Progress value={stage.pct} className="h-1.5" />
+          </div>
+        )}
+
+        {/* Done */}
+        {stage.status === 'done' && (
+          <div className="space-y-4">
+            <div className="flex gap-3 flex-wrap">
+              {stage.images.map((img, i) => (
+                <Button key={i} variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename) }}>
+                  Download {img.filename}
+                </Button>
+              ))}
+              <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+              <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
+            </div>
+            {stage.images.map((img) => (
+              <img key={img.filename} src={imageUrl(img.filename, img.subfolder, img.type)} alt="upscaled result" className="w-full rounded border border-border" />
             ))}
-            <Button variant="outline" size="sm" onClick={reset}>New run</Button>
-            <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
           </div>
-          {stage.images.map((img) => (
-            <img
-              key={img.filename}
-              src={imageUrl(img.filename, img.subfolder, img.type)}
-              alt="upscaled result"
-              className="w-full rounded border border-border"
-            />
-          ))}
-        </div>
-      )}
+        )}
 
-      {/* Error */}
-      {stage.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
-            {stage.message}
-          </p>
-          <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
-        </div>
-      )}
+        {/* Error */}
+        {stage.status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+              {stage.message}
+            </p>
+            <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

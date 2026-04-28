@@ -113,7 +113,7 @@ export default function ModuleGrid({
   }
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8">
       {/* Gallery */}
       {galleryModule && (
         <>

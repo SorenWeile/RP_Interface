@@ -8,6 +8,7 @@ const magnificUpscalerModule: WorkflowModule = {
   description: 'Upscale images up to 16× with AI-driven sharpening, smart grain, and ultra detail.',
   icon: Sparkles,
   component: MagnificUpscaler,
+  fullWidth: true,
 }
 
 export default magnificUpscalerModule

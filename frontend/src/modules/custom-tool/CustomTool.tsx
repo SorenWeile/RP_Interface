@@ -259,248 +259,265 @@ export default function CustomTool({ toolId, onEdit, onDelete }: Props) {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="flex gap-0 min-h-full">
 
-      {/* Tool header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-medium text-foreground">{tool.name}</h2>
-          {tool.description && (
-            <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
+      {/* ── Left column: inputs ──────────────────────────────────────── */}
+      <div className="flex-[2] min-w-0 space-y-5 pr-8">
+
+        {/* Tool header */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-medium text-foreground">{tool.name}</h2>
+            {tool.description && (
+              <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
+            )}
+          </div>
+          {(onEdit || onDelete) && (
+            <div className="relative shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-7 h-7"
+                onClick={() => setMenuOpen(m => !m)}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+              {menuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 w-40 bg-card border border-border rounded-md shadow-xl overflow-hidden"
+                  onMouseLeave={() => setMenuOpen(false)}
+                >
+                  {onEdit && (
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted/50 transition-colors"
+                      onClick={() => { setMenuOpen(false); onEdit() }}
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit tool
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                      onClick={() => { setMenuOpen(false); setDeleteConfirm(true) }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete tool
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
-        {(onEdit || onDelete) && (
-          <div className="relative shrink-0">
+
+        <Separator />
+
+        {/* Fields */}
+        {tool.fields.filter(f => f.type !== 'user').length > 0 && (
+          <div className="space-y-4">
+            {groupFields(tool.fields.filter(f => f.type !== 'user')).map((grp, i) => {
+              const isGroup = grp.length > 1
+              return (
+                <div key={i} className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground uppercase tracking-widest">
+                    {isGroup
+                      ? (grp[0].group ?? grp[0].label)
+                      : grp[0].label}
+                    {!isGroup && grp[0].required && <span className="text-destructive ml-1">*</span>}
+                  </label>
+                  <div className={isGroup ? 'flex gap-3' : undefined}>
+                    {grp.map(f => (
+                      <div key={f.id} className={isGroup ? 'flex-1 min-w-0' : undefined}>
+                        <FieldRenderer
+                          key={`${formKey}-${f.id}`}
+                          field={f}
+                          value={values[f.id]}
+                          onChange={v => setFieldValue(f.id, v)}
+                          disabled={isBusy}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Output path picker */}
+        {tool.pathNodes && (
+          <>
+            <Separator />
+            <ClientProjectPicker
+              clientPath={clientPath}
+              productPath={productPath}
+              filePrefix={filePrefix}
+              onClientPath={setClientPath}
+              onProductPath={setProductPath}
+              onFilePrefix={setFilePrefix}
+              disabled={isBusy}
+            />
+          </>
+        )}
+
+        <Separator />
+
+        {/* Action bar */}
+        {showActions && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={batchCount}
+                onChange={e => setBatchCount(Math.max(1, Math.min(50, Number(e.target.value))))}
+                disabled={isBusy}
+                className="w-16 text-center"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">×</span>
+            </div>
             <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 h-7"
-              onClick={() => setMenuOpen(m => !m)}
+              className="flex-1"
+              onClick={batchCount > 1 ? runBatch : runSingle}
+              disabled={!canRun}
             >
-              <MoreHorizontal className="w-4 h-4" />
+              {stage.status === 'submitting'
+                ? 'Queuing…'
+                : batchCount > 1
+                  ? `Run ×${batchCount}`
+                  : 'Run'}
             </Button>
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50 w-40 bg-card border border-border rounded-md shadow-xl overflow-hidden"
-                onMouseLeave={() => setMenuOpen(false)}
-              >
-                {onEdit && (
-                  <button
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted/50 transition-colors"
-                    onClick={() => { setMenuOpen(false); onEdit() }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Edit tool
-                  </button>
-                )}
-                {onDelete && (
-                  <button
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-                    onClick={() => { setMenuOpen(false); setDeleteConfirm(true) }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete tool
-                  </button>
-                )}
-              </div>
-            )}
+          </div>
+        )}
+
+        {/* Busy indicator in left column */}
+        {stage.status === 'processing' && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="animate-pulse">Processing…</span>
+              <span>{stage.pct}%</span>
+            </div>
+            <Progress value={stage.pct} className="h-1.5" />
+          </div>
+        )}
+        {stage.status === 'batch' && !batchDone && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground animate-pulse">
+                {stage.bs.done + stage.bs.error} / {stage.bs.total} complete
+              </span>
+              <Button variant="ghost" size="sm" onClick={handleCancelBatch}>Cancel</Button>
+            </div>
+            <Progress
+              value={Math.round(((stage.bs.done + stage.bs.error) / stage.bs.total) * 100)}
+              className="h-1.5"
+            />
           </div>
         )}
       </div>
 
-      <Separator />
+      {/* Divider */}
+      <div className="border-l border-border shrink-0 mr-8" />
 
-      {/* Fields */}
-      {tool.fields.filter(f => f.type !== 'user').length > 0 && (
-        <div className="space-y-4">
-          {groupFields(tool.fields.filter(f => f.type !== 'user')).map((grp, i) => {
-            const isGroup = grp.length > 1
-            return (
-              <div key={i} className="space-y-1.5">
-                <label className="text-xs text-muted-foreground uppercase tracking-widest">
-                  {isGroup
-                    ? (grp[0].group ?? grp[0].label)
-                    : grp[0].label}
-                  {!isGroup && grp[0].required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                <div className={isGroup ? 'flex gap-3' : undefined}>
-                  {grp.map(f => (
-                    <div key={f.id} className={isGroup ? 'flex-1 min-w-0' : undefined}>
-                      <FieldRenderer
-                        key={`${formKey}-${f.id}`}
-                        field={f}
-                        value={values[f.id]}
-                        onChange={v => setFieldValue(f.id, v)}
-                        disabled={isBusy}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      {/* ── Right column: results ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-4">
 
-      {/* Output path picker */}
-      {tool.pathNodes && (
-        <>
-          <Separator />
-          <ClientProjectPicker
-            clientPath={clientPath}
-            productPath={productPath}
-            filePrefix={filePrefix}
-            onClientPath={setClientPath}
-            onProductPath={setProductPath}
-            onFilePrefix={setFilePrefix}
-            disabled={isBusy}
-          />
-        </>
-      )}
-
-      <Separator />
-
-      {/* Action bar */}
-      {showActions && (
-        <div className="flex items-center gap-3 pt-1">
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min={1}
-              max={50}
-              value={batchCount}
-              onChange={e => setBatchCount(Math.max(1, Math.min(50, Number(e.target.value))))}
-              disabled={isBusy}
-              className="w-16 text-center"
-            />
-            <span className="text-xs text-muted-foreground shrink-0">×</span>
+        {/* Idle placeholder */}
+        {(stage.status === 'idle' || stage.status === 'submitting') && (
+          <div className="h-48 flex items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Results will appear here
           </div>
-          <Button
-            className="flex-1"
-            onClick={batchCount > 1 ? runBatch : runSingle}
-            disabled={!canRun}
-          >
-            {stage.status === 'submitting'
-              ? 'Queuing…'
-              : batchCount > 1
-                ? `Run ×${batchCount}`
-                : 'Run'}
-          </Button>
-        </div>
-      )}
+        )}
 
-      {/* Single-run progress */}
-      {stage.status === 'processing' && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Processing…</span>
-            <span>{stage.pct}%</span>
-          </div>
-          <Progress value={stage.pct} className="h-1.5" />
-        </div>
-      )}
-
-      {/* Batch status */}
-      {stage.status === 'batch' && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {stage.bs.done + stage.bs.error} / {stage.bs.total} complete
-              {stage.bs.error > 0 && ` · ${stage.bs.error} error`}
-            </span>
-            {!batchDone && (
-              <Button variant="ghost" size="sm" onClick={handleCancelBatch}>Cancel</Button>
-            )}
-          </div>
-          <Progress
-            value={Math.round(((stage.bs.done + stage.bs.error) / stage.bs.total) * 100)}
-            className="h-1.5"
-          />
-
-          <div className="space-y-1">
-            {stage.bs.runs.map(run => (
-              <div key={run.run_index} className="flex items-center gap-2 text-xs">
-                <span className={cn(
-                  'w-2 h-2 rounded-full shrink-0',
-                  run.status === 'done'       ? 'bg-green-500'              :
-                  run.status === 'error'      ? 'bg-destructive'            :
-                  run.status === 'processing' ? 'bg-primary animate-pulse'  :
-                                               'bg-muted-foreground/40'
-                )} />
-                <span className="text-muted-foreground w-12 shrink-0">Run {run.run_index + 1}</span>
-                {run.status === 'done' && run.images.map(img => (
-                  <button
-                    key={img.filename}
-                    onClick={() => fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename)}
-                    className="text-primary hover:underline truncate max-w-xs"
-                  >
-                    {img.filename}
-                  </button>
-                ))}
-                {run.status === 'error' && <span className="text-destructive">error</span>}
-              </div>
-            ))}
-          </div>
-
-          {batchDone && (
-            <div className="flex gap-3 pt-1 flex-wrap">
-              {stage.bs.done > 0 && (
+        {/* Single-run done */}
+        {stage.status === 'done' && (
+          <>
+            <div className="flex gap-3 flex-wrap">
+              {stage.images.map((img, i) => (
                 <Button
+                  key={i}
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     toast('Downloading…', 'info')
-                    fetchAndDownload(toolBatchDownloadUrl(stage.batchId), `batch_${stage.batchId}.zip`)
+                    fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename)
                   }}
                 >
-                  Download all (.zip)
+                  Download {img.filename}
                 </Button>
-              )}
+              ))}
               <Button variant="outline" size="sm" onClick={resetStage}>New run</Button>
               <Button variant="ghost"   size="sm" onClick={resetAll}>Reset all</Button>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Single-run done */}
-      {stage.status === 'done' && (
-        <div className="space-y-4">
-          <div className="flex gap-3 flex-wrap">
-            {stage.images.map((img, i) => (
-              <Button
-                key={i}
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  toast('Downloading…', 'info')
-                  fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename)
-                }}
-              >
-                Download {img.filename}
-              </Button>
+            {stage.images.map(img => (
+              <img
+                key={img.filename}
+                src={imageUrl(img.filename, img.subfolder, img.type)}
+                alt="result"
+                className="w-full rounded border border-border"
+              />
             ))}
-            <Button variant="outline" size="sm" onClick={resetStage}>New run</Button>
-            <Button variant="ghost"   size="sm" onClick={resetAll}>Reset all</Button>
-          </div>
-          {stage.images.map(img => (
-            <img
-              key={img.filename}
-              src={imageUrl(img.filename, img.subfolder, img.type)}
-              alt="result"
-              className="w-full rounded border border-border"
-            />
-          ))}
-        </div>
-      )}
+          </>
+        )}
 
-      {/* Error */}
-      {stage.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
-            {stage.message}
-          </p>
-          <Button variant="ghost" size="sm" onClick={resetAll}>Reset</Button>
-        </div>
-      )}
+        {/* Batch results */}
+        {stage.status === 'batch' && (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              {stage.bs.runs.map(run => (
+                <div key={run.run_index} className="flex items-center gap-2 text-xs">
+                  <span className={cn(
+                    'w-2 h-2 rounded-full shrink-0',
+                    run.status === 'done'       ? 'bg-green-500'             :
+                    run.status === 'error'      ? 'bg-destructive'           :
+                    run.status === 'processing' ? 'bg-primary animate-pulse' :
+                                                 'bg-muted-foreground/40'
+                  )} />
+                  <span className="text-muted-foreground w-12 shrink-0">Run {run.run_index + 1}</span>
+                  {run.status === 'done' && run.images.map(img => (
+                    <button
+                      key={img.filename}
+                      onClick={() => fetchAndDownload(imageUrl(img.filename, img.subfolder, img.type), img.filename)}
+                      className="text-primary hover:underline truncate max-w-xs"
+                    >
+                      {img.filename}
+                    </button>
+                  ))}
+                  {run.status === 'error' && <span className="text-destructive">error</span>}
+                </div>
+              ))}
+            </div>
+            {batchDone && (
+              <div className="flex gap-3 pt-1 flex-wrap">
+                {stage.bs.done > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      toast('Downloading…', 'info')
+                      fetchAndDownload(toolBatchDownloadUrl(stage.batchId), `batch_${stage.batchId}.zip`)
+                    }}
+                  >
+                    Download all (.zip)
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={resetStage}>New run</Button>
+                <Button variant="ghost"   size="sm" onClick={resetAll}>Reset all</Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Error */}
+        {stage.status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+              {stage.message}
+            </p>
+            <Button variant="ghost" size="sm" onClick={resetAll}>Reset</Button>
+          </div>
+        )}
+      </div>
 
       {/* Delete confirmation modal */}
       {deleteConfirm && onDelete && (

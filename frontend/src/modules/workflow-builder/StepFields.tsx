@@ -386,15 +386,20 @@ export default function StepFields({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0 gap-4">
+
+      {/* Header — spans full width */}
+      <div className="shrink-0">
+        <h2 className="text-lg font-medium text-foreground">Configure Fields</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Choose which inputs to expose, reorder them, and tweak each control. The preview updates live.
+        </p>
+      </div>
+
+      {/* Two-column body */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
       {/* ── LEFT ── */}
       <div className="space-y-4 overflow-y-auto pb-4 min-h-0">
-        <div>
-          <h2 className="text-lg font-medium text-foreground">Configure Fields</h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Choose which inputs to expose, reorder them, and tweak each control. The preview updates live.
-          </p>
-        </div>
 
         {/* Output path node picker */}
         <div className="rounded-md border border-border bg-card p-3 space-y-2">
@@ -482,15 +487,6 @@ export default function StepFields({
         </div>
 
         {err && <p className="text-xs text-destructive">{err}</p>}
-
-        {/* Nav buttons */}
-        <div className="flex justify-between pt-2">
-          {onBack
-            ? <Button variant="outline" onClick={onBack}>← Back</Button>
-            : <span />
-          }
-          <Button onClick={handleNext}>Next →</Button>
-        </div>
       </div>
 
       {/* ── RIGHT: Live preview ── */}
@@ -498,6 +494,16 @@ export default function StepFields({
         fields={fields}
         hasPathNode={pathNodeId !== null}
       />
+      </div>{/* end two-column grid */}
+
+      {/* Nav buttons — spans full width */}
+      <div className="shrink-0 flex justify-between">
+        {onBack
+          ? <Button variant="outline" onClick={onBack}>← Back</Button>
+          : <span />
+        }
+        <Button onClick={handleNext}>Next →</Button>
+      </div>
     </div>
   )
 }

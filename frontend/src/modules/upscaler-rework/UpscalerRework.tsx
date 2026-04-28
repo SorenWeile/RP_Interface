@@ -206,232 +206,220 @@ export default function UpscalerRework() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="flex gap-0 min-h-full">
 
-      {/* Drop zone */}
-      <div
-        role="button" tabIndex={0}
-        onClick={() => !isBusy && fileInput.current?.click()}
-        onKeyDown={(e) => !isBusy && e.key === 'Enter' && fileInput.current?.click()}
-        onDrop={onDrop}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
-        className={cn(
-          'relative border-2 border-dashed rounded transition-colors select-none',
-          'flex flex-col items-center justify-center min-h-40',
-          isBusy ? 'cursor-default opacity-60' : 'cursor-pointer',
-          dragging
-            ? 'border-primary bg-comfy-canvas'
-            : 'border-comfy-border bg-comfy-panel hover:border-primary/60',
-        )}
-      >
-        {preview ? (
-          <img src={preview} alt="preview" className="max-h-48 max-w-full object-contain rounded opacity-80" />
-        ) : (
-          <div className="text-center p-6">
-            <div className="text-muted-foreground text-3xl mb-2">↓</div>
-            <p className="text-muted-foreground text-sm">Drop image here or click to browse</p>
+      {/* ── Left column: inputs ───────────────────────────────────────── */}
+      <div className="flex-[2] min-w-0 space-y-5 pr-8">
+
+        {/* Drop zone */}
+        <div
+          role="button" tabIndex={0}
+          onClick={() => !isBusy && fileInput.current?.click()}
+          onKeyDown={(e) => !isBusy && e.key === 'Enter' && fileInput.current?.click()}
+          onDrop={onDrop}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          className={cn(
+            'relative border-2 border-dashed rounded transition-colors select-none',
+            'flex flex-col items-center justify-center min-h-40',
+            isBusy ? 'cursor-default opacity-60' : 'cursor-pointer',
+            dragging
+              ? 'border-primary bg-comfy-canvas'
+              : 'border-comfy-border bg-comfy-panel hover:border-primary/60',
+          )}
+        >
+          {preview ? (
+            <img src={preview} alt="preview" className="max-h-48 max-w-full object-contain rounded opacity-80" />
+          ) : (
+            <div className="text-center p-6">
+              <div className="text-muted-foreground text-3xl mb-2">↓</div>
+              <p className="text-muted-foreground text-sm">Drop image here or click to browse</p>
+            </div>
+          )}
+          {stage.status === 'uploading' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/70 rounded">
+              <span className="text-muted-foreground text-xs tracking-widest animate-pulse">UPLOADING…</span>
+            </div>
+          )}
+        </div>
+
+        <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+
+        <ClientProjectPicker
+          clientPath={clientPath}
+          productPath={productPath}
+          filePrefix={filePrefix}
+          onClientPath={setClientPath}
+          onProductPath={setProductPath}
+          onFilePrefix={setFilePrefix}
+        />
+
+        <Separator />
+
+        {/* Model selection */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground uppercase tracking-widest">Models</span>
+            <button onClick={toggleAll} className="text-xs text-primary hover:underline">
+              {selectedModels.length === MODELS.length ? 'Deselect all' : 'Select all'}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {MODELS.map(model => {
+              const active = selectedModels.includes(model)
+              return (
+                <button
+                  key={model}
+                  onClick={() => toggleModel(model)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors border',
+                    active
+                      ? 'bg-primary/15 border-primary/40 text-primary'
+                      : 'bg-comfy-panel border-border text-muted-foreground hover:text-foreground hover:border-primary/30',
+                  )}
+                >
+                  <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', active ? 'bg-primary' : 'bg-muted-foreground')} />
+                  {MODEL_LABEL[model]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Runs per model */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground uppercase tracking-widest">Runs per model</span>
+          <div className="flex items-center gap-2">
+            {[1, 2, 4, 8].map(n => (
+              <button
+                key={n}
+                onClick={() => setRunsPerModel(n)}
+                className={cn(
+                  'w-9 h-8 rounded text-sm transition-colors border',
+                  runsPerModel === n
+                    ? 'bg-primary/15 border-primary/40 text-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/30',
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            className="flex-1"
+            onClick={startBatch}
+            disabled={!filename || selectedModels.length === 0 || stage.status === 'submitting'}
+          >
+            {stage.status === 'submitting'
+              ? 'Queuing…'
+              : `Start Batch — ${totalExpected * 2} images (${selectedModels.length} models × ${runsPerModel} runs × 4K+8K)`}
+          </Button>
+          {preview && (
+            <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
+          )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="border-l border-border shrink-0 mr-8" />
+
+      {/* ── Right column: results ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-4">
+
+        {/* Idle placeholder */}
+        {(stage.status === 'idle' || stage.status === 'ready' || stage.status === 'submitting') && (
+          <div className="h-48 flex items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Results will appear here
           </div>
         )}
-        {stage.status === 'uploading' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/70 rounded">
-            <span className="text-muted-foreground text-xs tracking-widest animate-pulse">UPLOADING…</span>
+
+        {/* Batch progress / complete */}
+        {(stage.status === 'running' || stage.status === 'complete') && (() => {
+          const { batch } = stage
+          const pct = batch.total > 0 ? Math.round((batch.nDone / batch.total) * 100) : 0
+          return (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    {stage.status === 'complete'
+                      ? `Complete — ${batch.nDone} done${batch.nError > 0 ? `, ${batch.nError} errors` : ''}`
+                      : `${batch.nDone} / ${batch.total} done  ·  ${batch.nProcessing} processing  ·  ${batch.nQueued} queued`}
+                  </span>
+                  <span>{pct}%</span>
+                </div>
+                <Progress value={pct} className="h-1.5" />
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                {selectedModels.map(model => {
+                  const runs = batch.jobs.filter(j => j.model === model)
+                  const nDone = runs.filter(r => r.status === 'done').length
+                  return (
+                    <div key={model} className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground w-36 truncate shrink-0">{MODEL_LABEL[model]}</span>
+                      <div className="flex gap-1">
+                        {Array.from({ length: runsPerModel }).map((_, i) => {
+                          const run = runs.find(r => r.run === i + 1)
+                          return <RunDot key={i} status={run?.status ?? 'pending'} />
+                        })}
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-1">{nDone}/{runsPerModel}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex gap-3">
+                {stage.status === 'running' && (
+                  <Button variant="outline" size="sm" onClick={handleCancel}>Cancel pending</Button>
+                )}
+                {stage.status === 'complete' && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={async () => {
+                      const batchId = stage.batch.batchId
+                      const id = toast('Preparing ZIP…', 'loading', 0)
+                      try {
+                        const res = await fetch(`/api/batch/${batchId}/download`)
+                        if (!res.ok) throw new Error('Download failed')
+                        const blob = await res.blob()
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `batch_${batchId}.zip`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                        toast('ZIP downloaded!', 'success')
+                      } catch {
+                        toast('Download failed', 'error')
+                      } finally {
+                        dismiss(id)
+                      }
+                    }}>
+                      Download ZIP
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={reset}>New batch</Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Error */}
+        {stage.status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+              {stage.message}
+            </p>
+            <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
           </div>
         )}
       </div>
-
-      <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-
-      {/* ── Config form (shown until batch starts) ──────────────────────────── */}
-      {(stage.status === 'idle' || stage.status === 'ready' || stage.status === 'submitting') && (
-        <div className="space-y-4">
-
-          {/* Output path fields */}
-          <ClientProjectPicker
-            clientPath={clientPath}
-            productPath={productPath}
-            filePrefix={filePrefix}
-            onClientPath={setClientPath}
-            onProductPath={setProductPath}
-            onFilePrefix={setFilePrefix}
-          />
-
-          <Separator />
-
-          {/* Model selection */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-widest">Models</span>
-              <button
-                onClick={toggleAll}
-                className="text-xs text-primary hover:underline"
-              >
-                {selectedModels.length === MODELS.length ? 'Deselect all' : 'Select all'}
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {MODELS.map(model => {
-                const active = selectedModels.includes(model)
-                return (
-                  <button
-                    key={model}
-                    onClick={() => toggleModel(model)}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors border',
-                      active
-                        ? 'bg-primary/15 border-primary/40 text-primary'
-                        : 'bg-comfy-panel border-border text-muted-foreground hover:text-foreground hover:border-primary/30',
-                    )}
-                  >
-                    <span className={cn(
-                      'w-1.5 h-1.5 rounded-full shrink-0',
-                      active ? 'bg-primary' : 'bg-muted-foreground',
-                    )} />
-                    {MODEL_LABEL[model]}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Runs per model */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground uppercase tracking-widest">Runs per model</span>
-            <div className="flex items-center gap-2">
-              {[1, 2, 4, 8].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setRunsPerModel(n)}
-                  className={cn(
-                    'w-9 h-8 rounded text-sm transition-colors border',
-                    runsPerModel === n
-                      ? 'bg-primary/15 border-primary/40 text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/30',
-                  )}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Summary + Start */}
-          <div className="flex items-center gap-3 pt-1">
-            <Button
-              className="flex-1"
-              onClick={startBatch}
-              disabled={!filename || selectedModels.length === 0 || stage.status === 'submitting'}
-            >
-              {stage.status === 'submitting'
-                ? 'Queuing…'
-                : `Start Batch — ${totalExpected * 2} images (${selectedModels.length} models × ${runsPerModel} runs × 4K+8K)`}
-            </Button>
-            {preview && (
-              <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Batch progress ───────────────────────────────────────────────────── */}
-      {(stage.status === 'running' || stage.status === 'complete') && (() => {
-        const { batch } = stage
-        const pct = batch.total > 0 ? Math.round((batch.nDone / batch.total) * 100) : 0
-
-        return (
-          <div className="space-y-4">
-
-            {/* Overall */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>
-                  {stage.status === 'complete'
-                    ? `Complete — ${batch.nDone} done${batch.nError > 0 ? `, ${batch.nError} errors` : ''}`
-                    : `${batch.nDone} / ${batch.total} done  ·  ${batch.nProcessing} processing  ·  ${batch.nQueued} queued`}
-                </span>
-                <span>{pct}%</span>
-              </div>
-              <Progress value={pct} className="h-1.5" />
-            </div>
-
-            <Separator />
-
-            {/* Per-model breakdown */}
-            <div className="space-y-2">
-              {selectedModels.map(model => {
-                const runs = batch.jobs.filter(j => j.model === model)
-                const nDone = runs.filter(r => r.status === 'done').length
-                return (
-                  <div key={model} className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground w-36 truncate shrink-0">
-                      {MODEL_LABEL[model]}
-                    </span>
-                    <div className="flex gap-1">
-                      {Array.from({ length: runsPerModel }).map((_, i) => {
-                        const run = runs.find(r => r.run === i + 1)
-                        return <RunDot key={i} status={run?.status ?? 'pending'} />
-                      })}
-                    </div>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      {nDone}/{runsPerModel}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-1">
-              {stage.status === 'running' && (
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  Cancel pending
-                </Button>
-              )}
-              {stage.status === 'complete' && (
-                <>
-                  <Button variant="outline" size="sm" onClick={async () => {
-                    const batchId = stage.batch.batchId
-                    const id = toast('Preparing ZIP…', 'loading', 0)
-                    try {
-                      const res = await fetch(`/api/batch/${batchId}/download`)
-                      if (!res.ok) throw new Error('Download failed')
-                      const blob = await res.blob()
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = `batch_${batchId}.zip`
-                      a.click()
-                      URL.revokeObjectURL(url)
-                      toast('ZIP downloaded!', 'success')
-                    } catch {
-                      toast('Download failed', 'error')
-                    } finally {
-                      dismiss(id)
-                    }
-                  }}>
-                    Download ZIP
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={reset}>
-                    New batch
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* ── Error ───────────────────────────────────────────────────────────── */}
-      {stage.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
-            {stage.message}
-          </p>
-          <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
-        </div>
-      )}
     </div>
   )
 }

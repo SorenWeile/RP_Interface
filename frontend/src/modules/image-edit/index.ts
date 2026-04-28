@@ -8,6 +8,7 @@ const imageEditModule: WorkflowModule = {
   description: 'Edit an image using a text instruction powered by Google Gemini.',
   icon: Wand2,
   component: ImageEdit,
+  fullWidth: true,
 }
 
 export default imageEditModule

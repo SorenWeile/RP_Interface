@@ -194,7 +194,7 @@ export default function App() {
                 <nav.module.component />
               </div>
             ) : (
-              <div className={fullWidth ? undefined : 'max-w-2xl'}>
+              <div className={fullWidth ? undefined : 'max-w-4xl'}>
                 <nav.module.component />
               </div>
             )
@@ -202,7 +202,7 @@ export default function App() {
 
           {/* Workflow Builder wizard */}
           {nav.screen === 'wizard' && (
-            <div className="max-w-4xl flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0 pr-[12.5%]">
               <WorkflowBuilder
                 editToolId={nav.editToolId}
                 onSave={handleWizardSave}
@@ -213,16 +213,14 @@ export default function App() {
 
           {/* Custom tool runner */}
           {nav.screen === 'tool' && (
-            <div className="max-w-2xl">
-              <CustomTool
-                toolId={nav.toolId}
-                onEdit={() => openWizard(nav.toolId)}
-                onDelete={() => {
-                  refreshCustomTools()
-                  openHub()
-                }}
-              />
-            </div>
+            <CustomTool
+              toolId={nav.toolId}
+              onEdit={() => openWizard(nav.toolId)}
+              onDelete={() => {
+                refreshCustomTools()
+                openHub()
+              }}
+            />
           )}
         </main>
 

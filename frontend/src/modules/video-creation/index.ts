@@ -8,6 +8,7 @@ const videoCreationModule: WorkflowModule = {
   description: 'Generate smooth video clips between a first and last frame using LTX.',
   icon: Film,
   component: VideoCreation,
+  fullWidth: true,
 }
 
 export default videoCreationModule

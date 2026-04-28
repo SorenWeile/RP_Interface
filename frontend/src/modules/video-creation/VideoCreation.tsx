@@ -142,97 +142,85 @@ export default function VideoCreation() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="flex gap-0 min-h-full">
 
-      {/* Frame inputs */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Frame Inputs</label>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">First Frame</p>
-            <DropZone
-              slot={firstFrame}
-              label="First Frame"
-              disabled={isBusy}
-              onFile={(f) => uploadSlot(f, setFirstFrame)}
-              onClear={() => setFirstFrame(EMPTY_SLOT)}
-            />
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Last Frame</p>
-            <DropZone
-              slot={lastFrame}
-              label="Last Frame"
-              disabled={isBusy}
-              onFile={(f) => uploadSlot(f, setLastFrame)}
-              onClear={() => setLastFrame(EMPTY_SLOT)}
-            />
+      {/* ── Left column: inputs ───────────────────────────────────────── */}
+      <div className="flex-[2] min-w-0 space-y-5 pr-8">
+
+        {/* Frame inputs */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Frame Inputs</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">First Frame</p>
+              <DropZone slot={firstFrame} label="First Frame" disabled={isBusy} onFile={(f) => uploadSlot(f, setFirstFrame)} onClear={() => setFirstFrame(EMPTY_SLOT)} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Last Frame</p>
+              <DropZone slot={lastFrame} label="Last Frame" disabled={isBusy} onFile={(f) => uploadSlot(f, setLastFrame)} onClear={() => setLastFrame(EMPTY_SLOT)} />
+            </div>
           </div>
         </div>
-      </div>
 
-      <Separator />
+        <Separator />
 
-      {/* Prompt */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Prompt Instruction</label>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+        {/* Prompt */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Prompt Instruction</label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={isBusy}
+            rows={8}
+            className={cn(
+              'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+              'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+              'resize-y disabled:opacity-60',
+            )}
+            placeholder='Describe the video motion, e.g. "Camera slowly pans right revealing the motorcycle against a desert sunset..."'
+          />
+        </div>
+
+        <Separator />
+
+        {/* Length slider */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-muted-foreground uppercase tracking-widest">Video Length</label>
+            <div className="text-right">
+              <span className="text-sm font-medium text-foreground">{length} frames</span>
+              <span className="text-xs text-muted-foreground ml-2">({seconds}s @ {FRAME_RATE} fps)</span>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={MIN_LENGTH}
+            max={MAX_LENGTH}
+            step={1}
+            value={length}
+            disabled={isBusy}
+            onChange={e => setLength(Number(e.target.value))}
+            className="w-full accent-primary disabled:opacity-50"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{MIN_LENGTH} frames ({(MIN_LENGTH / FRAME_RATE).toFixed(1)}s)</span>
+            <span>{MAX_LENGTH} frames ({(MAX_LENGTH / FRAME_RATE).toFixed(1)}s)</span>
+          </div>
+        </div>
+
+        <Separator />
+
+        <ClientProjectPicker
+          clientPath={clientPath}
+          productPath={productPath}
+          filePrefix={filePrefix}
+          onClientPath={setClientPath}
+          onProductPath={setProductPath}
+          onFilePrefix={setFilePrefix}
           disabled={isBusy}
-          rows={8}
-          className={cn(
-            'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-            'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-            'resize-y disabled:opacity-60',
-          )}
-          placeholder='Describe the video motion, e.g. "Camera slowly pans right revealing the motorcycle against a desert sunset..."'
         />
-      </div>
 
-      <Separator />
-
-      {/* Length slider */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-muted-foreground uppercase tracking-widest">Video Length</label>
-          <div className="text-right">
-            <span className="text-sm font-medium text-foreground">{length} frames</span>
-            <span className="text-xs text-muted-foreground ml-2">({seconds}s @ {FRAME_RATE} fps)</span>
-          </div>
-        </div>
-        <input
-          type="range"
-          min={MIN_LENGTH}
-          max={MAX_LENGTH}
-          step={1}
-          value={length}
-          disabled={isBusy}
-          onChange={e => setLength(Number(e.target.value))}
-          className="w-full accent-primary disabled:opacity-50"
-        />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{MIN_LENGTH} frames ({(MIN_LENGTH / FRAME_RATE).toFixed(1)}s)</span>
-          <span>{MAX_LENGTH} frames ({(MAX_LENGTH / FRAME_RATE).toFixed(1)}s)</span>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Output path */}
-      <ClientProjectPicker
-        clientPath={clientPath}
-        productPath={productPath}
-        filePrefix={filePrefix}
-        onClientPath={setClientPath}
-        onProductPath={setProductPath}
-        onFilePrefix={setFilePrefix}
-        disabled={isBusy}
-      />
-
-      {/* Submit */}
-      {(stage.status === 'idle' || stage.status === 'submitting') && (
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex items-center gap-3">
           <Button className="flex-1" onClick={submit} disabled={!canSubmit}>
             {stage.status === 'submitting' ? 'Queuing…' : `Generate Video — ${seconds}s`}
           </Button>
@@ -240,60 +228,70 @@ export default function VideoCreation() {
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Progress */}
-      {stage.status === 'processing' && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Generating video…</span>
-            <span>{stage.pct}%</span>
+      {/* Divider */}
+      <div className="border-l border-border shrink-0 mr-8" />
+
+      {/* ── Right column: results ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-4">
+
+        {/* Idle placeholder */}
+        {(stage.status === 'idle' || stage.status === 'submitting') && (
+          <div className="h-48 flex items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Results will appear here
           </div>
-          <Progress value={stage.pct} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">
-            Video generation takes several minutes. Please keep this tab open.
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Done */}
-      {stage.status === 'done' && (
-        <div className="space-y-4">
-          {stage.videos.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Generation complete. Video saved to output path.</p>
-          ) : (
-            stage.videos.map((vid, i) => {
-              const url = videoUrl(vid.filename, vid.subfolder, vid.type)
-              return (
-                <div key={i} className="space-y-2">
-                  <video
-                    src={url}
-                    controls
-                    className="w-full rounded border border-border"
-                  />
-                  <Button variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(url, vid.filename) }}>
-                    Download {vid.filename}
-                  </Button>
-                </div>
-              )
-            })
-          )}
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={reset}>New run</Button>
-            <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
+        {/* Progress */}
+        {stage.status === 'processing' && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="animate-pulse">Generating video…</span>
+              <span>{stage.pct}%</span>
+            </div>
+            <Progress value={stage.pct} className="h-1.5" />
+            <p className="text-xs text-muted-foreground">
+              Video generation takes several minutes. Please keep this tab open.
+            </p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Error */}
-      {stage.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
-            {stage.message}
-          </p>
-          <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
-        </div>
-      )}
+        {/* Done */}
+        {stage.status === 'done' && (
+          <div className="space-y-4">
+            {stage.videos.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Generation complete. Video saved to output path.</p>
+            ) : (
+              stage.videos.map((vid, i) => {
+                const url = videoUrl(vid.filename, vid.subfolder, vid.type)
+                return (
+                  <div key={i} className="space-y-2">
+                    <video src={url} controls className="w-full rounded border border-border" />
+                    <Button variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(url, vid.filename) }}>
+                      Download {vid.filename}
+                    </Button>
+                  </div>
+                )
+              })
+            )}
+            <div className="flex gap-3">
+              <Button variant="outline" size="sm" onClick={reset}>New run</Button>
+              <Button variant="ghost" size="sm" onClick={resetFull}>Reset all</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {stage.status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+              {stage.message}
+            </p>
+            <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

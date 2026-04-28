@@ -8,6 +8,7 @@ const imagePromptingModule: WorkflowModule = {
   description: 'Generate images from a detailed prompt and reference images using Google Gemini.',
   icon: ImageIcon,
   component: ImagePrompting,
+  fullWidth: true,
 }
 
 export default imagePromptingModule

@@ -155,78 +155,78 @@ export default function OutfitSwapping() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="flex gap-0 min-h-full">
 
-      {/* Main image */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Main Image</label>
-        <DropZone
-          slot={mainSlot}
-          label="Drop subject image here or click to browse"
-          disabled={isBusy}
-          onFile={handleMainFile}
-          onClear={clearMain}
-          size="lg"
-        />
-      </div>
+      {/* ── Left column: inputs ───────────────────────────────────────── */}
+      <div className="flex-[2] min-w-0 space-y-5 pr-8">
 
-      <Separator />
-
-      {/* Reference images */}
-      <div className="space-y-2">
-        <span className="text-xs text-muted-foreground uppercase tracking-widest">
-          Reference Images <span className="normal-case">(outfit items — up to 7)</span>
-        </span>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-          {refSlots.map((slot, i) => (
-            <DropZone
-              key={i}
-              slot={slot}
-              label={`Ref ${i + 1}`}
-              disabled={isBusy}
-              onFile={(f) => handleRefFile(i, f)}
-              onClear={() => clearRef(i)}
-              size="sm"
-            />
-          ))}
+        {/* Main image */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Main Image</label>
+          <DropZone
+            slot={mainSlot}
+            label="Drop subject image here or click to browse"
+            disabled={isBusy}
+            onFile={handleMainFile}
+            onClear={clearMain}
+            size="lg"
+          />
         </div>
-      </div>
 
-      <Separator />
+        <Separator />
 
-      {/* Prompt */}
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground uppercase tracking-widest">Prompt</label>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+        {/* Reference images */}
+        <div className="space-y-2">
+          <span className="text-xs text-muted-foreground uppercase tracking-widest">
+            Reference Images <span className="normal-case">(outfit items — up to 7)</span>
+          </span>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            {refSlots.map((slot, i) => (
+              <DropZone
+                key={i}
+                slot={slot}
+                label={`Ref ${i + 1}`}
+                disabled={isBusy}
+                onFile={(f) => handleRefFile(i, f)}
+                onClear={() => clearRef(i)}
+                size="sm"
+              />
+            ))}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Prompt */}
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground uppercase tracking-widest">Prompt</label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={isBusy}
+            rows={6}
+            className={cn(
+              'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+              'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+              'resize-none disabled:opacity-60',
+            )}
+            placeholder="Describe what to generate…"
+          />
+        </div>
+
+        <Separator />
+
+        <ClientProjectPicker
+          clientPath={clientPath}
+          productPath={productPath}
+          filePrefix={filePrefix}
+          onClientPath={setClientPath}
+          onProductPath={setProductPath}
+          onFilePrefix={setFilePrefix}
           disabled={isBusy}
-          rows={6}
-          className={cn(
-            'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-            'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-            'resize-none disabled:opacity-60',
-          )}
-          placeholder="Describe what to generate…"
         />
-      </div>
 
-      <Separator />
-
-      {/* Output path fields */}
-      <ClientProjectPicker
-        clientPath={clientPath}
-        productPath={productPath}
-        filePrefix={filePrefix}
-        onClientPath={setClientPath}
-        onProductPath={setProductPath}
-        onFilePrefix={setFilePrefix}
-        disabled={isBusy}
-      />
-
-      {/* Submit */}
-      {(stage.status === 'idle' || stage.status === 'submitting') && (
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex items-center gap-3">
           <Button className="flex-1" onClick={submit} disabled={!canSubmit}>
             {stage.status === 'submitting' ? 'Queuing…' : 'Generate'}
           </Button>
@@ -234,57 +234,63 @@ export default function OutfitSwapping() {
             <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Progress */}
-      {stage.status === 'running' && (
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span className="animate-pulse">Processing…</span>
-            <span>{pct}%</span>
+      {/* Divider */}
+      <div className="border-l border-border shrink-0 mr-8" />
+
+      {/* ── Right column: results ─────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-4">
+
+        {/* Idle placeholder */}
+        {(stage.status === 'idle' || stage.status === 'submitting') && (
+          <div className="h-48 flex items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+            Results will appear here
           </div>
-          <Progress value={pct} className="h-1.5" />
-        </div>
-      )}
+        )}
 
-      {/* Complete */}
-      {stage.status === 'complete' && (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest">
-            Done — {stage.images.length} image{stage.images.length !== 1 ? 's' : ''}
-          </p>
-          {stage.images.length > 0 && (
-            <div className="space-y-3">
-              {stage.images.map((img, i) => {
-                const url = imageUrl(img.filename, img.subfolder, img.type)
-                return (
-                  <div key={i} className="space-y-2">
-                    <img
-                      src={url}
-                      alt={img.filename}
-                      className="rounded border border-border max-w-full"
-                    />
-                    <Button variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(url, img.filename) }}>
-                      Download {img.filename}
-                    </Button>
-                  </div>
-                )
-              })}
+        {/* Progress */}
+        {stage.status === 'running' && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="animate-pulse">Processing…</span>
+              <span>{pct}%</span>
             </div>
-          )}
-          <Button variant="outline" size="sm" onClick={newRun}>New run</Button>
-        </div>
-      )}
+            <Progress value={pct} className="h-1.5" />
+          </div>
+        )}
 
-      {/* Error */}
-      {stage.status === 'error' && (
-        <div className="space-y-3">
-          <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
-            {stage.message}
-          </p>
-          <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
-        </div>
-      )}
+        {/* Complete */}
+        {stage.status === 'complete' && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">
+              Done — {stage.images.length} image{stage.images.length !== 1 ? 's' : ''}
+            </p>
+            {stage.images.map((img, i) => {
+              const url = imageUrl(img.filename, img.subfolder, img.type)
+              return (
+                <div key={i} className="space-y-2">
+                  <img src={url} alt={img.filename} className="w-full rounded border border-border" />
+                  <Button variant="outline" size="sm" onClick={() => { toast('Downloading…', 'info'); fetchAndDownload(url, img.filename) }}>
+                    Download {img.filename}
+                  </Button>
+                </div>
+              )
+            })}
+            <Button variant="outline" size="sm" onClick={newRun}>New run</Button>
+          </div>
+        )}
+
+        {/* Error */}
+        {stage.status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+              {stage.message}
+            </p>
+            <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -8,6 +8,7 @@ const upscalerReworkModule: WorkflowModule = {
   description: 'Run up to 6 AI upscale models × N runs, producing 4K and 8K outputs per job.',
   icon: Layers,
   component: UpscalerRework,
+  fullWidth: true,
 }
 
 export default upscalerReworkModule

@@ -8,6 +8,7 @@ const outfitSwappingModule: WorkflowModule = {
   description: 'Change the outfit of a character while keeping the same pose and background.',
   icon: Shirt,
   component: OutfitSwapping,
+  fullWidth: true,
 }
 
 export default outfitSwappingModule
