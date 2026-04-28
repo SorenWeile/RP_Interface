@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Toolhouse — Sync Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #e5e5e5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    /* ── Top bar ─────────────────────────────────── */
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-bottom: 1px solid #1e1e1e;
+      shrink: 0;
+      -webkit-app-region: drag;
+    }
+
+    .topbar button {
+      -webkit-app-region: no-drag;
+      background: transparent;
+      border: 1px solid #2e2e2e;
+      border-radius: 6px;
+      color: #888;
+      font-size: 12px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: border-color 0.12s, color 0.12s;
+    }
+
+    .topbar button:hover { border-color: #555; color: #ddd; }
+
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    /* ── Scrollable content ──────────────────────── */
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      -webkit-app-region: no-drag;
+    }
+
+    /* ── Login card ──────────────────────────────── */
+
+    .login-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 28px 32px;
+      max-width: 520px;
+    }
+
+    .login-card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0f0f0;
+      margin-bottom: 6px;
+    }
+
+    .login-card p {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .urls-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .url-badge {
+      flex: 1;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    .url-badge .url-label {
+      font-size: 10px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+
+    .url-badge .url-value {
+      font-size: 11px;
+      color: #888;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    input[type="password"] {
+      width: 100%;
+      background: #0f0f0f;
+      border: 1px solid #2e2e2e;
+      border-radius: 7px;
+      color: #f0f0f0;
+      font-size: 13px;
+      padding: 9px 13px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    input[type="password"]:focus { border-color: #555; }
+
+    .error {
+      font-size: 12px;
+      color: #f87171;
+      margin-bottom: 12px;
+      min-height: 18px;
+    }
+
+    button.primary {
+      background: #f5f5f5;
+      color: #0f0f0f;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 22px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button.primary:hover    { background: #e0e0e0; }
+    button.primary:active   { background: #ccc; }
+    button.primary:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; }
+
+    /* ── Spinner ─────────────────────────────────── */
+
+    .spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid #333;
+      border-top-color: #f5f5f5;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ─────────────────────────────────── */
+
+    .results { display: none; flex-direction: column; gap: 20px; }
+
+    .section {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      cursor: pointer;
+      border-bottom: 1px solid #1e1e1e;
+      user-select: none;
+    }
+
+    .section-header:hover { background: #1f1f1f; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e0e0e0;
+      flex: 1;
+    }
+
+    .section-summary {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .section-chevron {
+      font-size: 11px;
+      color: #555;
+      transition: transform 0.15s;
+    }
+
+    .section.collapsed .section-chevron { transform: rotate(-90deg); }
+    .section.collapsed .section-body    { display: none; }
+
+    .section-body { padding: 0; }
+
+    /* ── Summary pills ───────────────────────────── */
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid #1e1e1e;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .pill-count { font-weight: 700; }
+
+    .pill-nas    { background: #1e2d1e; color: #6fcf6f; border: 1px solid #2a4a2a; }
+    .pill-runpod { background: #1e2537; color: #60a5fa; border: 1px solid #1e3560; }
+    .pill-diff   { background: #2d2010; color: #fb923c; border: 1px solid #4a3010; }
+    .pill-ok     { background: #1a1a1a; color: #666;    border: 1px solid #2a2a2a; }
+
+    /* ── Sub-tables ──────────────────────────────── */
+
+    .sub-sections { display: flex; flex-direction: column; gap: 0; }
+
+    .sub-section { border-top: 1px solid #1e1e1e; }
+
+    .sub-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #666;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sub-header:hover { color: #999; }
+    .sub-header .badge { font-size: 10px; padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+
+    .badge-nas    { background: #1e2d1e; color: #6fcf6f; }
+    .badge-runpod { background: #1e2537; color: #60a5fa; }
+    .badge-diff   { background: #2d2010; color: #fb923c; }
+
+    .file-table {
+      width: 100%;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+
+    .file-table th {
+      text-align: left;
+      padding: 6px 20px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #151515;
+    }
+
+    .file-table td {
+      padding: 5px 20px;
+      color: #888;
+      border-top: 1px solid #1a1a1a;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .file-table tr:hover td { background: #1d1d1d; }
+
+    .file-table td.path { color: #bbb; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-table td.size { color: #666; text-align: right; white-space: nowrap; }
+
+    .more-row td {
+      color: #444;
+      font-style: italic;
+      padding: 6px 20px;
+    }
+
+    /* ── DB section ──────────────────────────────── */
+
+    .db-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .db-table-wrap {
+      border-right: 1px solid #1e1e1e;
+      padding: 14px 20px;
+    }
+
+    .db-table-wrap:nth-child(even) { border-right: none; }
+    .db-table-wrap:nth-child(n+3)  { border-top: 1px solid #1e1e1e; }
+
+    .db-table-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .db-diff-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 3px 0;
+      color: #888;
+    }
+
+    .db-diff-row .db-name { color: #bbb; font-family: 'SF Mono', 'Fira Code', monospace; }
+    .db-diff-row .db-side { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+    .db-diff-row .on-nas    { background: #1e2d1e; color: #6fcf6f; }
+    .db-diff-row .on-runpod { background: #1e2537; color: #60a5fa; }
+
+    .db-synced {
+      font-size: 11px;
+      color: #3a3a3a;
+      font-style: italic;
+    }
+
+    /* ── Empty state ─────────────────────────────── */
+
+    .empty { padding: 16px 20px; font-size: 12px; color: #3a3a3a; font-style: italic; }
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <div class="topbar">
+    <button onclick="goBack()">← Back</button>
+    <span class="topbar-title">Sync Tool</span>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="content">
+
+    <!-- Login card -->
+    <div class="login-card" id="login-card">
+      <h2>Compare Backends</h2>
+      <p>Scans both your Local and RunPod backends and shows what's different — output files, models, and database records.</p>
+
+      <div class="urls-row" id="urls-row">
+        <div class="url-badge">
+          <div class="url-label">Local (NAS)</div>
+          <div class="url-value" id="url-local-display">—</div>
+        </div>
+        <div class="url-badge">
+          <div class="url-label">RunPod</div>
+          <div class="url-value" id="url-runpod-display">—</div>
+        </div>
+      </div>
+
+      <label for="password">Admin Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+
+      <div class="error" id="error"></div>
+
+      <button class="primary" id="compare-btn" onclick="runCompare()">
+        Compare
+        <span class="spinner" id="spinner"></span>
+      </button>
+    </div>
+
+    <!-- Results (hidden until compare runs) -->
+    <div class="results" id="results">
+
+      <!-- Output Files -->
+      <div class="section" id="sec-files">
+        <div class="section-header" onclick="toggleSection('sec-files')">
+          <span class="section-title">Output Files</span>
+          <span class="section-summary" id="sum-files"></span>
+          <span class="section-chevron">▼</span>
+        </div>
+        <div class="section-body" id="body-files"></div>
+      </div>
+
+      <!-- Models -->
+      <div class="section" id="sec-models">
+        <div class="section-header" onclick="toggleSection('sec-models')">
+          <span class="section-title">Models</span>
+          <span class="section-summary" id="sum-models"></span>
+          <span class="section-chevron">▼</span>
+        </div>
+        <div class="section-body" id="body-models"></div>
+      </div>
+
+      <!-- Databases -->
+      <div class="section" id="sec-db">
+        <div class="section-header" onclick="toggleSection('sec-db')">
+          <span class="section-title">Databases</span>
+          <span class="section-summary" id="sum-db"></span>
+          <span class="section-chevron">▼</span>
+        </div>
+        <div class="section-body" id="body-db"></div>
+      </div>
+
+    </div><!-- /results -->
+  </div><!-- /content -->
+
+  <script>
+    const MAX_ROWS = 60
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    function goBack() {
+      window.electronAPI.getBackendUrl().then(url => {
+        if (url) window.location.reload()
+      })
+    }
+
+    // ── Pre-fill stored URLs ──────────────────────────────────────────────────
+
+    window.electronAPI.getBackendConfig().then(cfg => {
+      document.getElementById('url-local-display').textContent  = cfg.localUrl  || '(not set)'
+      document.getElementById('url-runpod-display').textContent = cfg.runpodUrl || '(not set)'
+    })
+
+    document.getElementById('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runCompare()
+    })
+
+    // ── Compare ───────────────────────────────────────────────────────────────
+
+    async function runCompare() {
+      const password = document.getElementById('password').value
+      const errEl    = document.getElementById('error')
+      const btn      = document.getElementById('compare-btn')
+      const spinner  = document.getElementById('spinner')
+
+      errEl.textContent = ''
+      if (!password) { errEl.textContent = 'Enter the admin password.'; return }
+
+      btn.disabled       = true
+      spinner.style.display = 'inline-block'
+      document.getElementById('results').style.display = 'none'
+
+      const result = await window.electronAPI.compareBackends({ password })
+
+      btn.disabled          = false
+      spinner.style.display = 'none'
+
+      if (result.error) {
+        errEl.textContent = result.error
+        return
+      }
+
+      renderFiles(result.files,  'body-files',  'sum-files')
+      renderFiles(result.models, 'body-models', 'sum-models')
+      renderDb(result.db)
+
+      document.getElementById('results').style.display = 'flex'
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function fmtSize(bytes) {
+      if (bytes < 1024)                   return bytes + ' B'
+      if (bytes < 1024 * 1024)            return (bytes / 1024).toFixed(1) + ' KB'
+      if (bytes < 1024 * 1024 * 1024)    return (bytes / 1024 / 1024).toFixed(1) + ' MB'
+      return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB'
+    }
+
+    function toggleSection(id) {
+      document.getElementById(id).classList.toggle('collapsed')
+    }
+
+    // ── File diff rendering ───────────────────────────────────────────────────
+
+    function renderFiles(diff, bodyId, sumId) {
+      const body = document.getElementById(bodyId)
+      const sum  = document.getElementById(sumId)
+
+      const total    = diff.onlyLocal.length + diff.onlyRunpod.length + diff.different.length
+      const synced   = diff.totalLocal - diff.onlyLocal.length - diff.different.length
+
+      if (total === 0) {
+        sum.textContent = `${diff.totalLocal} files — in sync`
+        body.innerHTML = '<div class="empty">Everything is in sync.</div>'
+        return
+      }
+
+      sum.textContent = `${diff.onlyLocal.length} only on NAS · ${diff.onlyRunpod.length} only on RunPod · ${diff.different.length} different`
+
+      const pills = `
+        <div class="pill-row">
+          <span class="pill pill-nas">   <span class="pill-count">${diff.totalLocal}</span>  on NAS</span>
+          <span class="pill pill-runpod"><span class="pill-count">${diff.totalRunpod}</span> on RunPod</span>
+          ${diff.onlyLocal.length   ? `<span class="pill pill-nas">   <span class="pill-count">${diff.onlyLocal.length}</span>   only on NAS</span>` : ''}
+          ${diff.onlyRunpod.length  ? `<span class="pill pill-runpod"><span class="pill-count">${diff.onlyRunpod.length}</span>  only on RunPod</span>` : ''}
+          ${diff.different.length   ? `<span class="pill pill-diff">  <span class="pill-count">${diff.different.length}</span>   size mismatch</span>` : ''}
+        </div>`
+
+      let html = pills + '<div class="sub-sections">'
+
+      if (diff.onlyLocal.length) {
+        html += subTable('Only on NAS', 'badge-nas', diff.onlyLocal, ['Path', 'Size'])
+      }
+      if (diff.onlyRunpod.length) {
+        html += subTable('Only on RunPod', 'badge-runpod', diff.onlyRunpod, ['Path', 'Size'])
+      }
+      if (diff.different.length) {
+        html += subTable('Size mismatch', 'badge-diff', diff.different, ['Path', 'NAS size'])
+      }
+
+      html += '</div>'
+      body.innerHTML = html
+    }
+
+    function subTable(label, badgeCls, rows, cols) {
+      const shown   = rows.slice(0, MAX_ROWS)
+      const moreCount = rows.length - shown.length
+
+      let rowsHtml = shown.map(f => `
+        <tr>
+          <td class="path" title="${esc(f.path)}">${esc(f.path)}</td>
+          <td class="size">${fmtSize(f.size)}</td>
+        </tr>`).join('')
+
+      if (moreCount > 0) {
+        rowsHtml += `<tr class="more-row"><td colspan="2">… and ${moreCount} more</td></tr>`
+      }
+
+      return `
+        <div class="sub-section">
+          <div class="sub-header">
+            ${label}
+            <span class="badge ${badgeCls}">${rows.length}</span>
+          </div>
+          <table class="file-table">
+            <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`
+    }
+
+    // ── DB diff rendering ─────────────────────────────────────────────────────
+
+    function renderDb(db) {
+      const body   = document.getElementById('body-db')
+      const sum    = document.getElementById('sum-db')
+
+      const tables = [
+        { key: 'users',    label: 'Users',    nameKey: 'username' },
+        { key: 'groups',   label: 'Groups',   nameKey: 'name'     },
+        { key: 'clients',  label: 'Clients',  nameKey: 'name'     },
+        { key: 'projects', label: 'Projects', nameKey: 'name'     },
+        { key: 'tools',    label: 'Tools',    nameKey: 'name'     },
+      ]
+
+      let totalDiffs = 0
+      let gridHtml = '<div class="db-grid">'
+
+      for (const t of tables) {
+        const diff = db[t.key]
+        if (!diff) continue
+
+        const diffCount = diff.onlyLocal.length + diff.onlyRunpod.length
+        totalDiffs += diffCount
+
+        let rowsHtml = ''
+        for (const r of diff.onlyLocal) {
+          rowsHtml += `
+            <div class="db-diff-row">
+              <span class="db-name">${esc(String(r[t.nameKey] ?? r.id ?? '?'))}</span>
+              <span class="db-side on-nas">NAS only</span>
+            </div>`
+        }
+        for (const r of diff.onlyRunpod) {
+          rowsHtml += `
+            <div class="db-diff-row">
+              <span class="db-name">${esc(String(r[t.nameKey] ?? r.id ?? '?'))}</span>
+              <span class="db-side on-runpod">RunPod only</span>
+            </div>`
+        }
+        if (!rowsHtml) {
+          rowsHtml = `<div class="db-synced">In sync (${diff.totalLocal})</div>`
+        }
+
+        gridHtml += `
+          <div class="db-table-wrap">
+            <div class="db-table-title">${t.label}</div>
+            ${rowsHtml}
+          </div>`
+      }
+
+      gridHtml += '</div>'
+      body.innerHTML = gridHtml
+      sum.textContent = totalDiffs === 0 ? 'In sync' : `${totalDiffs} difference${totalDiffs !== 1 ? 's' : ''}`
+    }
+
+    // ── XSS guard ─────────────────────────────────────────────────────────────
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+  </script>
+</body>
+</html>

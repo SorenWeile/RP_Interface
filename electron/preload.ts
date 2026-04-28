@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveBackendUrl: (url: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('save-backend-url', url),
 
+  compareBackends: (opts: { password: string }): Promise<unknown> =>
+    ipcRenderer.invoke('compare-backends', opts),
+
   // Read synchronously so client.ts can use it as a module-level constant.
   backendUrl: ipcRenderer.sendSync('get-backend-url-sync') as string,
 })

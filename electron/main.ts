@@ -90,6 +90,11 @@ function loadSettings(win: BrowserWindow): void {
   win.loadFile(settingsPath)
 }
 
+function loadSync(win: BrowserWindow): void {
+  const syncPath = path.join(__dirname, 'sync.html')
+  win.loadFile(syncPath)
+}
+
 // ── Application menu ──────────────────────────────────────────────────────────
 
 function buildMenu(): void {
@@ -102,6 +107,13 @@ function buildMenu(): void {
           accelerator: 'CmdOrCtrl+,',
           click: () => {
             if (mainWindow) loadSettings(mainWindow)
+          },
+        },
+        {
+          label: 'Sync Tool…',
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: () => {
+            if (mainWindow) loadSync(mainWindow)
           },
         },
         { type: 'separator' },
@@ -175,6 +187,89 @@ ipcMain.handle('save-backend-config', (_event, config: {
     mainWindow.loadFile(frontendPath())
   }
   return { success: true }
+})
+
+ipcMain.handle('compare-backends', async (_event, { password }: { password: string }) => {
+  const localUrl  = store.get('localUrl',  '') as string
+  const runpodUrl = store.get('runpodUrl', '') as string
+
+  if (!localUrl || !runpodUrl) {
+    return { error: 'Both Local and RunPod URLs must be configured in Settings before comparing.' }
+  }
+
+  async function loginTo(baseUrl: string): Promise<string> {
+    const res = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'admin', password }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) throw new Error(`Login failed on ${baseUrl.replace(/https?:\/\//, '')} (${res.status})`)
+    const data = await res.json() as { token: string }
+    return data.token
+  }
+
+  async function syncFetch(baseUrl: string, token: string, endpoint: string): Promise<unknown> {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
+      headers: { 'X-User-Token': token },
+      signal: AbortSignal.timeout(60000),
+    })
+    if (!res.ok) throw new Error(`${endpoint} failed on ${baseUrl.replace(/https?:\/\//, '')} (${res.status})`)
+    return res.json()
+  }
+
+  function diffFiles(local: Array<{path:string;size:number}>, runpod: Array<{path:string;size:number}>) {
+    const lMap = new Map(local.map(f => [f.path, f]))
+    const rMap = new Map(runpod.map(f => [f.path, f]))
+    return {
+      totalLocal:  local.length,
+      totalRunpod: runpod.length,
+      onlyLocal:   local.filter(f => !rMap.has(f.path)),
+      onlyRunpod:  runpod.filter(f => !lMap.has(f.path)),
+      different:   local.filter(f => { const r = rMap.get(f.path); return r && r.size !== f.size }),
+    }
+  }
+
+  function diffTable(local: Array<Record<string,unknown>>, runpod: Array<Record<string,unknown>>, key: string) {
+    const lKeys = new Set(local.map(r => r[key]))
+    const rKeys = new Set(runpod.map(r => r[key]))
+    return {
+      totalLocal:  local.length,
+      totalRunpod: runpod.length,
+      onlyLocal:   local.filter(r => !rKeys.has(r[key])),
+      onlyRunpod:  runpod.filter(r => !lKeys.has(r[key])),
+    }
+  }
+
+  try {
+    const [localToken, runpodToken] = await Promise.all([
+      loginTo(localUrl),
+      loginTo(runpodUrl),
+    ])
+
+    const [lFiles, rFiles, lModels, rModels, lDb, rDb] = await Promise.all([
+      syncFetch(localUrl,  localToken,  '/api/sync/files')   as Promise<{files:  Array<{path:string;size:number}>}>,
+      syncFetch(runpodUrl, runpodToken, '/api/sync/files')   as Promise<{files:  Array<{path:string;size:number}>}>,
+      syncFetch(localUrl,  localToken,  '/api/sync/models')  as Promise<{models: Array<{path:string;size:number}>}>,
+      syncFetch(runpodUrl, runpodToken, '/api/sync/models')  as Promise<{models: Array<{path:string;size:number}>}>,
+      syncFetch(localUrl,  localToken,  '/api/sync/db-summary') as Promise<Record<string, Array<Record<string,unknown>>>>,
+      syncFetch(runpodUrl, runpodToken, '/api/sync/db-summary') as Promise<Record<string, Array<Record<string,unknown>>>>,
+    ])
+
+    return {
+      files:   diffFiles((lFiles  as any).files,   (rFiles  as any).files),
+      models:  diffFiles((lModels as any).models,  (rModels as any).models),
+      db: {
+        users:    diffTable((lDb as any).users    ?? [], (rDb as any).users    ?? [], 'username'),
+        groups:   diffTable((lDb as any).groups   ?? [], (rDb as any).groups   ?? [], 'name'),
+        clients:  diffTable((lDb as any).clients  ?? [], (rDb as any).clients  ?? [], 'name'),
+        projects: diffTable((lDb as any).projects ?? [], (rDb as any).projects ?? [], 'name'),
+        tools:    diffTable((lDb as any).tools    ?? [], (rDb as any).tools    ?? [], 'name'),
+      },
+    }
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : String(err) }
+  }
 })
 
 // Legacy single-URL handler kept so old preload builds don't break.

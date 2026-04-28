@@ -35,6 +35,7 @@ import gallery as gallery_module
 from gallery import _strip_png_metadata
 import user_management as user_mgmt_module
 import tools as tools_module
+import sync as sync_module
 from config import (
     UPSCALE_REWORK_MODELS,
     DEFAULT_PANORAMA_PROMPT,
@@ -60,6 +61,7 @@ app.include_router(gallery_module.router)
 app.include_router(user_mgmt_module.router)
 app.include_router(user_mgmt_module.auth_router)
 app.include_router(tools_module.router)
+app.include_router(sync_module.router)
 
 app.add_middleware(
     CORSMiddleware,
