@@ -1,5 +1,5 @@
 """
-Sync comparison endpoints — called by the Electron desktop sync tool.
+Sync comparison and file transfer endpoints — called by the Electron desktop sync tool.
 All endpoints require an admin user token (X-User-Token header).
 
 Env vars:
@@ -11,7 +11,8 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
 
@@ -108,3 +109,39 @@ def db_summary(x_user_token: Optional[str] = Header(None)):
         result["tools_error"] = str(e)
 
     return result
+
+
+def _safe_path(root: Path, relative: str) -> Path:
+    """Resolve relative path under root; raise 400 if it tries to escape."""
+    full = (root / relative).resolve()
+    if not str(full).startswith(str(root.resolve())):
+        raise HTTPException(400, "Invalid path")
+    return full
+
+
+@router.get("/download")
+def download_file(path: str, x_user_token: Optional[str] = Header(None)):
+    _require_admin(x_user_token)
+    root = Path(os.getenv("COMFYUI_OUTPUT_DIR", "/workspace/ComfyUI/output"))
+    full = _safe_path(root, path)
+    if not full.is_file():
+        raise HTTPException(404, "File not found")
+    return FileResponse(full, filename=full.name)
+
+
+@router.post("/upload")
+async def upload_file(
+    path: str,
+    file: UploadFile = File(...),
+    x_user_token: Optional[str] = Header(None),
+):
+    _require_admin(x_user_token)
+    root = Path(os.getenv("COMFYUI_OUTPUT_DIR", "/workspace/ComfyUI/output"))
+    full = _safe_path(root, path)
+    full.parent.mkdir(parents=True, exist_ok=True)
+    size = 0
+    with open(full, "wb") as f:
+        while chunk := await file.read(1024 * 1024):  # 1 MB chunks
+            f.write(chunk)
+            size += len(chunk)
+    return {"ok": True, "path": path, "size": size}

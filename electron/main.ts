@@ -162,6 +162,29 @@ function buildMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+// ── Sync helpers (shared by compare and transfer IPC handlers) ────────────────
+
+async function syncLogin(baseUrl: string, password: string): Promise<string> {
+  const res = await fetch(`${baseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier: 'admin', password }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`Login failed on ${baseUrl.replace(/https?:\/\//, '')} (${res.status})`)
+  const data = await res.json() as { token: string }
+  return data.token
+}
+
+async function syncFetch(baseUrl: string, token: string, endpoint: string): Promise<unknown> {
+  const res = await fetch(`${baseUrl}${endpoint}`, {
+    headers: { 'X-User-Token': token },
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!res.ok) throw new Error(`${endpoint} failed on ${baseUrl.replace(/https?:\/\//, '')} (${res.status})`)
+  return res.json()
+}
+
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 
 // Synchronous read — called by preload before any renderer script runs.
@@ -197,27 +220,6 @@ ipcMain.handle('compare-backends', async (_event, { password }: { password: stri
     return { error: 'Both Local and RunPod URLs must be configured in Settings before comparing.' }
   }
 
-  async function loginTo(baseUrl: string): Promise<string> {
-    const res = await fetch(`${baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: 'admin', password }),
-      signal: AbortSignal.timeout(8000),
-    })
-    if (!res.ok) throw new Error(`Login failed on ${baseUrl.replace(/https?:\/\//, '')} (${res.status})`)
-    const data = await res.json() as { token: string }
-    return data.token
-  }
-
-  async function syncFetch(baseUrl: string, token: string, endpoint: string): Promise<unknown> {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
-      headers: { 'X-User-Token': token },
-      signal: AbortSignal.timeout(60000),
-    })
-    if (!res.ok) throw new Error(`${endpoint} failed on ${baseUrl.replace(/https?:\/\//, '')} (${res.status})`)
-    return res.json()
-  }
-
   function diffFiles(local: Array<{path:string;size:number}>, runpod: Array<{path:string;size:number}>) {
     const lMap = new Map(local.map(f => [f.path, f]))
     const rMap = new Map(runpod.map(f => [f.path, f]))
@@ -243,8 +245,8 @@ ipcMain.handle('compare-backends', async (_event, { password }: { password: stri
 
   try {
     const [localToken, runpodToken] = await Promise.all([
-      loginTo(localUrl),
-      loginTo(runpodUrl),
+      syncLogin(localUrl,  password),
+      syncLogin(runpodUrl, password),
     ])
 
     const [lFiles, rFiles, lModels, rModels, lDb, rDb] = await Promise.all([
@@ -267,6 +269,66 @@ ipcMain.handle('compare-backends', async (_event, { password }: { password: stri
         tools:    diffTable((lDb as any).tools    ?? [], (rDb as any).tools    ?? [], 'name'),
       },
     }
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+ipcMain.handle('transfer-files', async (event, {
+  paths, password,
+}: { paths: string[]; password: string }) => {
+  const localUrl  = store.get('localUrl',  '') as string
+  const runpodUrl = store.get('runpodUrl', '') as string
+
+  if (!localUrl || !runpodUrl) {
+    return { error: 'Both Local and RunPod URLs must be configured in Settings.' }
+  }
+
+  try {
+    const [localToken, runpodToken] = await Promise.all([
+      syncLogin(localUrl,  password),
+      syncLogin(runpodUrl, password),
+    ])
+
+    const errors: Array<{ path: string; error: string }> = []
+
+    for (let i = 0; i < paths.length; i++) {
+      const filePath = paths[i]
+      try {
+        // Download from RunPod
+        const dlRes = await fetch(
+          `${runpodUrl}/api/sync/download?path=${encodeURIComponent(filePath)}`,
+          { headers: { 'X-User-Token': runpodToken }, signal: AbortSignal.timeout(300_000) },
+        )
+        if (!dlRes.ok) throw new Error(`Download failed (${dlRes.status})`)
+        const buffer = await dlRes.arrayBuffer()
+
+        // Upload to local (NAS)
+        const form = new FormData()
+        form.append('file', new Blob([buffer]), filePath.split('/').pop() ?? 'file')
+        const ulRes = await fetch(
+          `${localUrl}/api/sync/upload?path=${encodeURIComponent(filePath)}`,
+          {
+            method: 'POST',
+            headers: { 'X-User-Token': localToken },
+            body: form,
+            signal: AbortSignal.timeout(300_000),
+          },
+        )
+        if (!ulRes.ok) throw new Error(`Upload failed (${ulRes.status})`)
+      } catch (err: unknown) {
+        errors.push({ path: filePath, error: err instanceof Error ? err.message : String(err) })
+      }
+
+      event.sender.send('transfer-progress', {
+        done:  i + 1,
+        total: paths.length,
+        path:  filePath,
+        error: errors.find(e => e.path === filePath)?.error ?? null,
+      })
+    }
+
+    return { done: paths.length, errors }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : String(err) }
   }
