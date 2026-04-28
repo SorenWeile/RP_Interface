@@ -90,16 +90,22 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
       const candidates = detected.filter(d =>
         selectedNodeKeys.has(`${d.node_id}:${d.input_key}`)
       )
-      const newFields = candidates.map((d, i) => {
+      const newFields: FieldDef[] = []
+      for (let i = 0; i < candidates.length; i++) {
+        const d   = candidates[i]
         const def = buildFieldDef(d)
+        // Deduplicate IDs within this batch (e.g. three "Input Image Latent" nodes)
+        let id = def.id, n = 1
+        while (newFields.some(f => f.id === id)) id = `${def.id}_${++n}`
+        def.id = id
         if (d.detected_type === 'image' && imageDefaultKeys.has(`${d.node_id}:${d.input_key}`)) {
           def.default = 'example.png'
           def.required = false
         } else if (i === 0) {
           def.required = true
         }
-        return def
-      })
+        newFields.push(def)
+      }
       setFields(newFields)
     }
     // Auto-suggest the first INDGOutputPath node

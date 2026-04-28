@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Plus, X, GripVertical, ChevronDown, Folder } from 'lucide-react'
+import { Plus, X, ChevronDown, ChevronUp, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -92,37 +92,40 @@ function OptionsEditor({ options, onChange }: { options: string[]; onChange: (v:
 // ── FieldCard ─────────────────────────────────────────────────────────────────
 
 function FieldCard({
-  field, onUpdate, isDragged,
-  onDragStart, onDragEnter, onDragOver, onDrop, onDragEnd,
+  field, onUpdate, isFirst, isLast, onMoveUp, onMoveDown,
 }: {
-  field:       FieldDef
-  onUpdate:    (patch: Partial<FieldDef>) => void
-  isDragged?:  boolean
-  onDragStart: () => void
-  onDragEnter: () => void
-  onDragOver:  (e: React.DragEvent) => void
-  onDrop:      () => void
-  onDragEnd:   () => void
+  field:      FieldDef
+  onUpdate:   (patch: Partial<FieldDef>) => void
+  isFirst:    boolean
+  isLast:     boolean
+  onMoveUp:   () => void
+  onMoveDown: () => void
 }) {
   const labelCls = 'text-[10px] text-muted-foreground uppercase tracking-wider'
   const inputCls = 'text-xs h-7 px-2'
 
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onDragEnter={onDragEnter}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-      className={cn(
-        'relative pl-6 pr-3 pt-2.5 pb-3 rounded-md border-l-4 border border-border bg-card transition-opacity',
-        TYPE_COLOR[field.type] ?? 'border-l-border',
-        isDragged && 'opacity-40',
-      )}
-    >
-      {/* Drag handle */}
-      <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 cursor-grab" />
+    <div className={cn(
+      'relative pl-6 pr-3 pt-2.5 pb-3 rounded-md border-l-4 border border-border bg-card',
+      TYPE_COLOR[field.type] ?? 'border-l-border',
+    )}>
+      {/* Up / down reorder buttons */}
+      <div className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col">
+        <button
+          onClick={onMoveUp}
+          disabled={isFirst}
+          className="text-muted-foreground/50 hover:text-foreground disabled:opacity-20 transition-colors"
+        >
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={isLast}
+          className="text-muted-foreground/50 hover:text-foreground disabled:opacity-20 transition-colors"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {/* Header */}
       <div className="text-xs text-foreground mb-2 pr-2 font-medium flex items-center gap-1.5">
@@ -318,11 +321,8 @@ export default function StepFields({
   pathNodeId, setPathNodeId, outputPathNodes,
   onBack, onNext,
 }: Props) {
-  const [showAdd,    setShowAdd]    = useState(false)
-  const dragIdRef                   = useRef<string | null>(null)
-  const [draggedId,  setDraggedId]  = useState<string | null>(null)
-  const [dragOverId, setDragOverId] = useState<string | null>(null)
-  const [err,        setErr]        = useState('')
+  const [showAdd, setShowAdd] = useState(false)
+  const [err,     setErr]     = useState('')
 
   // Inputs not yet assigned to a field and not auto/path
   const usedKeys = useMemo(() => new Set(fields.map(f => `${f.node_id}:${f.input_key}`)), [fields])
@@ -350,29 +350,19 @@ export default function StepFields({
   const updateField = (id: string, patch: Partial<FieldDef>) =>
     setFields(fields.map(f => f.id === id ? { ...f, ...patch } : f))
 
+  const moveField = (idx: number, dir: -1 | 1) => {
+    const swap = idx + dir
+    if (swap < 0 || swap >= fields.length) return
+    const next = [...fields]
+    ;[next[idx], next[swap]] = [next[swap], next[idx]]
+    setFields(next)
+  }
+
   const addFromDetected = (d: DetectedInput) => {
     const def = buildFieldDef(d)
     def.id = ensureUniqueId(def.id, fields)
     setFields([...fields, def])
   }
-
-  // Drag-to-reorder — dragId in a ref (no re-renders on dragover) + mirrored state for rendering
-  const handleDragStart = (id: string) => { dragIdRef.current = id; setDraggedId(id) }
-  const handleDragEnter = (id: string) => { setDragOverId(id) }
-  const handleDragOver  = (e: React.DragEvent) => { e.preventDefault() }
-  const handleDrop      = (targetId: string) => {
-    const dragId = dragIdRef.current
-    dragIdRef.current = null; setDraggedId(null); setDragOverId(null)
-    if (!dragId || dragId === targetId) return
-    const srcIdx = fields.findIndex(f => f.id === dragId)
-    const dstIdx = fields.findIndex(f => f.id === targetId)
-    if (srcIdx < 0 || dstIdx < 0) return
-    const next = [...fields]
-    const [moved] = next.splice(srcIdx, 1)
-    next.splice(dstIdx, 0, moved)
-    setFields(next)
-  }
-  const handleDragEnd = () => { dragIdRef.current = null; setDraggedId(null); setDragOverId(null) }
 
   const handleNext = () => {
     if (fields.length === 0) { setErr('Add at least one field before continuing.'); return }
@@ -445,22 +435,16 @@ export default function StepFields({
             No fields yet. Use "+ Add from table" below.
           </div>
         )}
-        {fields.map(f => (
-          <div key={f.id}>
-            {draggedId !== null && dragOverId === f.id && draggedId !== f.id && (
-              <div className="h-0.5 bg-primary rounded-full mb-2" />
-            )}
-            <FieldCard
-              field={f}
-              onUpdate={patch => updateField(f.id, patch)}
-              isDragged={draggedId === f.id}
-              onDragStart={() => handleDragStart(f.id)}
-              onDragEnter={() => handleDragEnter(f.id)}
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(f.id)}
-              onDragEnd={handleDragEnd}
-            />
-          </div>
+        {fields.map((f, idx) => (
+          <FieldCard
+            key={f.id}
+            field={f}
+            onUpdate={patch => updateField(f.id, patch)}
+            isFirst={idx === 0}
+            isLast={idx === fields.length - 1}
+            onMoveUp={() => moveField(idx, -1)}
+            onMoveDown={() => moveField(idx, 1)}
+          />
         ))}
 
         {/* Add from table */}
