@@ -1,11 +1,10 @@
-import { useMemo, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Plus, X, ChevronDown, ChevronUp, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { buildFieldDef } from './detect'
 import ToolPreview from './ToolPreview'
-import type { DetectedInput, FieldDef, FieldType } from './types'
+import type { FieldDef, FieldType } from './types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -34,15 +33,6 @@ const TYPE_OPTIONS: { value: FieldType; label: string }[] = [
 const SELECT_CLS =
   'w-full px-2 py-1.5 rounded border border-input bg-background text-sm ' +
   'focus:outline-none focus:ring-1 focus:ring-ring'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function ensureUniqueId(id: string, existing: FieldDef[]): string {
-  let candidate = id
-  let n = 1
-  while (existing.some(f => f.id === candidate)) candidate = `${id}_${++n}`
-  return candidate
-}
 
 // ── OptionsEditor ─────────────────────────────────────────────────────────────
 
@@ -259,52 +249,9 @@ function FieldCard({
   )
 }
 
-// ── AddFromTable popover ──────────────────────────────────────────────────────
-
-function AddPopover({
-  candidates, onAdd, onClose,
-}: {
-  candidates: DetectedInput[]
-  onAdd: (d: DetectedInput) => void
-  onClose: () => void
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  return (
-    <div
-      ref={ref}
-      className="absolute top-full mt-1 left-0 z-50 w-80 max-h-60 overflow-y-auto bg-card border border-border rounded-md shadow-xl"
-    >
-      {candidates.length === 0 ? (
-        <p className="px-3 py-4 text-xs text-muted-foreground text-center">
-          All detectable inputs are already added.
-        </p>
-      ) : (
-        candidates.map(d => (
-          <button
-            key={`${d.node_id}:${d.input_key}`}
-            className="w-full flex items-center justify-between gap-3 px-3 py-2 text-xs hover:bg-muted/50 transition-colors text-left"
-            onClick={() => { onAdd(d); onClose() }}
-          >
-            <span>
-              <span className="font-mono text-muted-foreground">{d.node_id}·</span>{' '}
-              <span className="text-foreground">{d.title}</span>
-              <span className="text-muted-foreground ml-1">/ {d.input_key}</span>
-            </span>
-            <span className="shrink-0 text-[10px] text-primary border border-primary/20 bg-primary/10 rounded px-1.5 py-0.5">
-              {d.detected_type}
-            </span>
-          </button>
-        ))
-      )}
-    </div>
-  )
-}
-
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  detected:       DetectedInput[]
   fields:         FieldDef[]
   setFields:      (v: FieldDef[]) => void
   pathNodeId:     string | null
@@ -317,35 +264,11 @@ interface Props {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function StepFields({
-  detected, fields, setFields,
+  fields, setFields,
   pathNodeId, setPathNodeId, outputPathNodes,
   onBack, onNext,
 }: Props) {
-  const [showAdd, setShowAdd] = useState(false)
-  const [err,     setErr]     = useState('')
-
-  // Inputs not yet assigned to a field and not auto/path
-  const usedKeys = useMemo(() => new Set(fields.map(f => `${f.node_id}:${f.input_key}`)), [fields])
-  const pathNodeInputKeys = useMemo(() => {
-    if (!pathNodeId) return new Set<string>()
-    return new Set(
-      detected
-        .filter(d => d.node_id === pathNodeId)
-        .map(d => `${d.node_id}:${d.input_key}`)
-    )
-  }, [pathNodeId, detected])
-
-  const addableCandidates = useMemo(() =>
-    detected.filter(d => {
-      const k = `${d.node_id}:${d.input_key}`
-      return (
-        !usedKeys.has(k) &&
-        !pathNodeInputKeys.has(k) &&
-        d.detected_type !== 'auto_seed' &&
-        d.detected_type !== 'output_path'
-      )
-    }),
-  [detected, usedKeys, pathNodeInputKeys])
+  const [err, setErr] = useState('')
 
   const updateField = (id: string, patch: Partial<FieldDef>) =>
     setFields(fields.map(f => f.id === id ? { ...f, ...patch } : f))
@@ -358,14 +281,8 @@ export default function StepFields({
     setFields(next)
   }
 
-  const addFromDetected = (d: DetectedInput) => {
-    const def = buildFieldDef(d)
-    def.id = ensureUniqueId(def.id, fields)
-    setFields([...fields, def])
-  }
-
   const handleNext = () => {
-    if (fields.length === 0) { setErr('Add at least one field before continuing.'); return }
+    if (fields.length === 0) { setErr('No fields selected. Go back and check inputs in the table.'); return }
     setErr(''); onNext()
   }
 
@@ -376,7 +293,7 @@ export default function StepFields({
       <div className="shrink-0">
         <h2 className="text-lg font-medium text-foreground">Configure Fields</h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Choose which inputs to expose, reorder them, and tweak each control. The preview updates live.
+          Tweak each field's label, type and options. Use ← Back to change which inputs are included.
         </p>
       </div>
 
@@ -432,7 +349,7 @@ export default function StepFields({
         {/* Field cards */}
         {fields.length === 0 && (
           <div className="text-xs text-muted-foreground text-center border border-dashed border-border rounded-md py-6">
-            No fields yet. Use "+ Add from table" below.
+            No fields selected. Use ← Back to check inputs in the table.
           </div>
         )}
         {fields.map((f, idx) => (
@@ -446,27 +363,6 @@ export default function StepFields({
             onMoveDown={() => moveField(idx, 1)}
           />
         ))}
-
-        {/* Add from table */}
-        <div className="relative inline-block">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAdd(s => !s)}
-            className="text-xs"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Add from table
-            <ChevronDown className="w-3 h-3 ml-1" />
-          </Button>
-          {showAdd && (
-            <AddPopover
-              candidates={addableCandidates}
-              onAdd={addFromDetected}
-              onClose={() => setShowAdd(false)}
-            />
-          )}
-        </div>
 
         {err && <p className="text-xs text-destructive">{err}</p>}
       </div>

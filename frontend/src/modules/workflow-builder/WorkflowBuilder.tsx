@@ -84,15 +84,18 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
     [workflowJson],
   )
 
-  // Auto-populate fields from the Step 1 selection when moving to Step 2
+  // Sync fields from the Step 1 selection when moving to Step 2.
+  // Preserves existing field configs for inputs still selected; adds new ones; drops removed.
   const handleStep1Next = () => {
-    if (fields.length === 0) {
-      const candidates = detected.filter(d =>
-        selectedNodeKeys.has(`${d.node_id}:${d.input_key}`)
-      )
-      const newFields: FieldDef[] = []
-      for (let i = 0; i < candidates.length; i++) {
-        const d   = candidates[i]
+    const candidates = detected.filter(d =>
+      selectedNodeKeys.has(`${d.node_id}:${d.input_key}`)
+    )
+    const newFields: FieldDef[] = []
+    for (const d of candidates) {
+      const existing = fields.find(f => f.node_id === d.node_id && f.input_key === d.input_key)
+      if (existing) {
+        newFields.push(existing)
+      } else {
         const def = buildFieldDef(d)
         // Deduplicate IDs within this batch (e.g. three "Input Image Latent" nodes)
         let id = def.id, n = 1
@@ -101,13 +104,11 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
         if (d.detected_type === 'image' && imageDefaultKeys.has(`${d.node_id}:${d.input_key}`)) {
           def.default = 'example.png'
           def.required = false
-        } else if (i === 0) {
-          def.required = true
         }
         newFields.push(def)
       }
-      setFields(newFields)
     }
+    setFields(newFields)
     // Auto-suggest the first INDGOutputPath node
     if (pathNodeId === null && outputPathNodes.length > 0) {
       setPathNodeId(outputPathNodes[0].node_id)
@@ -203,7 +204,6 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
       {step === 2 && (
         <div className="flex-1 min-h-0">
           <StepFields
-            detected={detected}
             fields={fields}
             setFields={setFields}
             pathNodeId={pathNodeId}
