@@ -85,30 +85,31 @@ export default function WorkflowBuilder({ editToolId, onSave, onDiscard }: Props
   )
 
   // Sync fields from the Step 1 selection when moving to Step 2.
-  // Preserves existing field configs for inputs still selected; adds new ones; drops removed.
+  // Preserves user-defined order: keeps existing cards (dropping deselected ones),
+  // then appends any newly-selected inputs at the bottom in detected order.
   const handleStep1Next = () => {
-    const candidates = detected.filter(d =>
-      selectedNodeKeys.has(`${d.node_id}:${d.input_key}`)
-    )
-    const newFields: FieldDef[] = []
-    for (const d of candidates) {
-      const existing = fields.find(f => f.node_id === d.node_id && f.input_key === d.input_key)
-      if (existing) {
-        newFields.push(existing)
-      } else {
-        const def = buildFieldDef(d)
-        // Deduplicate IDs within this batch (e.g. three "Input Image Latent" nodes)
-        let id = def.id, n = 1
-        while (newFields.some(f => f.id === id)) id = `${def.id}_${++n}`
-        def.id = id
-        if (d.detected_type === 'image' && imageDefaultKeys.has(`${d.node_id}:${d.input_key}`)) {
-          def.default = 'example.png'
-          def.required = false
-        }
-        newFields.push(def)
+    const existingByKey = new Map(fields.map(f => [`${f.node_id}:${f.input_key}`, f]))
+
+    // Retain existing cards that are still selected, in the user's current order
+    const kept = fields.filter(f => selectedNodeKeys.has(`${f.node_id}:${f.input_key}`))
+
+    // Append newly-selected inputs (not already in fields) at the bottom
+    const result = [...kept]
+    for (const d of detected) {
+      const key = `${d.node_id}:${d.input_key}`
+      if (!selectedNodeKeys.has(key)) continue
+      if (existingByKey.has(key)) continue
+      const def = buildFieldDef(d)
+      let id = def.id, n = 1
+      while (result.some(f => f.id === id)) id = `${def.id}_${++n}`
+      def.id = id
+      if (d.detected_type === 'image' && imageDefaultKeys.has(key)) {
+        def.default = 'example.png'
+        def.required = false
       }
+      result.push(def)
     }
-    setFields(newFields)
+    setFields(result)
     // Auto-suggest the first INDGOutputPath node
     if (pathNodeId === null && outputPathNodes.length > 0) {
       setPathNodeId(outputPathNodes[0].node_id)
