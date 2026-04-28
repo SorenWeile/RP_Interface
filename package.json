@@ -7,7 +7,7 @@
   "scripts": {
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
-    "build:electron": "tsc -p electron/tsconfig.json && node -e \"require('fs').copyFileSync('electron/settings.html', 'dist-electron/settings.html')\"",
+    "build:electron": "tsc -p electron/tsconfig.json && node -e \"const fs=require('fs'); fs.copyFileSync('electron/settings.html','dist-electron/settings.html'); fs.copyFileSync('electron/sync.html','dist-electron/sync.html')\"",
     "start": "npm run build:frontend && npm run build:electron && electron .",
     "build": "npm run build:frontend && npm run build:electron && electron-builder",
     "build:win": "npm run build:frontend && npm run build:electron && electron-builder --win"
