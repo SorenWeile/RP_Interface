@@ -92,14 +92,14 @@ function OptionsEditor({ options, onChange }: { options: string[]; onChange: (v:
 // ── FieldCard ─────────────────────────────────────────────────────────────────
 
 function FieldCard({
-  field, onUpdate, onRemove, isDragOver,
-  onDragStart, onDragOver, onDrop, onDragEnd,
+  field, onUpdate, isDragOver,
+  onDragStart, onDragEnter, onDragOver, onDrop, onDragEnd,
 }: {
   field:       FieldDef
   onUpdate:    (patch: Partial<FieldDef>) => void
-  onRemove:    () => void
   isDragOver:  boolean
   onDragStart: () => void
+  onDragEnter: () => void
   onDragOver:  (e: React.DragEvent) => void
   onDrop:      () => void
   onDragEnd:   () => void
@@ -111,6 +111,7 @@ function FieldCard({
     <div
       draggable
       onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
@@ -123,16 +124,8 @@ function FieldCard({
       {/* Drag handle */}
       <GripVertical className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 cursor-grab" />
 
-      {/* Remove */}
-      <button
-        onClick={onRemove}
-        className="absolute top-2 right-2 text-muted-foreground/50 hover:text-destructive transition-colors"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
-
       {/* Header */}
-      <div className="text-xs text-foreground mb-2 pr-4 font-medium flex items-center gap-1.5">
+      <div className="text-xs text-foreground mb-2 pr-2 font-medium flex items-center gap-1.5">
         {field.label || '(no label)'}
         <span className="text-muted-foreground font-normal text-[10px]">
           · node {field.node_id} · {field.input_key}
@@ -326,7 +319,7 @@ export default function StepFields({
   onBack, onNext,
 }: Props) {
   const [showAdd,    setShowAdd]    = useState(false)
-  const [dragId,     setDragId]     = useState<string | null>(null)
+  const dragIdRef                   = useRef<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [err,        setErr]        = useState('')
 
@@ -356,18 +349,18 @@ export default function StepFields({
   const updateField = (id: string, patch: Partial<FieldDef>) =>
     setFields(fields.map(f => f.id === id ? { ...f, ...patch } : f))
 
-  const removeField = (id: string) => setFields(fields.filter(f => f.id !== id))
-
   const addFromDetected = (d: DetectedInput) => {
     const def = buildFieldDef(d)
     def.id = ensureUniqueId(def.id, fields)
     setFields([...fields, def])
   }
 
-  // Drag-to-reorder
-  const handleDragStart = (id: string) => setDragId(id)
-  const handleDragOver  = (id: string, e: React.DragEvent) => { e.preventDefault(); setDragOverId(id) }
+  // Drag-to-reorder — dragId in a ref so dragover events don't trigger re-renders
+  const handleDragStart = (id: string) => { dragIdRef.current = id }
+  const handleDragEnter = (id: string) => { setDragOverId(id) }
+  const handleDragOver  = (e: React.DragEvent) => { e.preventDefault() }
   const handleDrop      = (targetId: string) => {
+    const dragId = dragIdRef.current
     if (!dragId || dragId === targetId) return
     const srcIdx = fields.findIndex(f => f.id === dragId)
     const dstIdx = fields.findIndex(f => f.id === targetId)
@@ -376,9 +369,10 @@ export default function StepFields({
     const [moved] = next.splice(srcIdx, 1)
     next.splice(dstIdx, 0, moved)
     setFields(next)
-    setDragId(null); setDragOverId(null)
+    dragIdRef.current = null
+    setDragOverId(null)
   }
-  const handleDragEnd = () => { setDragId(null); setDragOverId(null) }
+  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
 
   const handleNext = () => {
     if (fields.length === 0) { setErr('Add at least one field before continuing.'); return }
@@ -456,10 +450,10 @@ export default function StepFields({
             key={f.id}
             field={f}
             onUpdate={patch => updateField(f.id, patch)}
-            onRemove={() => removeField(f.id)}
             isDragOver={dragOverId === f.id}
             onDragStart={() => handleDragStart(f.id)}
-            onDragOver={e => handleDragOver(f.id, e)}
+            onDragEnter={() => handleDragEnter(f.id)}
+            onDragOver={handleDragOver}
             onDrop={() => handleDrop(f.id)}
             onDragEnd={handleDragEnd}
           />
