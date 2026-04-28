@@ -92,12 +92,12 @@ function OptionsEditor({ options, onChange }: { options: string[]; onChange: (v:
 // ── FieldCard ─────────────────────────────────────────────────────────────────
 
 function FieldCard({
-  field, onUpdate, isDragOver,
+  field, onUpdate, isDragged,
   onDragStart, onDragEnter, onDragOver, onDrop, onDragEnd,
 }: {
   field:       FieldDef
   onUpdate:    (patch: Partial<FieldDef>) => void
-  isDragOver:  boolean
+  isDragged?:  boolean
   onDragStart: () => void
   onDragEnter: () => void
   onDragOver:  (e: React.DragEvent) => void
@@ -116,9 +116,9 @@ function FieldCard({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={cn(
-        'relative pl-6 pr-3 pt-2.5 pb-3 rounded-md border-l-4 border border-border bg-card transition-colors',
+        'relative pl-6 pr-3 pt-2.5 pb-3 rounded-md border-l-4 border border-border bg-card transition-opacity',
         TYPE_COLOR[field.type] ?? 'border-l-border',
-        isDragOver && 'border-primary shadow-[0_0_0_1px_hsl(var(--primary))]',
+        isDragged && 'opacity-40',
       )}
     >
       {/* Drag handle */}
@@ -320,6 +320,7 @@ export default function StepFields({
 }: Props) {
   const [showAdd,    setShowAdd]    = useState(false)
   const dragIdRef                   = useRef<string | null>(null)
+  const [draggedId,  setDraggedId]  = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [err,        setErr]        = useState('')
 
@@ -355,12 +356,13 @@ export default function StepFields({
     setFields([...fields, def])
   }
 
-  // Drag-to-reorder — dragId in a ref so dragover events don't trigger re-renders
-  const handleDragStart = (id: string) => { dragIdRef.current = id }
+  // Drag-to-reorder — dragId in a ref (no re-renders on dragover) + mirrored state for rendering
+  const handleDragStart = (id: string) => { dragIdRef.current = id; setDraggedId(id) }
   const handleDragEnter = (id: string) => { setDragOverId(id) }
   const handleDragOver  = (e: React.DragEvent) => { e.preventDefault() }
   const handleDrop      = (targetId: string) => {
     const dragId = dragIdRef.current
+    dragIdRef.current = null; setDraggedId(null); setDragOverId(null)
     if (!dragId || dragId === targetId) return
     const srcIdx = fields.findIndex(f => f.id === dragId)
     const dstIdx = fields.findIndex(f => f.id === targetId)
@@ -369,10 +371,8 @@ export default function StepFields({
     const [moved] = next.splice(srcIdx, 1)
     next.splice(dstIdx, 0, moved)
     setFields(next)
-    dragIdRef.current = null
-    setDragOverId(null)
   }
-  const handleDragEnd = () => { dragIdRef.current = null; setDragOverId(null) }
+  const handleDragEnd = () => { dragIdRef.current = null; setDraggedId(null); setDragOverId(null) }
 
   const handleNext = () => {
     if (fields.length === 0) { setErr('Add at least one field before continuing.'); return }
@@ -446,17 +446,21 @@ export default function StepFields({
           </div>
         )}
         {fields.map(f => (
-          <FieldCard
-            key={f.id}
-            field={f}
-            onUpdate={patch => updateField(f.id, patch)}
-            isDragOver={dragOverId === f.id}
-            onDragStart={() => handleDragStart(f.id)}
-            onDragEnter={() => handleDragEnter(f.id)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(f.id)}
-            onDragEnd={handleDragEnd}
-          />
+          <div key={f.id}>
+            {draggedId !== null && dragOverId === f.id && draggedId !== f.id && (
+              <div className="h-0.5 bg-primary rounded-full mb-2" />
+            )}
+            <FieldCard
+              field={f}
+              onUpdate={patch => updateField(f.id, patch)}
+              isDragged={draggedId === f.id}
+              onDragStart={() => handleDragStart(f.id)}
+              onDragEnter={() => handleDragEnter(f.id)}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(f.id)}
+              onDragEnd={handleDragEnd}
+            />
+          </div>
         ))}
 
         {/* Add from table */}
