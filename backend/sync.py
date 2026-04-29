@@ -150,12 +150,14 @@ async def upload_file(
 
 @router.get("/db-export")
 def db_export(x_user_token: Optional[str] = Header(None)):
-    """Export full records from users.db for merge purposes (includes password hashes)."""
+    """Export full records from users.db + custom tools from tools.db for merge purposes."""
     _require_admin(x_user_token)
     from user_management import _get_conn
+    from tools import _tools_db_path
+
     conn = _get_conn()
     try:
-        return {
+        result = {
             "groups":   [dict(r) for r in conn.execute("SELECT * FROM groups ORDER BY id").fetchall()],
             "clients":  [dict(r) for r in conn.execute("SELECT * FROM clients ORDER BY id").fetchall()],
             "projects": [dict(r) for r in conn.execute("SELECT * FROM projects ORDER BY id").fetchall()],
@@ -163,6 +165,23 @@ def db_export(x_user_token: Optional[str] = Header(None)):
         }
     finally:
         conn.close()
+
+    # Custom tools only — built-ins are seeded identically on every instance
+    try:
+        conn2 = sqlite3.connect(_tools_db_path())
+        conn2.row_factory = sqlite3.Row
+        try:
+            result["tools"] = [
+                dict(r) for r in
+                conn2.execute("SELECT * FROM tools WHERE is_builtin=0 ORDER BY created_at").fetchall()
+            ]
+        finally:
+            conn2.close()
+    except Exception as e:
+        result["tools"] = []
+        result["tools_export_error"] = str(e)
+
+    return result
 
 
 @router.post("/db-import")
@@ -172,8 +191,9 @@ async def db_import(request: Request, x_user_token: Optional[str] = Header(None)
     payload = await request.json()
 
     from user_management import _get_conn
+    from tools import _tools_db_path
     conn = _get_conn()
-    counts = {"groups": 0, "clients": 0, "projects": 0, "users": 0}
+    counts = {"groups": 0, "clients": 0, "projects": 0, "users": 0, "tools": 0}
     try:
         # 1. Groups (unique on name)
         for g in payload.get("groups", []):
@@ -244,5 +264,35 @@ async def db_import(request: Request, x_user_token: Optional[str] = Header(None)
         conn.commit()
     finally:
         conn.close()
+
+    # Custom tools (tools.db) — INSERT OR IGNORE on id (UUID PK)
+    try:
+        conn2 = sqlite3.connect(_tools_db_path())
+        conn2.row_factory = sqlite3.Row
+        try:
+            for t in payload.get("tools", []):
+                if t.get("is_builtin"):
+                    continue  # built-ins are seeded by the app on startup
+                try:
+                    conn2.execute(
+                        "INSERT OR IGNORE INTO tools "
+                        "(id, name, description, icon, is_builtin, fields_json, path_nodes, auto_nodes, workflow, created_at) "
+                        "VALUES (?,?,?,?,0,?,?,?,?,?)",
+                        (
+                            t["id"], t["name"], t.get("description", ""),
+                            t.get("icon", "Layers"),
+                            t.get("fields_json", "[]"), t.get("path_nodes"),
+                            t.get("auto_nodes", "[]"), t.get("workflow", "{}"),
+                            t.get("created_at"),
+                        ),
+                    )
+                    counts["tools"] += conn2.execute("SELECT changes()").fetchone()[0]
+                except Exception:
+                    pass
+            conn2.commit()
+        finally:
+            conn2.close()
+    except Exception as e:
+        counts["tools_error"] = str(e)
 
     return {"ok": True, "inserted": counts}

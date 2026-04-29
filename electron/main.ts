@@ -351,19 +351,37 @@ ipcMain.handle('merge-db', async (_event, { password }: { password: string }) =>
       syncLogin(runpodUrl, password),
     ])
 
-    // Export all records from NAS (source of truth)
-    const nasDb = await syncFetch(localUrl, localToken, '/api/sync/db-export')
+    // Export from both sides simultaneously
+    const [nasDb, runpodDb] = await Promise.all([
+      syncFetch(localUrl,  localToken,  '/api/sync/db-export'),
+      syncFetch(runpodUrl, runpodToken, '/api/sync/db-export'),
+    ])
 
-    // Import into RunPod — backend skips records that already exist
-    const res = await fetch(`${runpodUrl}/api/sync/db-import`, {
-      method: 'POST',
-      headers: { 'X-User-Token': runpodToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify(nasDb),
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (!res.ok) throw new Error(`DB import failed on RunPod (${res.status})`)
-    const result = await res.json() as { ok: boolean; inserted: Record<string, number> }
-    return { ok: true, inserted: result.inserted }
+    // Push NAS → RunPod  and  RunPod → NAS simultaneously
+    const [runpodRes, nasRes] = await Promise.all([
+      fetch(`${runpodUrl}/api/sync/db-import`, {
+        method: 'POST',
+        headers: { 'X-User-Token': runpodToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify(nasDb),
+        signal: AbortSignal.timeout(30_000),
+      }),
+      fetch(`${localUrl}/api/sync/db-import`, {
+        method: 'POST',
+        headers: { 'X-User-Token': localToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify(runpodDb),
+        signal: AbortSignal.timeout(30_000),
+      }),
+    ])
+
+    if (!runpodRes.ok) throw new Error(`RunPod import failed (${runpodRes.status})`)
+    if (!nasRes.ok)    throw new Error(`NAS import failed (${nasRes.status})`)
+
+    const [runpodResult, nasResult] = await Promise.all([
+      runpodRes.json() as Promise<{ ok: boolean; inserted: Record<string, number> }>,
+      nasRes.json()    as Promise<{ ok: boolean; inserted: Record<string, number> }>,
+    ])
+
+    return { ok: true, toRunpod: runpodResult.inserted, toNas: nasResult.inserted }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : String(err) }
   }

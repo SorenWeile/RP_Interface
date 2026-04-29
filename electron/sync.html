@@ -898,12 +898,16 @@
         return
       }
 
-      const ins     = result.inserted
-      const summary = Object.entries(ins)
-        .filter(([, v]) => v > 0)
-        .map(([k, v]) => `${v} ${k}`)
-        .join(', ')
-      statusEl.textContent = summary ? `✓ Inserted: ${summary}` : '✓ Nothing new to merge'
+      function summarize(counts) {
+        const parts = Object.entries(counts)
+          .filter(([k, v]) => !k.endsWith('_error') && v > 0)
+          .map(([k, v]) => `${v} ${k}`)
+        return parts.length ? parts.join(', ') : 'nothing new'
+      }
+
+      const toRp  = summarize(result.toRunpod)
+      const toNas = summarize(result.toNas)
+      statusEl.textContent = `✓  → RunPod: ${toRp}   ← NAS: ${toNas}`
       statusEl.style.color = '#6fcf6f'
     }
   </script>
