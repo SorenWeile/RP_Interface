@@ -360,6 +360,11 @@
     .row-transferred        { opacity: 0.35; }
     .row-transfer-error .exp-col-path { color: #f87171; }
 
+    /* Hide-synced mode */
+    .show-diff-only .row-synced { display: none; }
+    .show-diff-only .folder-row:not([data-has-diff="true"]) { display: none; }
+    .show-diff-only .folder-row:not([data-has-diff="true"]) + div { display: none; }
+
     .folder-row {
       display: flex;
       align-items: center;
@@ -636,6 +641,9 @@
           ${diff.onlyLocal.length  ? `<span class="pill pill-nas">   <span class="pill-count">${diff.onlyLocal.length}</span>  only NAS</span>`    : ''}
           ${diff.onlyRunpod.length ? `<span class="pill pill-runpod"><span class="pill-count">${diff.onlyRunpod.length}</span> only RunPod</span>` : ''}
           ${diff.different.length  ? `<span class="pill pill-diff">  <span class="pill-count">${diff.different.length}</span>  mismatch</span>`    : ''}
+          <label class="sel-all-label" style="margin-left:auto">
+            <input type="checkbox" id="hide-synced-${key}" onchange="toggleHideSynced('${key}', this.checked)"> Hide synced
+          </label>
           ${hasTransfer ? `
           <div class="transfer-bar">
             <label class="sel-all-label">
@@ -677,7 +685,7 @@
         const diffCnt = files.filter(f => f.status !== 'synced').length
         const diffBadge = diffCnt ? ` · <span style="color:#fb923c">${diffCnt} diff</span>` : ''
         rows += `
-          <div class="folder-row" onclick="toggleFolder('${fkey}')">
+          <div class="folder-row" data-has-diff="${diffCnt > 0}" onclick="toggleFolder('${fkey}')">
             <span class="folder-icon" id="ficon-${fkey}">▾</span>
             <span class="folder-name">${esc(folder)}/</span>
             <span class="folder-stats">${nasCnt} NAS · ${rpCnt} RunPod${diffBadge}</span>
@@ -728,6 +736,10 @@
       const hidden = content.style.display === 'none'
       content.style.display = hidden ? '' : 'none'
       if (icon) icon.textContent = hidden ? '▾' : '▸'
+    }
+
+    function toggleHideSynced(key, hide) {
+      document.getElementById(`explorer-${key}`)?.classList.toggle('show-diff-only', hide)
     }
 
     // ── Checkbox helpers ──────────────────────────────────────────────────────
