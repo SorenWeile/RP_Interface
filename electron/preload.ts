@@ -24,6 +24,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   transferFiles: (opts: { paths: string[]; password: string }): Promise<unknown> =>
     ipcRenderer.invoke('transfer-files', opts),
 
+  mergeDb: (opts: { password: string }): Promise<unknown> =>
+    ipcRenderer.invoke('merge-db', opts),
+
   onTransferProgress: (cb: (data: { done: number; total: number; path: string; error: string | null }) => void): void => {
     ipcRenderer.on('transfer-progress', (_e, data) => cb(data))
   },

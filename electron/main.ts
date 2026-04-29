@@ -228,7 +228,10 @@ ipcMain.handle('compare-backends', async (_event, { password }: { password: stri
       totalRunpod: runpod.length,
       onlyLocal:   local.filter(f => !rMap.has(f.path)),
       onlyRunpod:  runpod.filter(f => !lMap.has(f.path)),
-      different:   local.filter(f => { const r = rMap.get(f.path); return r && r.size !== f.size }),
+      different:   local
+        .filter(f => { const r = rMap.get(f.path); return r && r.size !== f.size })
+        .map(f => ({ ...f, runpodSize: rMap.get(f.path)!.size })),
+      synced:      local.filter(f => { const r = rMap.get(f.path); return r && r.size === f.size }),
     }
   }
 
@@ -329,6 +332,38 @@ ipcMain.handle('transfer-files', async (event, {
     }
 
     return { done: paths.length, errors }
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+ipcMain.handle('merge-db', async (_event, { password }: { password: string }) => {
+  const localUrl  = store.get('localUrl',  '') as string
+  const runpodUrl = store.get('runpodUrl', '') as string
+
+  if (!localUrl || !runpodUrl) {
+    return { error: 'Both Local and RunPod URLs must be configured in Settings before merging.' }
+  }
+
+  try {
+    const [localToken, runpodToken] = await Promise.all([
+      syncLogin(localUrl,  password),
+      syncLogin(runpodUrl, password),
+    ])
+
+    // Export all records from NAS (source of truth)
+    const nasDb = await syncFetch(localUrl, localToken, '/api/sync/db-export')
+
+    // Import into RunPod — backend skips records that already exist
+    const res = await fetch(`${runpodUrl}/api/sync/db-import`, {
+      method: 'POST',
+      headers: { 'X-User-Token': runpodToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(nasDb),
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!res.ok) throw new Error(`DB import failed on RunPod (${res.status})`)
+    const result = await res.json() as { ok: boolean; inserted: Record<string, number> }
+    return { ok: true, inserted: result.inserted }
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : String(err) }
   }

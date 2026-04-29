@@ -206,20 +206,9 @@
 
     .section-header:hover { background: #1f1f1f; }
 
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #e0e0e0;
-      flex: 1;
-    }
-
+    .section-title   { font-size: 13px; font-weight: 600; color: #e0e0e0; flex: 1; }
     .section-summary { font-size: 11px; color: #666; }
-
-    .section-chevron {
-      font-size: 11px;
-      color: #555;
-      transition: transform 0.15s;
-    }
+    .section-chevron { font-size: 11px; color: #555; transition: transform 0.15s; }
 
     .section.collapsed .section-chevron { transform: rotate(-90deg); }
     .section.collapsed .section-body    { display: none; }
@@ -247,13 +236,12 @@
       font-weight: 500;
     }
 
-    .pill-count { font-weight: 700; }
-
+    .pill-count  { font-weight: 700; }
     .pill-nas    { background: #1e2d1e; color: #6fcf6f; border: 1px solid #2a4a2a; }
     .pill-runpod { background: #1e2537; color: #60a5fa; border: 1px solid #1e3560; }
     .pill-diff   { background: #2d2010; color: #fb923c; border: 1px solid #4a3010; }
 
-    /* ── Transfer bar (inside pill-row) ─────────── */
+    /* ── Transfer / merge bar ────────────────────── */
 
     .transfer-bar {
       margin-left: auto;
@@ -262,9 +250,16 @@
       gap: 10px;
     }
 
-    .transfer-count {
+    .transfer-count { font-size: 11px; color: #888; }
+
+    .sel-all-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
       font-size: 11px;
-      color: #888;
+      color: #666;
+      cursor: pointer;
+      user-select: none;
     }
 
     button.transfer-btn {
@@ -282,24 +277,34 @@
     button.transfer-btn:hover    { background: #223f70; border-color: #3a5a90; }
     button.transfer-btn:disabled { background: #1a1a1a; color: #444; border-color: #2a2a2a; cursor: not-allowed; }
 
+    button.merge-btn {
+      background: #2d1e37;
+      color: #c084fc;
+      border: 1px solid #4a2a80;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    button.merge-btn:hover    { background: #3a2a4a; }
+    button.merge-btn:disabled { background: #1a1a1a; color: #444; border-color: #2a2a2a; cursor: not-allowed; }
+
     /* ── Progress bar ────────────────────────────── */
 
     .progress-wrap {
       display: none;
       padding: 12px 20px;
-      border-top: 1px solid #1e1e1e;
+      border-bottom: 1px solid #1e1e1e;
       flex-direction: column;
       gap: 6px;
     }
 
     .progress-wrap.visible { display: flex; }
 
-    .progress-track {
-      height: 4px;
-      background: #222;
-      border-radius: 2px;
-      overflow: hidden;
-    }
+    .progress-track { height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
 
     .progress-fill {
       height: 100%;
@@ -309,86 +314,68 @@
       width: 0%;
     }
 
-    .progress-label {
-      font-size: 11px;
-      color: #666;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-    }
+    .progress-label  { font-size: 11px; color: #666; font-family: 'SF Mono', 'Fira Code', monospace; }
+    .progress-errors { font-size: 11px; color: #f87171; margin-top: 2px; }
 
-    .progress-errors {
-      font-size: 11px;
-      color: #f87171;
-      margin-top: 2px;
-    }
+    /* ── Explorer tree ───────────────────────────── */
 
-    /* ── Sub-tables ──────────────────────────────── */
-
-    .sub-sections { display: flex; flex-direction: column; gap: 0; }
-
-    .sub-section { border-top: 1px solid #1e1e1e; }
-
-    .sub-header {
+    .explorer-col-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #666;
-      user-select: none;
-    }
-
-    .sub-header .badge { font-size: 10px; padding: 1px 6px; border-radius: 999px; font-weight: 700; }
-
-    .badge-nas    { background: #1e2d1e; color: #6fcf6f; }
-    .badge-runpod { background: #1e2537; color: #60a5fa; }
-    .badge-diff   { background: #2d2010; color: #fb923c; }
-
-    .file-table {
-      width: 100%;
-      font-size: 11px;
-      border-collapse: collapse;
-    }
-
-    .file-table th {
-      text-align: left;
       padding: 6px 20px;
+      background: #151515;
       font-size: 10px;
       font-weight: 500;
       color: #444;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      background: #151515;
+      border-bottom: 1px solid #1a1a1a;
     }
 
-    .file-table th.th-check {
-      width: 32px;
-      padding: 6px 8px 6px 20px;
-    }
+    .exp-col-path   { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .exp-col-nas    { width: 90px; text-align: right; flex-shrink: 0; }
+    .exp-col-rp     { width: 90px; text-align: right; flex-shrink: 0; margin-right: 8px; }
+    .exp-col-action { width: 20px; flex-shrink: 0; }
 
-    .file-table td {
-      padding: 5px 20px;
-      color: #888;
-      border-top: 1px solid #1a1a1a;
+    .exp-row {
+      display: flex;
+      align-items: center;
+      padding: 4px 20px;
+      font-size: 11px;
       font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #777;
+      border-bottom: 1px solid #181818;
     }
 
-    .file-table td.td-check {
-      padding: 5px 8px 5px 20px;
-      width: 32px;
+    .exp-row:hover { background: #1d1d1d; }
+    .exp-row .exp-col-path { color: #999; padding-left: 16px; }
+
+    .row-synced    .exp-col-path { color: #666; }
+    .row-only-nas  .exp-col-path { color: #6fcf6f; }
+    .row-only-rp   .exp-col-path { color: #60a5fa; }
+    .row-diff      .exp-col-path { color: #fb923c; }
+
+    .exp-absent { color: #2a2a2a; }
+
+    .row-transferred        { opacity: 0.35; }
+    .row-transfer-error .exp-col-path { color: #f87171; }
+
+    .folder-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      background: #161616;
+      border-bottom: 1px solid #1e1e1e;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .file-table tr:hover td { background: #1d1d1d; }
-    .file-table tr.transferred td { opacity: 0.35; }
-    .file-table tr.transfer-error td { background: #1a1010; }
-
-    .file-table td.path { color: #bbb; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .file-table td.size { color: #666; text-align: right; white-space: nowrap; }
-    .file-table td.status-cell { width: 80px; text-align: right; white-space: nowrap; color: #444; font-size: 10px; }
-
-    .more-row td { color: #444; font-style: italic; padding: 6px 20px; }
+    .folder-row:hover { background: #1d1d1d; }
+    .folder-icon  { color: #555; font-size: 11px; width: 10px; text-align: center; flex-shrink: 0; }
+    .folder-name  { color: #aaa; font-family: 'SF Mono', 'Fira Code', monospace; }
+    .folder-stats { color: #444; font-size: 10px; margin-left: auto; }
 
     /* ── Checkboxes ──────────────────────────────── */
 
@@ -514,9 +501,7 @@
   </div>
 
   <script>
-    const MAX_ROWS = 200
-
-    // password is kept in memory after Compare so Transfer can reuse it
+    // password kept in memory so Transfer/Merge can reuse it without re-prompting
     let sessionPassword = ''
 
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -572,9 +557,9 @@
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     function fmtSize(bytes) {
-      if (bytes < 1024)                return bytes + ' B'
-      if (bytes < 1048576)             return (bytes / 1024).toFixed(1) + ' KB'
-      if (bytes < 1073741824)          return (bytes / 1048576).toFixed(1) + ' MB'
+      if (bytes < 1024)       return bytes + ' B'
+      if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB'
+      if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB'
       return (bytes / 1073741824).toFixed(2) + ' GB'
     }
 
@@ -582,139 +567,182 @@
       document.getElementById(id).classList.toggle('collapsed')
     }
 
-    // ── File diff rendering ───────────────────────────────────────────────────
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+
+    // ── Explorer tree ─────────────────────────────────────────────────────────
+
+    function buildFileMap(diff) {
+      const map = new Map()
+      for (const f of (diff.synced    || [])) map.set(f.path, { nasSize: f.size,   rpSize: f.size,          status: 'synced'      })
+      for (const f of diff.onlyLocal)          map.set(f.path, { nasSize: f.size,   rpSize: null,            status: 'only-nas'    })
+      for (const f of diff.different)          map.set(f.path, { nasSize: f.size,   rpSize: f.runpodSize,    status: 'different'   })
+      for (const f of diff.onlyRunpod)         map.set(f.path, { nasSize: null,     rpSize: f.size,          status: 'only-runpod' })
+      return map
+    }
 
     function renderFiles(diff, bodyId, sumId, key) {
-      const body = document.getElementById(bodyId)
-      const sum  = document.getElementById(sumId)
-      const total = diff.onlyLocal.length + diff.onlyRunpod.length + diff.different.length
+      const body  = document.getElementById(bodyId)
+      const sum   = document.getElementById(sumId)
+      const nDiff = diff.onlyLocal.length + diff.onlyRunpod.length + diff.different.length
 
-      if (total === 0) {
+      if (diff.totalLocal === 0 && diff.totalRunpod === 0) {
+        sum.textContent = '0 files'
+        body.innerHTML  = '<div class="empty">No files found on either backend.</div>'
+        return
+      }
+
+      if (nDiff === 0) {
         sum.textContent = `${diff.totalLocal} files — in sync`
         body.innerHTML  = '<div class="empty">Everything is in sync.</div>'
         return
       }
 
-      sum.textContent = `${diff.onlyLocal.length} only on NAS · ${diff.onlyRunpod.length} only on RunPod · ${diff.different.length} different`
+      sum.textContent = `${diff.onlyLocal.length} only NAS · ${diff.onlyRunpod.length} only RunPod · ${diff.different.length} mismatch`
+
+      const fileMap = buildFileMap(diff)
+
+      // Group by first path segment
+      const folders   = new Map()
+      const rootFiles = []
+
+      for (const [filePath, info] of fileMap) {
+        const idx = filePath.indexOf('/')
+        if (idx === -1) {
+          rootFiles.push({ name: filePath, path: filePath, ...info })
+        } else {
+          const folder = filePath.slice(0, idx)
+          if (!folders.has(folder)) folders.set(folder, [])
+          folders.get(folder).push({ name: filePath.slice(idx + 1), path: filePath, ...info })
+        }
+      }
+
+      // Models: alpha order; output files: reverse-alpha (newest date folders first)
+      const sortedFolders = [...folders.entries()].sort(([a], [b]) =>
+        key === 'models' ? a.localeCompare(b) : b.localeCompare(a)
+      )
+
+      const hasTransfer = diff.onlyRunpod.length > 0
 
       const pills = `
-        <div class="pill-row" id="pill-row-${key}">
+        <div class="pill-row">
           <span class="pill pill-nas">   <span class="pill-count">${diff.totalLocal}</span>  on NAS</span>
           <span class="pill pill-runpod"><span class="pill-count">${diff.totalRunpod}</span> on RunPod</span>
-          ${diff.onlyLocal.length  ? `<span class="pill pill-nas">   <span class="pill-count">${diff.onlyLocal.length}</span>  only on NAS</span>` : ''}
-          ${diff.onlyRunpod.length ? `<span class="pill pill-runpod"><span class="pill-count">${diff.onlyRunpod.length}</span> only on RunPod</span>` : ''}
-          ${diff.different.length  ? `<span class="pill pill-diff">  <span class="pill-count">${diff.different.length}</span>  size mismatch</span>` : ''}
-          ${diff.onlyRunpod.length ? `
+          ${diff.onlyLocal.length  ? `<span class="pill pill-nas">   <span class="pill-count">${diff.onlyLocal.length}</span>  only NAS</span>`    : ''}
+          ${diff.onlyRunpod.length ? `<span class="pill pill-runpod"><span class="pill-count">${diff.onlyRunpod.length}</span> only RunPod</span>` : ''}
+          ${diff.different.length  ? `<span class="pill pill-diff">  <span class="pill-count">${diff.different.length}</span>  mismatch</span>`    : ''}
+          ${hasTransfer ? `
           <div class="transfer-bar">
+            <label class="sel-all-label">
+              <input type="checkbox" id="sel-all-${key}" onchange="selectAll('${key}', this.checked)"> Select all
+            </label>
             <span class="transfer-count" id="tc-${key}">0 selected</span>
-            <button class="transfer-btn" id="tbtn-${key}" onclick="startTransfer('${key}')" disabled>
-              ↓ Transfer to NAS
-            </button>
+            <button class="transfer-btn" id="tbtn-${key}" onclick="startTransfer('${key}')" disabled>↓ Transfer to NAS</button>
           </div>` : ''}
         </div>`
 
-      // Progress bar (hidden initially)
       const progressHtml = `
         <div class="progress-wrap" id="prog-${key}">
           <div class="progress-track"><div class="progress-fill" id="prog-fill-${key}"></div></div>
-          <div class="progress-label" id="prog-label-${key}"></div>
+          <div class="progress-label"  id="prog-label-${key}"></div>
           <div class="progress-errors" id="prog-errors-${key}"></div>
         </div>`
 
-      let html = pills + progressHtml + '<div class="sub-sections">'
+      const colHeader = `
+        <div class="explorer-col-header">
+          <span class="exp-col-path">Name</span>
+          <span class="exp-col-nas">NAS</span>
+          <span class="exp-col-rp">RunPod</span>
+          <span class="exp-col-action"></span>
+        </div>`
 
-      if (diff.onlyLocal.length) {
-        html += plainSubTable('Only on NAS', 'badge-nas', diff.onlyLocal)
-      }
-      if (diff.onlyRunpod.length) {
-        html += transferSubTable(`Only on RunPod`, 'badge-runpod', diff.onlyRunpod, key)
-      }
-      if (diff.different.length) {
-        html += plainSubTable('Size mismatch', 'badge-diff', diff.different)
+      let rows = ''
+      let folderIdx = 0
+
+      // Root-level files (no parent folder)
+      for (const f of rootFiles.sort((a, b) => a.name.localeCompare(b.name))) {
+        rows += expFileRow(f, key)
       }
 
-      html += '</div>'
-      body.innerHTML = html
-
-      // Wire up Select-All checkbox
-      if (diff.onlyRunpod.length) {
-        updateTransferCount(key)
+      // Folder groups
+      for (const [folder, files] of sortedFolders) {
+        const fkey    = `${key}_${folderIdx++}`
+        const nasCnt  = files.filter(f => f.nasSize !== null).length
+        const rpCnt   = files.filter(f => f.rpSize  !== null).length
+        const diffCnt = files.filter(f => f.status !== 'synced').length
+        const diffBadge = diffCnt ? ` · <span style="color:#fb923c">${diffCnt} diff</span>` : ''
+        rows += `
+          <div class="folder-row" onclick="toggleFolder('${fkey}')">
+            <span class="folder-icon" id="ficon-${fkey}">▾</span>
+            <span class="folder-name">${esc(folder)}/</span>
+            <span class="folder-stats">${nasCnt} NAS · ${rpCnt} RunPod${diffBadge}</span>
+          </div>
+          <div id="fc-${fkey}">`
+        for (const f of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
+          rows += expFileRow(f, key)
+        }
+        rows += '</div>'
       }
+
+      body.innerHTML = pills + progressHtml + colHeader + `<div id="explorer-${key}">${rows}</div>`
+
+      if (hasTransfer) updateTransferCount(key)
     }
 
-    function plainSubTable(label, badgeCls, rows) {
-      const shown = rows.slice(0, MAX_ROWS)
-      const more  = rows.length - shown.length
+    function expFileRow(f, key) {
+      const cls = {
+        'synced':      'row-synced',
+        'only-nas':    'row-only-nas',
+        'only-runpod': 'row-only-rp',
+        'different':   'row-diff',
+      }[f.status] || ''
 
-      let rowsHtml = shown.map(f => `
-        <tr>
-          <td class="path" title="${esc(f.path)}">${esc(f.path)}</td>
-          <td class="size">${fmtSize(f.size)}</td>
-        </tr>`).join('')
-
-      if (more > 0) rowsHtml += `<tr class="more-row"><td colspan="2">… and ${more} more</td></tr>`
+      const nasCell = f.nasSize !== null
+        ? `<span>${fmtSize(f.nasSize)}</span>`
+        : `<span class="exp-absent">—</span>`
+      const rpCell = f.rpSize !== null
+        ? `<span>${fmtSize(f.rpSize)}</span>`
+        : `<span class="exp-absent">—</span>`
+      const action = f.status === 'only-runpod'
+        ? `<input type="checkbox" class="file-checkbox" data-path="${esc(f.path)}" onchange="updateTransferCount('${key}')">`
+        : ''
 
       return `
-        <div class="sub-section">
-          <div class="sub-header">
-            ${label} <span class="badge ${badgeCls}">${rows.length}</span>
-          </div>
-          <table class="file-table">
-            <thead><tr><th>Path</th><th>Size</th></tr></thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
+        <div class="exp-row ${cls}" data-path="${esc(f.path)}">
+          <span class="exp-col-path" title="${esc(f.path)}">${esc(f.name)}</span>
+          <span class="exp-col-nas">${nasCell}</span>
+          <span class="exp-col-rp">${rpCell}</span>
+          <span class="exp-col-action">${action}</span>
         </div>`
     }
 
-    function transferSubTable(label, badgeCls, rows, key) {
-      const shown = rows.slice(0, MAX_ROWS)
-      const more  = rows.length - shown.length
-
-      let rowsHtml = shown.map((f, i) => `
-        <tr id="row-${key}-${i}" data-path="${esc(f.path)}">
-          <td class="td-check"><input type="checkbox" id="chk-${key}-${i}" onchange="updateTransferCount('${key}')"></td>
-          <td class="path" title="${esc(f.path)}">${esc(f.path)}</td>
-          <td class="size">${fmtSize(f.size)}</td>
-          <td class="status-cell" id="st-${key}-${i}"></td>
-        </tr>`).join('')
-
-      if (more > 0) rowsHtml += `<tr class="more-row"><td colspan="4">… and ${more} more (shown first ${MAX_ROWS})</td></tr>`
-
-      return `
-        <div class="sub-section">
-          <div class="sub-header">
-            ${label} <span class="badge ${badgeCls}">${rows.length}</span>
-            <span style="margin-left:auto; display:flex; align-items:center; gap:6px; font-size:10px; color:#555; font-weight:400; text-transform:none;">
-              <input type="checkbox" id="sel-all-${key}" onchange="selectAll('${key}', this.checked)" style="margin:0">
-              Select all
-            </span>
-          </div>
-          <table class="file-table">
-            <thead>
-              <tr>
-                <th class="th-check"></th>
-                <th>Path</th>
-                <th>Size</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="tbody-${key}">${rowsHtml}</tbody>
-          </table>
-        </div>`
+    function toggleFolder(fkey) {
+      const content = document.getElementById(`fc-${fkey}`)
+      const icon    = document.getElementById(`ficon-${fkey}`)
+      if (!content) return
+      const hidden = content.style.display === 'none'
+      content.style.display = hidden ? '' : 'none'
+      if (icon) icon.textContent = hidden ? '▾' : '▸'
     }
 
     // ── Checkbox helpers ──────────────────────────────────────────────────────
 
     function selectAll(key, checked) {
-      const tbody = document.getElementById(`tbody-${key}`)
-      tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = checked })
+      document.getElementById(`explorer-${key}`)
+        ?.querySelectorAll('.file-checkbox:not(:disabled)')
+        .forEach(cb => { cb.checked = checked })
       updateTransferCount(key)
     }
 
     function updateTransferCount(key) {
-      const tbody = document.getElementById(`tbody-${key}`)
-      if (!tbody) return
-      const count = tbody.querySelectorAll('input[type="checkbox"]:checked').length
+      const explorer = document.getElementById(`explorer-${key}`)
+      if (!explorer) return
+      const count   = explorer.querySelectorAll('.file-checkbox:checked').length
       const countEl = document.getElementById(`tc-${key}`)
       const btn     = document.getElementById(`tbtn-${key}`)
       if (countEl) countEl.textContent = count === 0 ? '0 selected' : `${count} selected`
@@ -724,24 +752,22 @@
     // ── Transfer ──────────────────────────────────────────────────────────────
 
     async function startTransfer(key) {
-      const tbody = document.getElementById(`tbody-${key}`)
-      const rows  = [...tbody.querySelectorAll('tr[data-path]')]
-      const selected = rows
-        .filter(tr => tr.querySelector('input[type="checkbox"]')?.checked)
-        .map(tr => tr.getAttribute('data-path'))
+      const explorer = document.getElementById(`explorer-${key}`)
+      const selected = [...explorer.querySelectorAll('.file-checkbox:checked')]
+        .map(cb => cb.getAttribute('data-path'))
 
       if (selected.length === 0) return
 
-      const btn     = document.getElementById(`tbtn-${key}`)
-      const progWrap = document.getElementById(`prog-${key}`)
-      const progFill = document.getElementById(`prog-fill-${key}`)
-      const progLabel = document.getElementById(`prog-label-${key}`)
+      const btn        = document.getElementById(`tbtn-${key}`)
+      const selAll     = document.getElementById(`sel-all-${key}`)
+      const progWrap   = document.getElementById(`prog-${key}`)
+      const progFill   = document.getElementById(`prog-fill-${key}`)
+      const progLabel  = document.getElementById(`prog-label-${key}`)
       const progErrors = document.getElementById(`prog-errors-${key}`)
-      const selAll   = document.getElementById(`sel-all-${key}`)
 
-      btn.disabled   = true
+      btn.disabled = true
       if (selAll) selAll.disabled = true
-      tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.disabled = true })
+      explorer.querySelectorAll('.file-checkbox').forEach(cb => { cb.disabled = true })
       progWrap.classList.add('visible')
       progErrors.textContent = ''
       progLabel.textContent  = `0 / ${selected.length}`
@@ -751,39 +777,31 @@
 
       window.electronAPI.offTransferProgress()
       window.electronAPI.onTransferProgress(({ done, total, path, error }) => {
-        const pct = Math.round((done / total) * 100)
-        progFill.style.width  = pct + '%'
+        progFill.style.width  = Math.round((done / total) * 100) + '%'
         progLabel.textContent = `${done} / ${total}  —  ${path.split('/').pop()}`
 
-        // Find the row and mark it
-        const matchRow = rows.find(tr => tr.getAttribute('data-path') === path)
+        const matchRow = [...explorer.querySelectorAll('.exp-row[data-path]')]
+          .find(el => el.getAttribute('data-path') === path)
         if (matchRow) {
-          const rowIdx = rows.indexOf(matchRow)
-          const stEl   = document.getElementById(`st-${key}-${rowIdx}`)
           if (error) {
-            matchRow.classList.add('transfer-error')
-            if (stEl) stEl.textContent = '✗ error'
+            matchRow.classList.add('row-transfer-error')
             errorList.push(`${path}: ${error}`)
           } else {
-            matchRow.classList.add('transferred')
-            if (stEl) stEl.textContent = '✓ done'
+            matchRow.classList.add('row-transferred')
           }
         }
 
         if (done === total) {
           progLabel.textContent = `Done — ${done - errorList.length} transferred, ${errorList.length} failed`
-          if (errorList.length > 0) {
-            progErrors.innerHTML = errorList.map(e => esc(e)).join('<br>')
-          }
+          if (errorList.length) progErrors.innerHTML = errorList.map(e => esc(e)).join('<br>')
         }
       })
 
       await window.electronAPI.transferFiles({ paths: selected, password: sessionPassword })
 
-      // Re-enable select-all and non-transferred checkboxes
-      tbody.querySelectorAll('input[type="checkbox"]').forEach((cb, i) => {
-        const tr = rows[i]
-        if (tr && !tr.classList.contains('transferred')) cb.disabled = false
+      explorer.querySelectorAll('.file-checkbox').forEach(cb => {
+        const row = cb.closest('.exp-row')
+        if (row && !row.classList.contains('row-transferred')) cb.disabled = false
       })
       if (selAll) selAll.disabled = false
       updateTransferCount(key)
@@ -834,18 +852,47 @@
       }
 
       gridHtml += '</div>'
-      body.innerHTML  = gridHtml
-      sum.textContent = totalDiffs === 0 ? 'In sync' : `${totalDiffs} difference${totalDiffs !== 1 ? 's' : ''}`
+
+      body.innerHTML = `
+        <div class="pill-row">
+          <span style="font-size:12px;color:#555;">Copies NAS-only records into RunPod. Existing records are kept untouched.</span>
+          <div class="transfer-bar">
+            <span id="merge-status" style="font-size:11px;color:#888;"></span>
+            <button class="merge-btn" id="merge-btn" onclick="handleMerge()">↑ Merge NAS → RunPod</button>
+          </div>
+        </div>
+        ${gridHtml}`
+
+      sum.textContent = totalDiffs === 0
+        ? 'In sync'
+        : `${totalDiffs} difference${totalDiffs !== 1 ? 's' : ''}`
     }
 
-    // ── XSS guard ─────────────────────────────────────────────────────────────
+    async function handleMerge() {
+      const btn      = document.getElementById('merge-btn')
+      const statusEl = document.getElementById('merge-status')
 
-    function esc(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+      btn.disabled         = true
+      statusEl.textContent = 'Merging…'
+      statusEl.style.color = '#888'
+
+      const result = await window.electronAPI.mergeDb({ password: sessionPassword })
+
+      btn.disabled = false
+
+      if (result.error) {
+        statusEl.textContent = '✗ ' + result.error
+        statusEl.style.color = '#f87171'
+        return
+      }
+
+      const ins     = result.inserted
+      const summary = Object.entries(ins)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${v} ${k}`)
+        .join(', ')
+      statusEl.textContent = summary ? `✓ Inserted: ${summary}` : '✓ Nothing new to merge'
+      statusEl.style.color = '#6fcf6f'
     }
   </script>
 </body>

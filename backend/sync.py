@@ -5,13 +5,14 @@ All endpoints require an admin user token (X-User-Token header).
 Env vars:
   COMFYUI_OUTPUT_DIR  — path to ComfyUI output directory (default: /workspace/ComfyUI/output)
   COMFYUI_MODELS_DIR  — path to ComfyUI models directory (default: /workspace/ComfyUI/models)
+  SYNC_MODELS_DIR     — override for models path used only by the sync tool (e.g. //nas/indgai/Models)
 """
 import os
 import sqlite3
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException, UploadFile, File
+from fastapi import APIRouter, Header, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
@@ -54,7 +55,7 @@ def list_output_files(x_user_token: Optional[str] = Header(None)):
 @router.get("/models")
 def list_models(x_user_token: Optional[str] = Header(None)):
     _require_admin(x_user_token)
-    root = Path(os.getenv("COMFYUI_MODELS_DIR", "/workspace/ComfyUI/models"))
+    root = Path(os.getenv("SYNC_MODELS_DIR") or os.getenv("COMFYUI_MODELS_DIR", "/workspace/ComfyUI/models"))
     return {"models": _walk_dir(root)}
 
 
@@ -145,3 +146,103 @@ async def upload_file(
             f.write(chunk)
             size += len(chunk)
     return {"ok": True, "path": path, "size": size}
+
+
+@router.get("/db-export")
+def db_export(x_user_token: Optional[str] = Header(None)):
+    """Export full records from users.db for merge purposes (includes password hashes)."""
+    _require_admin(x_user_token)
+    from user_management import _get_conn
+    conn = _get_conn()
+    try:
+        return {
+            "groups":   [dict(r) for r in conn.execute("SELECT * FROM groups ORDER BY id").fetchall()],
+            "clients":  [dict(r) for r in conn.execute("SELECT * FROM clients ORDER BY id").fetchall()],
+            "projects": [dict(r) for r in conn.execute("SELECT * FROM projects ORDER BY id").fetchall()],
+            "users":    [dict(r) for r in conn.execute("SELECT * FROM users ORDER BY id").fetchall()],
+        }
+    finally:
+        conn.close()
+
+
+@router.post("/db-import")
+async def db_import(request: Request, x_user_token: Optional[str] = Header(None)):
+    """Insert NAS records into this backend's users.db, skipping any that already exist."""
+    _require_admin(x_user_token)
+    payload = await request.json()
+
+    from user_management import _get_conn
+    conn = _get_conn()
+    counts = {"groups": 0, "clients": 0, "projects": 0, "users": 0}
+    try:
+        # 1. Groups (unique on name)
+        for g in payload.get("groups", []):
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO groups (name, can_access_admin, allowed_modules, created_at) VALUES (?,?,?,?)",
+                    (g["name"], g.get("can_access_admin", 0), g.get("allowed_modules", "[]"), g.get("created_at")),
+                )
+                counts["groups"] += conn.execute("SELECT changes()").fetchone()[0]
+            except Exception:
+                pass
+        conn.commit()
+
+        # Build name→id map for group remapping
+        group_name_to_id = {
+            row["name"]: row["id"]
+            for row in conn.execute("SELECT id, name FROM groups").fetchall()
+        }
+        source_groups = {g["id"]: g["name"] for g in payload.get("groups", [])}
+
+        # 2. Clients (unique on client_id)
+        for c in payload.get("clients", []):
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO clients (client_id, name, created_at) VALUES (?,?,?)",
+                    (c["client_id"], c["name"], c.get("created_at")),
+                )
+                counts["clients"] += conn.execute("SELECT changes()").fetchone()[0]
+            except Exception:
+                pass
+        conn.commit()
+
+        # 3. Projects (unique on project_id)
+        for p in payload.get("projects", []):
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO projects (project_id, name, created_at) VALUES (?,?,?)",
+                    (p["project_id"], p["name"], p.get("created_at")),
+                )
+                counts["projects"] += conn.execute("SELECT changes()").fetchone()[0]
+            except Exception:
+                pass
+        conn.commit()
+
+        # 4. Users (unique on username + email; remap group_id by group name)
+        for u in payload.get("users", []):
+            try:
+                src_gid = u.get("group_id")
+                target_gid = None
+                if src_gid is not None:
+                    gname = source_groups.get(src_gid)
+                    if gname:
+                        target_gid = group_name_to_id.get(gname)
+                conn.execute(
+                    "INSERT OR IGNORE INTO users "
+                    "(username, email, password_hash, password_salt, is_admin, group_id, created_at, updated_at) "
+                    "VALUES (?,?,?,?,?,?,?,?)",
+                    (
+                        u["username"], u.get("email", ""),
+                        u["password_hash"], u["password_salt"],
+                        u.get("is_admin", 0), target_gid,
+                        u.get("created_at"), u.get("updated_at"),
+                    ),
+                )
+                counts["users"] += conn.execute("SELECT changes()").fetchone()[0]
+            except Exception:
+                pass
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {"ok": True, "inserted": counts}
