@@ -159,9 +159,10 @@ async function streamUploadModel(
     let uploaded = 0
     const stream = fs.createReadStream(localFilePath, { highWaterMark: 1024 * 1024 })
 
-    stream.on('data', (chunk: Buffer) => {
-      uploaded += chunk.length
-      const ok = req.write(chunk)
+    stream.on('data', (chunk: string | Buffer) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      uploaded += buf.length
+      const ok = req.write(buf)
       onProgress(uploaded, totalBytes)
       if (!ok) { stream.pause(); req.once('drain', () => stream.resume()) }
     })
