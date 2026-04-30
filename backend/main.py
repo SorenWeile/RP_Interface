@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Header
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Header
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -1059,6 +1059,24 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             await websocket.close()
         except Exception:
             pass
+
+
+# ---------------------------------------------------------------------------
+# ComfyUI direct-access URL
+# ---------------------------------------------------------------------------
+
+@app.get("/api/comfyui/url")
+async def get_comfyui_url(request: Request):
+    """Return the externally-accessible ComfyUI URL.
+
+    ComfyUI runs on a fixed port inside the container. We derive the hostname
+    from the incoming Host header so this works whether the caller is a browser
+    on the LAN or the Electron app talking to localhost.
+    """
+    comfyui_host = os.getenv("COMFYUI_HOST", COMFYUI_HOST)
+    port = comfyui_host.split(":")[1] if ":" in comfyui_host else "3001"
+    hostname = request.headers.get("host", f"localhost:{port}").split(":")[0]
+    return {"url": f"http://{hostname}:{port}"}
 
 
 # ---------------------------------------------------------------------------

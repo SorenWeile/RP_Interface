@@ -31,12 +31,16 @@ import imagePromptingModule from './image-prompting'
 import videoCreationModule from './video-creation'
 import galleryModuleDefinition from './gallery'
 import adminModuleDefinition from './admin'
+import comfyUIModuleDefinition from './comfyui'
 
 /** The gallery entry — rendered full-bleed with its own panels. */
 export const galleryModule: WorkflowModule = galleryModuleDefinition
 
 /** Admin module — password-protected user/client/project management. */
 export const adminModule: WorkflowModule = adminModuleDefinition
+
+/** ComfyUI wrapper — full-bleed iframe to the container's node editor. */
+export const comfyUIModule: WorkflowModule = comfyUIModuleDefinition
 
 /** Standard workflow tool modules shown in the Workflow Tools section. */
 export const workflowModules: WorkflowModule[] = [
@@ -50,4 +54,4 @@ export const workflowModules: WorkflowModule[] = [
 ]
 
 /** All modules combined (used by AppSidebar for navigation). */
-export const modules: WorkflowModule[] = [galleryModule, adminModule, ...workflowModules]
+export const modules: WorkflowModule[] = [galleryModule, adminModule, comfyUIModule, ...workflowModules]
