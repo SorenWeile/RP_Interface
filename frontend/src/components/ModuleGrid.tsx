@@ -115,8 +115,8 @@ export default function ModuleGrid({
 
   return (
     <div className="space-y-8">
-      {/* Gallery + ComfyUI */}
-      {(galleryModule || comfyUIModule) && (
+      {/*Gallery*/}
+      {(galleryModule) && (
         <>
           <div className="space-y-4">
             <div>
@@ -124,7 +124,6 @@ export default function ModuleGrid({
               <p className="text-muted-foreground text-sm mt-1">Browse and manage your ComfyUI output images.</p>
             </div>
             {galleryModule && <BigCard m={galleryModule} onSelect={onSelect} />}
-            {comfyUIModule && <BigCard m={comfyUIModule} onSelect={onSelect} />}
           </div>
           {(workflowModules.length > 0 || adminModule) && <div className="border-t border-border" />}
         </>
@@ -161,7 +160,20 @@ export default function ModuleGrid({
           <NewToolCard onClick={onNewTool} />
         </div>
       </div>
-
+      <div className="border-t border-border" />
+      {/*ComfyUI*/}
+      {(comfyUIModule) && (
+        <>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-foreground text-lg font-semibold tracking-wide">ComfyUI</h2>
+              <p className="text-muted-foreground text-sm mt-1">Access the current running ComfyUI instance.</p>
+            </div>
+            {comfyUIModule && <BigCard m={comfyUIModule} onSelect={onSelect} />}
+          </div>
+          {(workflowModules.length > 0 || adminModule)}
+        </>
+      )}
       {/* Admin */}
       {adminModule && (
         <>
