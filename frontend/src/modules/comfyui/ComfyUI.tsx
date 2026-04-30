@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function ComfyUI() {
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [key, setKey] = useState(0)
 
   function load() {
     setError(null)
@@ -45,7 +44,6 @@ export default function ComfyUI() {
 
   return (
     <iframe
-      key={key}
       src={url}
       className="w-full h-full border-0"
       title="ComfyUI"
