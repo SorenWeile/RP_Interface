@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { ArrowLeft, LogOut } from 'lucide-react'
-import { workflowModules, galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
+import { workflowModules, galleryModule, adminModule, comfyUIModule, type WorkflowModule } from '@/modules/index'
 import ModuleGrid from '@/components/ModuleGrid'
 import AppSidebar from '@/components/AppSidebar'
 import LoginPage, { type AuthUser } from '@/components/LoginPage'
@@ -34,8 +34,9 @@ export default function App() {
   const canAccessAdmin = isAdmin || (currentUser?.group?.can_access_admin ?? false)
 
   const visibleWorkflowModules = workflowModules.filter(m => allowedIds.includes(m.id))
-  const showGallery = allowedIds.includes('gallery')
-  const showAdmin   = canAccessAdmin
+  const showGallery   = allowedIds.includes('gallery')
+  const showComfyUI   = isAdmin || allowedIds.includes('comfyui')
+  const showAdmin     = canAccessAdmin
 
   // Load custom tools from the API
   const refreshCustomTools = useCallback(() => {
@@ -178,6 +179,7 @@ export default function App() {
           {nav.screen === 'hub' && (
             <ModuleGrid
               galleryModule={showGallery ? galleryModule : null}
+              comfyUIModule={showComfyUI ? comfyUIModule : null}
               adminModule={showAdmin ? adminModule : null}
               workflowModules={visibleWorkflowModules}
               customTools={customTools}
@@ -234,6 +236,7 @@ export default function App() {
             onOpenTool={openTool}
             onNewTool={() => openWizard()}
             showGallery={showGallery}
+            showComfyUI={showComfyUI}
             showAdmin={showAdmin}
             workflowModules={visibleWorkflowModules}
             customTools={customTools}

@@ -39,6 +39,9 @@ export const galleryModule: WorkflowModule = galleryModuleDefinition
 /** Admin module — password-protected user/client/project management. */
 export const adminModule: WorkflowModule = adminModuleDefinition
 
+/** ComfyUI wrapper — full-bleed iframe to the container's node editor. */
+export const comfyUIModule: WorkflowModule = comfyUIModuleDefinition
+
 /** Standard workflow tool modules shown in the Workflow Tools section. */
 export const workflowModules: WorkflowModule[] = [
   magnificUpscalerModule,
@@ -48,8 +51,7 @@ export const workflowModules: WorkflowModule[] = [
   imageEditModule,
   imagePromptingModule,
   videoCreationModule,
-  comfyUIModuleDefinition,
 ]
 
 /** All modules combined (used by AppSidebar for navigation). */
-export const modules: WorkflowModule[] = [galleryModule, adminModule, ...workflowModules]
+export const modules: WorkflowModule[] = [galleryModule, comfyUIModule, adminModule, ...workflowModules]

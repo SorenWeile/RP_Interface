@@ -6,6 +6,7 @@ import type { ToolSummary } from '@/modules/workflow-builder/types'
 
 interface Props {
   galleryModule:    WorkflowModule | null
+  comfyUIModule:    WorkflowModule | null
   adminModule:      WorkflowModule | null
   workflowModules:  WorkflowModule[]
   customTools:      ToolSummary[]
@@ -104,25 +105,26 @@ function NewToolCard({ onClick }: { onClick: () => void }) {
 }
 
 export default function ModuleGrid({
-  galleryModule, adminModule, workflowModules,
+  galleryModule, comfyUIModule, adminModule, workflowModules,
   customTools, onSelect, onOpenTool, onNewTool,
 }: Props) {
-  const hasAnyContent = galleryModule || workflowModules.length > 0 || adminModule
+  const hasAnyContent = galleryModule || comfyUIModule || workflowModules.length > 0 || adminModule
   if (!hasAnyContent) {
     return <p className="text-sm text-muted-foreground">No apps available for your account.</p>
   }
 
   return (
     <div className="space-y-8">
-      {/* Gallery */}
-      {galleryModule && (
+      {/* Gallery + ComfyUI */}
+      {(galleryModule || comfyUIModule) && (
         <>
           <div className="space-y-4">
             <div>
               <h2 className="text-foreground text-lg font-semibold tracking-wide">Gallery</h2>
               <p className="text-muted-foreground text-sm mt-1">Browse and manage your ComfyUI output images.</p>
             </div>
-            <BigCard m={galleryModule} onSelect={onSelect} />
+            {galleryModule && <BigCard m={galleryModule} onSelect={onSelect} />}
+            {comfyUIModule && <BigCard m={comfyUIModule} onSelect={onSelect} />}
           </div>
           {(workflowModules.length > 0 || adminModule) && <div className="border-t border-border" />}
         </>

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { galleryModule, adminModule, type WorkflowModule } from '@/modules/index'
+import { galleryModule, adminModule, comfyUIModule, type WorkflowModule } from '@/modules/index'
 import { getIcon } from '@/lib/icons'
 import MachineMonitor from './MachineMonitor'
 import StorageStatus from './StorageStatus'
@@ -15,6 +15,7 @@ interface Props {
   onOpenTool:      (id: string) => void
   onNewTool:       () => void
   showGallery:     boolean
+  showComfyUI:     boolean
   showAdmin:       boolean
   workflowModules: WorkflowModule[]
   customTools:     ToolSummary[]
@@ -50,7 +51,7 @@ function NavButton({
 export default function AppSidebar({
   activeModule, activeToolId, wizardActive,
   onSelectModule, onOpenTool, onNewTool,
-  showGallery, showAdmin,
+  showGallery, showComfyUI, showAdmin,
   workflowModules, customTools,
 }: Props) {
   return (
@@ -69,6 +70,16 @@ export default function AppSidebar({
             icon={galleryModule.icon}
             isActive={activeModule?.id === galleryModule.id}
             onClick={() => onSelectModule(galleryModule)}
+          />
+        )}
+
+        {/* ComfyUI */}
+        {showComfyUI && (
+          <NavButton
+            label={comfyUIModule.title}
+            icon={comfyUIModule.icon}
+            isActive={activeModule?.id === comfyUIModule.id}
+            onClick={() => onSelectModule(comfyUIModule)}
           />
         )}
 
