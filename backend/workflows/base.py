@@ -7,7 +7,7 @@ import random
 from pathlib import Path
 from typing import Dict, Any
 
-_MAX_SEED = 2**53 - 1  # ComfyUI accepts up to 53-bit seeds
+_MAX_SEED = 2**31 - 1  # 2147483647 — capped at int32 for ComfyUI node compatibility
 
 
 def _random_seed() -> int:

@@ -42,4 +42,4 @@ MAX_HISTORY_ITEMS = 500
 
 # Workflow / tool defaults
 DEFAULT_TOOL_ICON = "Layers"
-MAX_SEED = 2**53 - 1
+MAX_SEED = 2**31 - 1  # 2147483647 — capped at int32 for ComfyUI node compatibility
