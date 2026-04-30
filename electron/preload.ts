@@ -27,6 +27,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
   mergeDb: (opts: { password: string }): Promise<unknown> =>
     ipcRenderer.invoke('merge-db', opts),
 
+  openFileDialog: (): Promise<Array<{ name: string; localPath: string; size: number }>> =>
+    ipcRenderer.invoke('open-file-dialog'),
+
+  getModelDirs: (opts: { password: string }): Promise<unknown> =>
+    ipcRenderer.invoke('get-model-dirs', opts),
+
+  uploadModels: (opts: {
+    files:   Array<{ name: string; localPath: string; size: number }>;
+    destDir: string;
+    targets: ('local' | 'runpod')[];
+    password: string;
+  }): Promise<unknown> =>
+    ipcRenderer.invoke('upload-models', opts),
+
+  onUploadProgress: (cb: (data: {
+    fi: number; name: string; target: string;
+    loaded: number; total: number; done: boolean; error: string | null;
+  }) => void): void => {
+    ipcRenderer.on('upload-progress', (_e, data) => cb(data))
+  },
+
+  offUploadProgress: (): void => {
+    ipcRenderer.removeAllListeners('upload-progress')
+  },
+
   onTransferProgress: (cb: (data: { done: number; total: number; path: string; error: string | null }) => void): void => {
     ipcRenderer.on('transfer-progress', (_e, data) => cb(data))
   },

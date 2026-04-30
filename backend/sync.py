@@ -148,6 +148,41 @@ async def upload_file(
     return {"ok": True, "path": path, "size": size}
 
 
+@router.get("/model-dirs")
+def list_model_dirs(x_user_token: Optional[str] = Header(None)):
+    """Subdirectory tree under the models root (2 levels deep) — used by the Model Uploader."""
+    _require_admin(x_user_token)
+    root = Path(os.getenv("SYNC_MODELS_DIR") or os.getenv("COMFYUI_MODELS_DIR", "/workspace/ComfyUI/models"))
+    dirs: list = []
+    if root.exists():
+        for entry in sorted(root.iterdir()):
+            if entry.is_dir():
+                dirs.append(entry.name)
+                for sub in sorted(entry.iterdir()):
+                    if sub.is_dir():
+                        dirs.append(f"{entry.name}/{sub.name}")
+    return {"root": str(root), "dirs": dirs}
+
+
+@router.post("/model-upload")
+async def upload_model(
+    path: str,
+    file: UploadFile = File(...),
+    x_user_token: Optional[str] = Header(None),
+):
+    """Stream a model file into the models directory at the given relative path."""
+    _require_admin(x_user_token)
+    root = Path(os.getenv("SYNC_MODELS_DIR") or os.getenv("COMFYUI_MODELS_DIR", "/workspace/ComfyUI/models"))
+    full = _safe_path(root, path)
+    full.parent.mkdir(parents=True, exist_ok=True)
+    size = 0
+    with open(full, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+            size += len(chunk)
+    return {"ok": True, "path": path, "size": size}
+
+
 @router.get("/db-export")
 def db_export(x_user_token: Optional[str] = Header(None)):
     """Export full records from users.db + custom tools from tools.db for merge purposes."""

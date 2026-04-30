@@ -1,5 +1,8 @@
-import { app, BrowserWindow, ipcMain, Menu, session } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, session } from 'electron'
 import Store from 'electron-store'
+import * as fs from 'fs'
+import * as http from 'http'
+import * as https from 'https'
 import path from 'path'
 
 interface StoreSchema {
@@ -95,6 +98,78 @@ function loadSync(win: BrowserWindow): void {
   win.loadFile(syncPath)
 }
 
+function loadModelUpload(win: BrowserWindow): void {
+  win.loadFile(path.join(__dirname, 'model-upload.html'))
+}
+
+// ── Streaming multipart upload helper ────────────────────────────────────────
+//
+// Streams a local file directly to the backend without buffering the whole
+// file in memory — essential for multi-GB model files.
+
+async function streamUploadModel(
+  baseUrl: string,
+  token: string,
+  remoteRelPath: string,
+  localFilePath: string,
+  onProgress: (loaded: number, total: number) => void,
+): Promise<void> {
+  const stat       = fs.statSync(localFilePath)
+  const totalBytes = stat.size
+  const filename   = path.basename(localFilePath).replace(/"/g, '\\"')
+  const boundary   = `Boundary${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`
+
+  const preamble = Buffer.from(
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+    `Content-Type: application/octet-stream\r\n\r\n`,
+  )
+  const epilogue      = Buffer.from(`\r\n--${boundary}--\r\n`)
+  const contentLength = preamble.length + totalBytes + epilogue.length
+
+  const url       = new URL(`${baseUrl}/api/sync/model-upload?path=${encodeURIComponent(remoteRelPath)}`)
+  const transport = url.protocol === 'https:' ? https : http
+
+  return new Promise<void>((resolve, reject) => {
+    const req = transport.request(
+      {
+        hostname: url.hostname,
+        port:     url.port ? parseInt(url.port) : (url.protocol === 'https:' ? 443 : 80),
+        path:     url.pathname + url.search,
+        method:   'POST',
+        headers:  {
+          'X-User-Token':  token,
+          'Content-Type':  `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': contentLength,
+        },
+      },
+      (res) => {
+        let body = ''
+        res.on('data', (c) => { body += c })
+        res.on('end',  () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) resolve()
+          else reject(new Error(`Upload failed (${res.statusCode}): ${body.slice(0, 200)}`))
+        })
+      },
+    )
+
+    req.on('error', reject)
+    req.write(preamble)
+
+    let uploaded = 0
+    const stream = fs.createReadStream(localFilePath, { highWaterMark: 1024 * 1024 })
+
+    stream.on('data', (chunk: Buffer) => {
+      uploaded += chunk.length
+      const ok = req.write(chunk)
+      onProgress(uploaded, totalBytes)
+      if (!ok) { stream.pause(); req.once('drain', () => stream.resume()) }
+    })
+    stream.on('end',   () => { req.write(epilogue); req.end() })
+    stream.on('error', reject)
+  })
+}
+
 // ── Application menu ──────────────────────────────────────────────────────────
 
 function buildMenu(): void {
@@ -114,6 +189,13 @@ function buildMenu(): void {
           accelerator: 'CmdOrCtrl+Shift+S',
           click: () => {
             if (mainWindow) loadSync(mainWindow)
+          },
+        },
+        {
+          label: 'Model Uploader…',
+          accelerator: 'CmdOrCtrl+Shift+M',
+          click: () => {
+            if (mainWindow) loadModelUpload(mainWindow)
           },
         },
         { type: 'separator' },
@@ -335,6 +417,90 @@ ipcMain.handle('transfer-files', async (event, {
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : String(err) }
   }
+})
+
+ipcMain.handle('open-file-dialog', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select Model Files',
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: 'Model Files', extensions: ['safetensors', 'ckpt', 'pt', 'pth', 'bin', 'gguf', 'sft'] },
+      { name: 'All Files',   extensions: ['*'] },
+    ],
+  })
+  if (result.canceled) return []
+  return result.filePaths.map(p => ({
+    name:      path.basename(p),
+    localPath: p,
+    size:      fs.statSync(p).size,
+  }))
+})
+
+ipcMain.handle('get-model-dirs', async (_event, { password }: { password: string }) => {
+  const localUrl  = store.get('localUrl',  '') as string
+  const runpodUrl = store.get('runpodUrl', '') as string
+
+  const results: Record<string, { root: string; dirs: string[] } | { error: string }> = {}
+
+  await Promise.allSettled([
+    localUrl  ? syncLogin(localUrl,  password).then(t => syncFetch(localUrl,  t, '/api/sync/model-dirs')).then(d => { results.local  = d as { root: string; dirs: string[] } }).catch(e => { results.local  = { error: String(e) } }) : Promise.resolve(),
+    runpodUrl ? syncLogin(runpodUrl, password).then(t => syncFetch(runpodUrl, t, '/api/sync/model-dirs')).then(d => { results.runpod = d as { root: string; dirs: string[] } }).catch(e => { results.runpod = { error: String(e) } }) : Promise.resolve(),
+  ])
+
+  const allDirs = new Set<string>()
+  for (const r of Object.values(results)) {
+    if ('dirs' in r) r.dirs.forEach(d => allDirs.add(d))
+  }
+
+  return { local: results.local, runpod: results.runpod, allDirs: [...allDirs].sort() }
+})
+
+ipcMain.handle('upload-models', async (event, {
+  files, destDir, targets, password,
+}: {
+  files:   Array<{ name: string; localPath: string; size: number }>;
+  destDir: string;
+  targets: ('local' | 'runpod')[];
+  password: string;
+}) => {
+  const urlMap: Record<string, string> = {
+    local:  store.get('localUrl',  '') as string,
+    runpod: store.get('runpodUrl', '') as string,
+  }
+  const tokens: Record<string, string> = {}
+
+  try {
+    await Promise.all(targets.map(async (t) => {
+      if (!urlMap[t]) throw new Error(`${t} URL not configured`)
+      tokens[t] = await syncLogin(urlMap[t], password)
+    }))
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  const errors: Array<{ file: string; target: string; error: string }> = []
+
+  for (let fi = 0; fi < files.length; fi++) {
+    const f = files[fi]
+    for (const target of targets) {
+      const remoteRelPath = destDir ? `${destDir}/${f.name}` : f.name
+      try {
+        await streamUploadModel(
+          urlMap[target], tokens[target], remoteRelPath, f.localPath,
+          (loaded, total) => {
+            event.sender.send('upload-progress', { fi, name: f.name, target, loaded, total, done: false, error: null })
+          },
+        )
+        event.sender.send('upload-progress', { fi, name: f.name, target, loaded: f.size, total: f.size, done: true, error: null })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        errors.push({ file: f.name, target, error: msg })
+        event.sender.send('upload-progress', { fi, name: f.name, target, loaded: 0, total: f.size, done: true, error: msg })
+      }
+    }
+  }
+
+  return { ok: true, errors }
 })
 
 ipcMain.handle('merge-db', async (_event, { password }: { password: string }) => {
