@@ -183,6 +183,7 @@ export default function App() {
               adminModule={showAdmin ? adminModule : null}
               workflowModules={visibleWorkflowModules}
               customTools={customTools}
+              isAdmin={isAdmin}
               onSelect={openModule}
               onOpenTool={openTool}
               onNewTool={() => openWizard()}
@@ -238,6 +239,7 @@ export default function App() {
             showGallery={showGallery}
             showComfyUI={showComfyUI}
             showAdmin={showAdmin}
+            isAdmin={isAdmin}
             workflowModules={visibleWorkflowModules}
             customTools={customTools}
           />

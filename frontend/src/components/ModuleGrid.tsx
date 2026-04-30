@@ -10,6 +10,7 @@ interface Props {
   adminModule:      WorkflowModule | null
   workflowModules:  WorkflowModule[]
   customTools:      ToolSummary[]
+  isAdmin:          boolean
   onSelect:         (m: WorkflowModule) => void
   onOpenTool:       (toolId: string) => void
   onNewTool:        () => void
@@ -106,9 +107,9 @@ function NewToolCard({ onClick }: { onClick: () => void }) {
 
 export default function ModuleGrid({
   galleryModule, comfyUIModule, adminModule, workflowModules,
-  customTools, onSelect, onOpenTool, onNewTool,
+  customTools, isAdmin, onSelect, onOpenTool, onNewTool,
 }: Props) {
-  const hasAnyContent = galleryModule || comfyUIModule || workflowModules.length > 0 || adminModule
+  const hasAnyContent = galleryModule || comfyUIModule || workflowModules.length > 0 || adminModule || customTools.length > 0
   if (!hasAnyContent) {
     return <p className="text-sm text-muted-foreground">No apps available for your account.</p>
   }
@@ -148,18 +149,20 @@ export default function ModuleGrid({
       )}
 
       {/* Custom Tools */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-foreground text-lg font-semibold tracking-wide">Custom Tools</h2>
-          <p className="text-muted-foreground text-sm mt-1">Your saved tools, built from ComfyUI workflows.</p>
+      {(customTools.length > 0 || isAdmin) && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-foreground text-lg font-semibold tracking-wide">Custom Tools</h2>
+            <p className="text-muted-foreground text-sm mt-1">Your saved tools, built from ComfyUI workflows.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customTools.map(t => (
+              <CustomToolCard key={t.id} tool={t} onClick={() => onOpenTool(t.id)} />
+            ))}
+            {isAdmin && <NewToolCard onClick={onNewTool} />}
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {customTools.map(t => (
-            <CustomToolCard key={t.id} tool={t} onClick={() => onOpenTool(t.id)} />
-          ))}
-          <NewToolCard onClick={onNewTool} />
-        </div>
-      </div>
+      )}
       <div className="border-t border-border" />
       {/*ComfyUI*/}
       {(comfyUIModule) && (

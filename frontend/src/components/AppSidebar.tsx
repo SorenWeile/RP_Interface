@@ -17,6 +17,7 @@ interface Props {
   showGallery:     boolean
   showComfyUI:     boolean
   showAdmin:       boolean
+  isAdmin:         boolean
   workflowModules: WorkflowModule[]
   customTools:     ToolSummary[]
 }
@@ -51,7 +52,7 @@ function NavButton({
 export default function AppSidebar({
   activeModule, activeToolId, wizardActive,
   onSelectModule, onOpenTool, onNewTool,
-  showGallery, showComfyUI, showAdmin,
+  showGallery, showComfyUI, showAdmin, isAdmin,
   workflowModules, customTools,
 }: Props) {
   return (
@@ -104,11 +105,13 @@ export default function AppSidebar({
         )}
 
         {/* Custom Tools */}
-        <div className="pt-1 pb-0.5">
-          <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-            Custom Tools
-          </p>
-        </div>
+        {(customTools.length > 0 || isAdmin) && (
+          <div className="pt-1 pb-0.5">
+            <p className="px-3 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+              Custom Tools
+            </p>
+          </div>
+        )}
         {customTools.map(t => {
           const Icon = getIcon(t.icon)
           return (
@@ -121,18 +124,20 @@ export default function AppSidebar({
             />
           )
         })}
-        <button
-          onClick={onNewTool}
-          className={cn(
-            'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
-            wizardActive
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          )}
-        >
-          <Plus className="w-4 h-4 shrink-0" />
-          <span className="truncate">New Tool</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={onNewTool}
+            className={cn(
+              'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left',
+              wizardActive
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            )}
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="truncate">New Tool</span>
+          </button>
+        )}
 
         {/* Admin */}
         {showAdmin && (
