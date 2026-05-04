@@ -269,6 +269,49 @@ export async function createImagePromptingBatch(params: {
   return res.json()
 }
 
+// ── Deadline render farm ──────────────────────────────────────────────────
+
+export async function submitImagePromptingToFarm(params: {
+  refFiles: (File | null)[]
+  prompt: string
+  count: number
+  clientPath: string
+  productPath: string
+  filePrefix: string
+}): Promise<{ job_id: string; deadline_job_id: string }> {
+  const form = new FormData()
+  form.append('workflow_type', 'image_prompting')
+  form.append('params', JSON.stringify({
+    prompt: params.prompt,
+    count: params.count,
+    client_path: params.clientPath,
+    product_path: params.productPath,
+    filename_prefix: params.filePrefix,
+  }))
+  form.append('path_client', params.clientPath)
+  form.append('path_product', params.productPath)
+  form.append('path_filename', params.filePrefix)
+  params.refFiles.forEach((file, i) => {
+    if (file) form.append('images', file, `ref_${i}__${file.name}`)
+  })
+  const res = await fetch(`${BASE}/api/deadline/submit`, { method: 'POST', body: form })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? res.statusText)
+  }
+  return res.json()
+}
+
+export async function getDeadlineStatus(deadlineJobId: string): Promise<{
+  deadline_job_id: string
+  status: string
+  progress: number
+}> {
+  const res = await fetch(`${BASE}/api/deadline/status/${deadlineJobId}`)
+  if (!res.ok) throw new Error(`Status check failed: ${res.statusText}`)
+  return res.json()
+}
+
 // ── Tools (built-in + custom) ─────────────────────────────────────────────
 
 async function _toolFetch(path: string, init?: RequestInit): Promise<Response> {

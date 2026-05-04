@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { createImagePromptingBatch, getBatchStatus, cancelBatch, uploadImage, imageUrl, type BatchJobStatus } from '@/api/client'
+import { createImagePromptingBatch, getBatchStatus, cancelBatch, uploadImage, imageUrl, submitImagePromptingToFarm, getDeadlineStatus, type BatchJobStatus } from '@/api/client'
 import { fetchAndDownload } from '@/lib/download'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -29,6 +29,13 @@ type Stage =
   | { status: 'running' | 'complete'; batch: BatchInfo }
   | { status: 'error'; message: string }
 
+type FarmStage =
+  | { status: 'idle' }
+  | { status: 'submitting' }
+  | { status: 'queued' | 'rendering'; jobId: string; deadlineJobId: string; progress: number }
+  | { status: 'complete'; jobId: string; deadlineJobId: string }
+  | { status: 'failed'; message: string }
+
 // ── Status dot ────────────────────────────────────────────────────────────────
 
 function RunDot({ status }: { status: BatchJobStatus['status'] | 'pending' }) {
@@ -56,7 +63,10 @@ export default function ImagePrompting() {
   const [productPath, setProductPath] = useState('')
   const [filePrefix, setFilePrefix]   = useState('Shot001')
   const [stage, setStage]             = useState<Stage>({ status: 'idle' })
+  const [farmStage, setFarmStage]     = useState<FarmStage>({ status: 'idle' })
   const pollRef                       = useRef<ReturnType<typeof setInterval> | null>(null)
+  const farmPollRef                   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const rawRefFiles                   = useRef<(File | null)[]>(Array(REF_COUNT).fill(null))
   const { toast, dismiss }             = useToast()
 
   // ── Upload ───────────────────────────────────────────────────────────────────
@@ -76,13 +86,16 @@ export default function ImagePrompting() {
   )
 
   const handleRefFile = useCallback((index: number, file: File) => {
+    rawRefFiles.current[index] = file
     uploadSlot(file, (fn) =>
       setRefSlots((prev) => prev.map((s, i) => (i === index ? fn(s) : s)))
     )
   }, [uploadSlot])
 
-  const clearRef = (index: number) =>
+  const clearRef = (index: number) => {
+    rawRefFiles.current[index] = null
     setRefSlots((prev) => prev.map((s, i) => (i === index ? EMPTY_SLOT : s)))
+  }
 
   // ── Polling ──────────────────────────────────────────────────────────────────
 
@@ -151,6 +164,61 @@ export default function ImagePrompting() {
     }
   }
 
+  // ── Farm submit ──────────────────────────────────────────────────────────────
+
+  const startFarmPolling = useCallback((jobId: string, deadlineJobId: string) => {
+    if (farmPollRef.current) clearInterval(farmPollRef.current)
+    farmPollRef.current = setInterval(async () => {
+      try {
+        const s = await getDeadlineStatus(deadlineJobId)
+        if (s.status === 'completed') {
+          clearInterval(farmPollRef.current!)
+          farmPollRef.current = null
+          setFarmStage({ status: 'complete', jobId, deadlineJobId })
+          toast('Farm job complete!', 'success')
+        } else if (s.status === 'failed') {
+          clearInterval(farmPollRef.current!)
+          farmPollRef.current = null
+          setFarmStage({ status: 'failed', message: 'Deadline reported job failed' })
+          toast('Farm job failed', 'error')
+        } else {
+          const inProgress = s.status === 'rendering'
+          setFarmStage({
+            status: inProgress ? 'rendering' : 'queued',
+            jobId,
+            deadlineJobId,
+            progress: s.progress ?? 0,
+          })
+        }
+      } catch (e) {
+        setFarmStage({ status: 'failed', message: String(e) })
+        clearInterval(farmPollRef.current!)
+        farmPollRef.current = null
+        toast('Farm status polling failed', 'error')
+      }
+    }, 5000)
+  }, [toast])
+
+  const submitToFarm = async () => {
+    setFarmStage({ status: 'submitting' })
+    try {
+      const { job_id, deadline_job_id } = await submitImagePromptingToFarm({
+        refFiles: rawRefFiles.current,
+        prompt,
+        count,
+        clientPath: clientPath,
+        productPath: productPath,
+        filePrefix: filePrefix,
+      })
+      setFarmStage({ status: 'queued', jobId: job_id, deadlineJobId: deadline_job_id, progress: 0 })
+      startFarmPolling(job_id, deadline_job_id)
+      toast('Job submitted to farm!', 'success')
+    } catch (e) {
+      setFarmStage({ status: 'failed', message: String(e) })
+      toast('Farm submission failed', 'error')
+    }
+  }
+
   // ── Cancel ───────────────────────────────────────────────────────────────────
 
   const handleCancel = async () => {
@@ -169,16 +237,21 @@ export default function ImagePrompting() {
 
   const resetFull = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    if (farmPollRef.current) { clearInterval(farmPollRef.current); farmPollRef.current = null }
     setRefSlots(Array(REF_COUNT).fill(EMPTY_SLOT))
+    rawRefFiles.current = Array(REF_COUNT).fill(null)
     setPrompt('')
     setStage({ status: 'idle' })
+    setFarmStage({ status: 'idle' })
   }
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 
-  const isBusy    = stage.status === 'submitting' || stage.status === 'running'
-  const hasPrompt = prompt.trim().length > 0
-  const canSubmit = hasPrompt && !isBusy
+  const isBusy      = stage.status === 'submitting' || stage.status === 'running'
+  const isFarmBusy  = farmStage.status === 'submitting' || farmStage.status === 'queued' || farmStage.status === 'rendering'
+  const hasPrompt   = prompt.trim().length > 0
+  const canSubmit   = hasPrompt && !isBusy
+  const canFarm     = hasPrompt && !isFarmBusy
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -264,6 +337,9 @@ export default function ImagePrompting() {
             {stage.status === 'submitting'
               ? 'Queuing…'
               : count === 1 ? 'Generate' : `Generate — ${count} runs`}
+          </Button>
+          <Button variant="outline" onClick={submitToFarm} disabled={!canFarm}>
+            {farmStage.status === 'submitting' ? 'Submitting…' : 'Submit to Farm'}
           </Button>
           <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
         </div>
@@ -365,6 +441,62 @@ export default function ImagePrompting() {
             </p>
             <Button variant="ghost" size="sm" onClick={resetFull}>Reset</Button>
           </div>
+        )}
+
+        {/* Farm status */}
+        {farmStage.status !== 'idle' && (
+          <>
+            {(stage.status !== 'idle' || farmStage.status !== 'idle') && <Separator />}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Farm Job</p>
+
+              {farmStage.status === 'submitting' && (
+                <p className="text-xs text-muted-foreground">Submitting to Deadline…</p>
+              )}
+
+              {(farmStage.status === 'queued' || farmStage.status === 'rendering') && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span className={cn(
+                      farmStage.status === 'rendering' && 'text-primary'
+                    )}>
+                      {farmStage.status === 'queued' ? 'Queued on farm' : 'Rendering on farm'}
+                    </span>
+                    <span>{Math.round(farmStage.progress)}%</span>
+                  </div>
+                  <Progress value={farmStage.progress} className="h-1.5" />
+                  <p className="text-xs text-muted-foreground">
+                    Job ID: {farmStage.deadlineJobId}
+                  </p>
+                </div>
+              )}
+
+              {farmStage.status === 'complete' && (
+                <div className="space-y-2">
+                  <p className="text-xs text-green-500">
+                    Complete — outputs saved to NAS
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Job ID: {farmStage.deadlineJobId}
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={() => setFarmStage({ status: 'idle' })}>
+                    Dismiss
+                  </Button>
+                </div>
+              )}
+
+              {farmStage.status === 'failed' && (
+                <div className="space-y-2">
+                  <p className="text-destructive text-xs border border-destructive/30 rounded px-3 py-2 bg-comfy-panel">
+                    {farmStage.message}
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={() => setFarmStage({ status: 'idle' })}>
+                    Dismiss
+                  </Button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
