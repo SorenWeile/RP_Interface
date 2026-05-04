@@ -15,7 +15,7 @@ import json
 import shutil
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import APIRouter, Form, HTTPException, UploadFile, File
@@ -94,7 +94,7 @@ async def submit_job(
     path_product: str = Form(""),
     path_filename: str = Form(""),
     priority: int = Form(50),
-    images: list[UploadFile] = File(default=[]),
+    images: Optional[List[UploadFile]] = None,
 ):
     """
     Stage inputs to NAS and submit a ComfyUI job to Deadline.
@@ -118,7 +118,7 @@ async def submit_job(
 
     # Stage uploaded images to NAS
     image_paths: dict[str, str] = {}
-    for upload in images:
+    for upload in (images or []):
         data = await upload.read()
         dest = inputs_dir / upload.filename
         dest.write_bytes(data)
