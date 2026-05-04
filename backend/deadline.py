@@ -180,9 +180,10 @@ async def get_job_status(deadline_job_id: str):
     """Poll Deadline for job status. Returns a simplified status + raw Deadline data."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(f"{DEADLINE_URL}/api/jobs/{deadline_job_id}")
+            r = await client.get(f"{DEADLINE_URL}/api/jobs", params={"JobID": deadline_job_id})
             r.raise_for_status()
-            job = r.json()
+            jobs = r.json()
+            job = jobs[0] if isinstance(jobs, list) and jobs else jobs
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Deadline Web Service error: {e}")
 
