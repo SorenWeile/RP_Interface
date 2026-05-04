@@ -446,7 +446,7 @@ export default function ImagePrompting() {
         {/* Farm status */}
         {farmStage.status !== 'idle' && (
           <>
-            {(stage.status !== 'idle' || farmStage.status !== 'idle') && <Separator />}
+            <Separator />
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground uppercase tracking-widest">Farm Job</p>
 
