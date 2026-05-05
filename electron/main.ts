@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, session } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import Store from 'electron-store'
 import * as fs from 'fs'
 import * as http from 'http'
@@ -565,10 +566,33 @@ ipcMain.handle('save-backend-url', (_event, url: string) => {
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
+function setupAutoUpdater(): void {
+  if (!app.isPackaged) return
+
+  autoUpdater.checkForUpdates()
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: 'A new version of AI Toolhouse has been downloaded.\nRestart now to apply the update.',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall()
+    })
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err.message)
+  })
+}
+
 app.whenReady().then(() => {
   installApiRedirect()
   buildMenu()
   mainWindow = createWindow()
+  setupAutoUpdater()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

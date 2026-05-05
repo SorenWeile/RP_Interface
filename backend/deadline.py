@@ -145,8 +145,8 @@ async def submit_job(
 
     deadline_payload = {
         "JobInfo": {
-            "Name": f"ComfyUI – {workflow_type or tool_id or 'job'} – {job_id[:8]}",
-            "Plugin": "ComfyUI",
+            "Name": f"aiToolhouse – {workflow_type or tool_id or 'job'} – {job_id[:8]}",
+            "Plugin": "aiToolhouse",
             "Pool": DEADLINE_POOL,
             "Frames": "0",
             "Priority": priority,

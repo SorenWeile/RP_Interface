@@ -24,9 +24,6 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 
-# Publish to NAS share for easy studio-wide distribution.
-# Installer lands in \\nas\indgai\rp-interface\releases\
-# Change to "github" provider when the repo is public.
 publish:
-  provider: generic
-  url: "\\\\nas\\indgai\\rp-interface\\releases\\"
+  provider: github
+  releaseType: release

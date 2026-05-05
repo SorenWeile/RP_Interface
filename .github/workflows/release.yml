@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Compile electron TypeScript
+        run: npx tsc -p electron/tsconfig.json
+
+      - name: Copy static electron files
+        shell: pwsh
+        run: |
+          Copy-Item electron/settings.html    dist-electron/settings.html
+          Copy-Item electron/sync.html        dist-electron/sync.html
+          Copy-Item electron/model-upload.html dist-electron/model-upload.html
+
+      - name: Package and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
