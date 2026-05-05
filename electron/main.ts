@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, session } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import Store from 'electron-store'
 import * as fs from 'fs'
@@ -553,6 +553,10 @@ ipcMain.handle('merge-db', async (_event, { password }: { password: string }) =>
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : String(err) }
   }
+})
+
+ipcMain.on('open-external', (_event, url: string) => {
+  shell.openExternal(url)
 })
 
 // Legacy single-URL handler kept so old preload builds don't break.

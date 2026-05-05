@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { ArrowLeft, LogOut } from 'lucide-react'
+import { ArrowLeft, CircleHelp, LogOut } from 'lucide-react'
 import { workflowModules, galleryModule, adminModule, comfyUIModule, type WorkflowModule } from '@/modules/index'
 import ModuleGrid from '@/components/ModuleGrid'
 import AppSidebar from '@/components/AppSidebar'
@@ -154,6 +154,13 @@ export default function App() {
         {/* User info + logout */}
         <div className="flex items-center gap-2 ml-3">
           <span className="text-xs text-muted-foreground">{currentUser?.username}</span>
+          <button
+            onClick={() => (window as any).electronAPI?.openExternal('https://github.com/SorenWeile/RP_Interface/blob/main/documentation/user-guide.md')}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Help"
+          >
+            <CircleHelp className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={handleLogout}
             className="text-muted-foreground hover:text-foreground transition-colors"

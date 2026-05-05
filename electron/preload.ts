@@ -60,6 +60,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('transfer-progress')
   },
 
+  openExternal: (url: string): void =>
+    ipcRenderer.send('open-external', url),
+
   // Read synchronously so client.ts can use it as a module-level constant.
   backendUrl: ipcRenderer.sendSync('get-backend-url-sync') as string,
 })
