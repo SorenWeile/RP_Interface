@@ -34,3 +34,4 @@ Thumbs.db
 .claude/settings.local.json
 /node_modules
 /release
+.claude/settings.local.json
