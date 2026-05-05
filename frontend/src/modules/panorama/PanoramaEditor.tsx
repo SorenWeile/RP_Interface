@@ -138,7 +138,7 @@ const PanoramaEditor = forwardRef<PanoramaEditorHandle, Props>(function Panorama
   }))
 
   return (
-    <div className="relative w-full" style={{ minHeight: 600 }}>
+    <div className="relative w-full overflow-x-hidden" style={{ minHeight: 600 }}>
       {/* Mount point — no h-full so height resolves from content, not parent */}
       <div ref={hostRef} className="w-full" style={{ minHeight: 600 }} />
 

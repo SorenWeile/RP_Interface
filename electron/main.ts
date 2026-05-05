@@ -48,10 +48,12 @@ function installApiRedirect(): void {
       try {
         const parsed = new URL(details.url)
         // On Windows, pathname is e.g. /C:/api/gallery/image/...
-        // On all platforms the segment we care about starts with /api/
-        const apiIdx = parsed.pathname.indexOf('/api/')
-        if (apiIdx !== -1) {
-          const apiPath = parsed.pathname.slice(apiIdx) + parsed.search
+        // On all platforms the segment we care about starts with /api/ or /pano/
+        const apiIdx  = parsed.pathname.indexOf('/api/')
+        const panoIdx = parsed.pathname.indexOf('/pano/')
+        const startIdx = apiIdx !== -1 ? apiIdx : panoIdx
+        if (startIdx !== -1) {
+          const apiPath = parsed.pathname.slice(startIdx) + parsed.search
           callback({ redirectURL: `${backendUrl}${apiPath}` })
           return
         }
