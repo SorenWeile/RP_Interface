@@ -176,7 +176,7 @@ export default function App() {
         {/* Main content */}
         <main
           className={cn(
-            'flex-1 overflow-hidden',
+            'flex-1 min-h-0 overflow-hidden',
             !noPadding && 'p-8',
             !noPadding && !isWizard && 'overflow-y-auto',
             isWizard && 'flex flex-col min-h-0',

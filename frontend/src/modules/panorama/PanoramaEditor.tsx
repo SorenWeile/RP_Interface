@@ -138,9 +138,9 @@ const PanoramaEditor = forwardRef<PanoramaEditorHandle, Props>(function Panorama
   }))
 
   return (
-    <div className="relative w-full" style={{ minHeight: 600 }}>
-      {/* Mount point — the editor renders directly into this div */}
-      <div ref={hostRef} className="w-full h-full" style={{ minHeight: 600 }} />
+    <div className="relative w-full overflow-hidden" style={{ height: 600 }}>
+      {/* Mount point — absolute so h/w always resolves to exactly 600px */}
+      <div ref={hostRef} className="absolute inset-0" />
 
       {loading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-comfy-bg/80 rounded">
