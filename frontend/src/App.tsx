@@ -155,7 +155,7 @@ export default function App() {
         <div className="flex items-center gap-2 ml-3">
           <span className="text-xs text-muted-foreground">{currentUser?.username}</span>
           <button
-            onClick={() => (window as any).electronAPI?.openExternal('https://github.com/SorenWeile/RP_Interface/blob/main/documentation/user-guide.md')}
+            onClick={() => (window as any).electronAPI?.openExternal('https://github.com/SorenWeile/RP_Interface/blob/02_Electron/documentation/user-guide.md')}
             className="text-muted-foreground hover:text-foreground transition-colors"
             title="Help"
           >
