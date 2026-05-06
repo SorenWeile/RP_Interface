@@ -168,13 +168,21 @@ os.makedirs(_THUMBNAIL_DIR, exist_ok=True)
 _DB_FILE: Optional[str] = None
 
 
+def _gallery_db_path() -> str:
+    """gallery.db lives next to users.db and tools.db in the persistent DB directory."""
+    try:
+        from user_management import _db_path
+        return str(Path(_db_path()).parent / "gallery.db")
+    except Exception:
+        # Fallback: inside output dir (legacy behaviour)
+        return os.path.join(_output_dir(), ".gallery_cache", "gallery.db")
+
+
 def init_gallery_db() -> None:
     """Called once at app startup to create / migrate the SQLite schema."""
     global _DB_FILE
-    output_dir = _output_dir()
-    db_dir = os.path.join(output_dir, ".gallery_cache")
-    os.makedirs(db_dir, exist_ok=True)
-    _DB_FILE = os.path.join(db_dir, "gallery.db")
+    _DB_FILE = _gallery_db_path()
+    os.makedirs(os.path.dirname(_DB_FILE), exist_ok=True)
 
     with sqlite3.connect(_DB_FILE) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
