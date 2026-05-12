@@ -33,6 +33,7 @@ interface Props {
   selectedIndex: number
   currentPath: string
   loading: boolean
+  showFavoritesOnly: boolean
   onSelectIndex: (i: number) => void
   onNavigate: (path: string) => void
   onToggleFavorite: (img: GalleryImage) => void
@@ -47,6 +48,7 @@ export default function DetailView({
   selectedIndex,
   currentPath,
   loading,
+  showFavoritesOnly,
   onSelectIndex,
   onNavigate,
   onToggleFavorite,
@@ -377,8 +379,8 @@ export default function DetailView({
         ref={thumbStripRef}
         className="shrink-0 h-[180px] border-t border-border bg-card flex items-center gap-2 overflow-x-auto px-2 py-2"
       >
-        {/* Folder tiles */}
-        {folders.map(folder => (
+        {/* Folder tiles — hidden in favourites mode */}
+        {!showFavoritesOnly && folders.map(folder => (
           <button
             key={folder.path}
             onClick={() => onNavigate(folder.path)}

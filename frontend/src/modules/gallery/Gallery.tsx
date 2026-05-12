@@ -579,6 +579,7 @@ export default function Gallery() {
               selectedIndex={selectedIndex}
               currentPath={currentPath}
               loading={loading}
+              showFavoritesOnly={showFavoritesOnly}
               onSelectIndex={setSelectedIndex}
               onNavigate={navigate}
               onToggleFavorite={toggleFavorite}

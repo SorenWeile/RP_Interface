@@ -158,7 +158,12 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov"}
 MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 THUMBNAIL_SIZE = (300, 300)
-_THUMBNAIL_DIR = os.path.join(os.path.dirname(__file__), "gallery_thumbnails")
+# THUMBNAIL_DIR env var lets you persist thumbnails on a NAS mount (local Docker mode).
+# Falls back to a local directory beside gallery.py (default for RunPod).
+_THUMBNAIL_DIR = os.environ.get(
+    "THUMBNAIL_DIR",
+    os.path.join(os.path.dirname(__file__), "gallery_thumbnails"),
+)
 os.makedirs(_THUMBNAIL_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
@@ -423,9 +428,12 @@ def _get_thumbnail_path(rel_path: str) -> Optional[str]:
     full = _safe_path(rel_path)
     if not full or not os.path.exists(full):
         return None
-    thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(rel_path))}.jpg")
+    # Include mtime in the key so a replaced file (same name, new content)
+    # always gets its own thumbnail rather than reusing a stale one.
     img_mtime = os.path.getmtime(full)
-    if os.path.exists(thumb) and os.path.getmtime(thumb) >= img_mtime:
+    thumb_key = f"{rel_path}_{img_mtime}"
+    thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(thumb_key))}.jpg")
+    if os.path.exists(thumb):
         return thumb
     try:
         with Image.open(full) as img:
@@ -450,6 +458,21 @@ def _generate_thumbnails_bg(paths: list) -> None:
             _get_thumbnail_path(p)
         except Exception:
             pass
+
+
+def _delete_thumbnail(rel_path: str) -> None:
+    """Delete the cached thumbnail for rel_path (call before removing the source file)."""
+    full = _safe_path(rel_path)
+    if not full or not os.path.exists(full):
+        return
+    try:
+        img_mtime = os.path.getmtime(full)
+        thumb_key = f"{rel_path}_{img_mtime}"
+        thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(thumb_key))}.jpg")
+        if os.path.exists(thumb):
+            os.remove(thumb)
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -916,11 +939,7 @@ def gallery_delete_image(image_path: str, x_user_token: Optional[str] = Header(N
         raise HTTPException(status_code=404, detail="Image not found")
     if not os.path.isfile(full):
         raise HTTPException(status_code=400, detail="Path is not a file")
-    # Remove thumbnail if it exists
-    thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(image_path))}.jpg")
-    if os.path.exists(thumb):
-        os.remove(thumb)
-    # Remove from DB
+    _delete_thumbnail(image_path)
     if _DB_FILE:
         with sqlite3.connect(_DB_FILE) as conn:
             conn.execute("DELETE FROM files WHERE path=?", (image_path,))
@@ -954,10 +973,7 @@ def gallery_delete_folder(folder_path: str, x_user_token: Optional[str] = Header
         full_img = os.path.normpath(os.path.join(full, img["path"]))
         rel = _encode_path(os.path.relpath(full_img, base))
         rel_paths.append(rel)
-        # Remove thumbnail
-        thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(rel))}.jpg")
-        if os.path.exists(thumb):
-            os.remove(thumb)
+        _delete_thumbnail(rel)
     # Remove all DB entries
     if _DB_FILE and rel_paths:
         with sqlite3.connect(_DB_FILE) as conn:
@@ -995,9 +1011,7 @@ def gallery_delete_images(req: DeleteImagesRequest, x_user_token: Optional[str] 
         if not full or not os.path.exists(full) or not os.path.isfile(full):
             errors.append(image_path)
             continue
-        thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(image_path))}.jpg")
-        if os.path.exists(thumb):
-            os.remove(thumb)
+        _delete_thumbnail(image_path)
         if _DB_FILE:
             with sqlite3.connect(_DB_FILE) as conn:
                 conn.execute("DELETE FROM files WHERE path=?", (image_path,))
@@ -1048,6 +1062,8 @@ def gallery_move(req: MoveRequest, x_user_token: Optional[str] = Header(None)):
             status_code=409, detail=f"'{filename}' already exists in destination"
         )
 
+    # Delete thumbnail before moving (file still exists at src_path here)
+    _delete_thumbnail(src_path)
     shutil.move(src_full, dest_full)
 
     new_rel = _encode_path(os.path.relpath(dest_full, _output_dir()))
@@ -1061,11 +1077,6 @@ def gallery_move(req: MoveRequest, x_user_token: Optional[str] = Header(None)):
                 (new_fid, new_rel, time.time(), old_fid),
             )
             conn.commit()
-
-    # Remove old thumbnail; new one will be generated on demand
-    old_thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(src_path))}.jpg")
-    if os.path.exists(old_thumb):
-        os.remove(old_thumb)
 
     return {"status": "moved", "old_path": src_path, "new_path": new_rel}
 
@@ -1097,6 +1108,8 @@ def gallery_rename(req: RenameRequest, x_user_token: Optional[str] = Header(None
     if os.path.exists(dest_full):
         raise HTTPException(status_code=409, detail=f"'{new_name}' already exists in this folder")
 
+    # Delete thumbnail before renaming (file still exists at src_path here)
+    _delete_thumbnail(src_path)
     os.rename(src_full, dest_full)
 
     new_rel = _encode_path(os.path.relpath(dest_full, _output_dir()))
@@ -1110,11 +1123,6 @@ def gallery_rename(req: RenameRequest, x_user_token: Optional[str] = Header(None
                 (new_fid, new_rel, new_name, time.time(), old_fid),
             )
             conn.commit()
-
-    # Remove old thumbnail
-    old_thumb = os.path.join(_THUMBNAIL_DIR, f"{abs(hash(src_path))}.jpg")
-    if os.path.exists(old_thumb):
-        os.remove(old_thumb)
 
     return {"status": "renamed", "old_path": src_path, "new_path": new_rel, "name": new_name}
 
