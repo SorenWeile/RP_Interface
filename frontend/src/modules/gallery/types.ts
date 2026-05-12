@@ -12,6 +12,7 @@ export interface GalleryImage {
   modified: number
   modified_str: string
   is_favorite?: boolean
+  favorite_score?: number  // 1–5, present when is_favorite is true
 }
 
 export interface FolderTreeNode {

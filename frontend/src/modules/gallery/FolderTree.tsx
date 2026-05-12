@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react'
+import { Folder, FolderOpen, ChevronRight, ChevronDown, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { FolderTreeNode } from './types'
 
@@ -103,10 +103,11 @@ function TreeNode({
 export default function FolderTree({ tree, currentPath, onNavigate, showFavoritesOnly, isAdmin, onMove, width = 224 }: Props) {
   return (
     <aside className="shrink-0 border-r border-border bg-card flex flex-col overflow-hidden" style={{ width }}>
-      <div className="px-3 py-2 border-b border-border">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
-          Folders
+      <div className="px-3 py-2 border-b border-border flex items-center gap-1.5">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest flex-1">
+          {showFavoritesOnly ? 'Favourites' : 'Folders'}
         </p>
+        {showFavoritesOnly && <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />}
       </div>
 
       <nav className="flex-1 overflow-y-auto p-1.5 space-y-0.5">

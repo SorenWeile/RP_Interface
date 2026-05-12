@@ -310,12 +310,14 @@ export default function GridView({
                   {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                 </div>
 
-                {/* Favourite star */}
+                {/* Favourite star + score */}
                 {img.is_favorite && (
-                  <Star
-                    className="absolute top-1.5 right-1.5 w-4 h-4 text-yellow-400 drop-shadow"
-                    fill="currentColor"
-                  />
+                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/40 rounded px-1 py-0.5 drop-shadow">
+                    <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />
+                    {img.favorite_score != null && img.favorite_score > 1 && (
+                      <span className="text-[10px] text-yellow-400 font-semibold leading-none">{img.favorite_score}</span>
+                    )}
+                  </div>
                 )}
 
                 {/* Name on hover */}

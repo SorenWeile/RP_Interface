@@ -42,8 +42,12 @@ function filterTree(nodes: FolderTreeNode[], clientIds: string[]): FolderTreeNod
 // API helpers
 // ---------------------------------------------------------------------------
 
-async function apiBrowse(path: string) {
-  const r = await fetch(`/api/gallery/browse${path ? '/' + path : ''}`)
+async function apiBrowse(path: string, favoritesOnly = false) {
+  const token = localStorage.getItem('user_token') ?? ''
+  const qs = favoritesOnly ? '?favorites_only=true' : ''
+  const r = await fetch(`/api/gallery/browse${path ? '/' + path : ''}${qs}`, {
+    headers: { 'X-User-Token': token },
+  })
   if (!r.ok) throw new Error(`Browse failed: ${r.status}`)
   return r.json()
 }
@@ -72,23 +76,34 @@ async function apiMetadata(path: string): Promise<ImageMetadata> {
   return r.json()
 }
 
-async function apiFavorites() {
-  const r = await fetch('/api/gallery/favorites')
-  if (!r.ok) return { images: [] }
-  return r.json()
-}
-
 async function apiToggleFavorite(path: string) {
   const encoded = path.split('/').map(encodeURIComponent).join('/')
-  const r = await fetch(`/api/gallery/favorite/${encoded}`, { method: 'POST' })
+  const token = localStorage.getItem('user_token') ?? ''
+  const r = await fetch(`/api/gallery/favorite/${encoded}`, {
+    method: 'POST',
+    headers: { 'X-User-Token': token },
+  })
   if (!r.ok) throw new Error('Toggle failed')
   return r.json()
 }
 
+async function apiSetFavoriteScore(path: string, score: number) {
+  const encoded = path.split('/').map(encodeURIComponent).join('/')
+  const token = localStorage.getItem('user_token') ?? ''
+  const r = await fetch(`/api/gallery/favorite-score/${encoded}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
+    body: JSON.stringify({ score }),
+  })
+  if (!r.ok) throw new Error('Score update failed')
+  return r.json()
+}
+
 async function apiFavoriteBatch(paths: string[], is_favorite: boolean) {
+  const token = localStorage.getItem('user_token') ?? ''
   const r = await fetch('/api/gallery/favorite-batch', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-User-Token': token },
     body: JSON.stringify({ file_paths: paths, is_favorite }),
   })
   if (!r.ok) throw new Error('Batch favorite failed')
@@ -215,33 +230,26 @@ export default function Gallery() {
     async (path: string, favOnly: boolean) => {
       setLoading(true)
       try {
-        if (favOnly) {
-          const fav = await apiFavorites()
-          const favImgs: GalleryImage[] = fav.images ?? []
-          setImages(allowedPaths ? favImgs.filter(i => isPathAllowed(i.path, allowedPaths)) : favImgs)
-          setFolders([])
-        } else {
-          const data = await apiBrowse(path)
-          const rawFolders: GalleryFolder[] = data.folders ?? []
-          const rawImages: GalleryImage[] = data.images ?? []
-          const filteredFolders = allowedPaths
-            ? rawFolders.filter(f =>
-                isPathAllowed(f.path, allowedPaths) ||
-                filterTree([{ name: f.name, path: f.path, type: 'folder', children: [] }], allowedPaths).length > 0
-              )
-            : rawFolders
-          const filteredImages = allowedPaths
-            ? rawImages.filter(i => isPathAllowed(i.path, allowedPaths))
-            : rawImages
-          setFolders(filteredFolders)
-          setImages(filteredImages)
-          const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
-          const thumbnailable = filteredImages.filter(
-            i => !VIDEO_EXTS.some(ext => i.name.toLowerCase().endsWith(ext))
-          )
-          if (thumbnailable.length) {
-            apiGenerateThumbnails(thumbnailable.map(i => i.path))
-          }
+        const data = await apiBrowse(path, favOnly)
+        const rawFolders: GalleryFolder[] = data.folders ?? []
+        const rawImages: GalleryImage[] = data.images ?? []
+        const filteredFolders = allowedPaths
+          ? rawFolders.filter(f =>
+              isPathAllowed(f.path, allowedPaths) ||
+              filterTree([{ name: f.name, path: f.path, type: 'folder', children: [] }], allowedPaths).length > 0
+            )
+          : rawFolders
+        const filteredImages = allowedPaths
+          ? rawImages.filter(i => isPathAllowed(i.path, allowedPaths))
+          : rawImages
+        setFolders(filteredFolders)
+        setImages(filteredImages)
+        const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
+        const thumbnailable = filteredImages.filter(
+          i => !VIDEO_EXTS.some(ext => i.name.toLowerCase().endsWith(ext))
+        )
+        if (thumbnailable.length) {
+          apiGenerateThumbnails(thumbnailable.map(i => i.path))
         }
         setSelectedIndex(0)
         setSelectedImages(new Set())
@@ -291,8 +299,31 @@ export default function Gallery() {
   const toggleFavorite = useCallback(async (img: GalleryImage) => {
     try {
       const result = await apiToggleFavorite(img.path)
+      if (showFavoritesOnly && !result.is_favorite) {
+        setImages(prev => prev.filter(i => i.path !== img.path))
+      } else {
+        setImages(prev =>
+          prev.map(i =>
+            i.path === img.path
+              ? { ...i, is_favorite: result.is_favorite, favorite_score: result.score ?? undefined }
+              : i
+          )
+        )
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }, [showFavoritesOnly])
+
+  const setFavoriteScore = useCallback(async (img: GalleryImage, score: number) => {
+    try {
+      const result = await apiSetFavoriteScore(img.path, score)
       setImages(prev =>
-        prev.map(i => (i.path === img.path ? { ...i, is_favorite: result.is_favorite } : i))
+        prev.map(i =>
+          i.path === img.path
+            ? { ...i, is_favorite: true, favorite_score: result.score }
+            : i
+        )
       )
     } catch (e) {
       console.error(e)
@@ -304,9 +335,17 @@ export default function Gallery() {
       const paths = Array.from(selectedImages)
       try {
         await apiFavoriteBatch(paths, is_favorite)
-        setImages(prev =>
-          prev.map(i => (selectedImages.has(i.path) ? { ...i, is_favorite } : i))
-        )
+        if (showFavoritesOnly && !is_favorite) {
+          setImages(prev => prev.filter(i => !selectedImages.has(i.path)))
+        } else {
+          setImages(prev =>
+            prev.map(i =>
+              selectedImages.has(i.path)
+                ? { ...i, is_favorite, favorite_score: is_favorite ? (i.favorite_score ?? 1) : undefined }
+                : i
+            )
+          )
+        }
         toast(
           is_favorite
             ? `${paths.length} image${paths.length !== 1 ? 's' : ''} starred`
@@ -317,7 +356,7 @@ export default function Gallery() {
         toast('Failed to update favourites', 'error')
       }
     },
-    [selectedImages, toast]
+    [selectedImages, showFavoritesOnly, toast]
   )
 
   const toggleImageSelection = useCallback((img: GalleryImage) => {
@@ -475,7 +514,7 @@ export default function Gallery() {
       <div className="shrink-0 border-b border-border bg-card px-4 py-2 flex items-center gap-3">
         <span className="text-xs text-muted-foreground">
           {showFavoritesOnly
-            ? `${images.length} favourite${images.length !== 1 ? 's' : ''}`
+            ? `${images.length} favourite${images.length !== 1 ? 's' : ''} in this folder`
             : `${folders.length} folder${folders.length !== 1 ? 's' : ''}, ${images.length} image${images.length !== 1 ? 's' : ''}`}
         </span>
         <div className="ml-auto flex items-center gap-2">
@@ -517,23 +556,19 @@ export default function Gallery() {
       {/* Three-panel body */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: folder tree + drag handle */}
-        {!showFavoritesOnly && (
-          <>
-            <FolderTree
-              tree={tree}
-              currentPath={currentPath}
-              onNavigate={navigate}
-              showFavoritesOnly={showFavoritesOnly}
-              isAdmin={isAdmin && allowedPaths === null}
-              onMove={moveImage}
-              width={folderWidth}
-            />
-            <div
-              className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/60 transition-colors"
-              onMouseDown={startFolderResize}
-            />
-          </>
-        )}
+        <FolderTree
+          tree={tree}
+          currentPath={currentPath}
+          onNavigate={navigate}
+          showFavoritesOnly={showFavoritesOnly}
+          isAdmin={isAdmin && allowedPaths === null}
+          onMove={moveImage}
+          width={folderWidth}
+        />
+        <div
+          className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/60 transition-colors"
+          onMouseDown={startFolderResize}
+        />
 
         {/* Center: content */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -576,6 +611,7 @@ export default function Gallery() {
             metadata={metadata}
             loading={metadataLoading}
             onToggleFavorite={toggleFavorite}
+            onSetFavoriteScore={setFavoriteScore}
           />
         )}
       </div>

@@ -195,17 +195,26 @@ def init_gallery_db() -> None:
                 size INTEGER DEFAULT 0,
                 type TEXT,
                 dimensions TEXT,
-                is_favorite INTEGER DEFAULT 0,
                 last_synced REAL DEFAULT 0
             )
         """)
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_fav ON files(is_favorite)")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_favorites (
+                user_id INTEGER NOT NULL,
+                file_id TEXT NOT NULL,
+                score INTEGER NOT NULL DEFAULT 1 CHECK(score >= 1 AND score <= 5),
+                created_at REAL NOT NULL,
+                PRIMARY KEY (user_id, file_id)
+            )
+        """)
+        conn.execute("DROP INDEX IF EXISTS idx_fav")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_user_fav ON user_favorites(user_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_path ON files(path)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_mtime ON files(mtime DESC)")
         conn.commit()
 
     # Sync files from disk so favorites can be toggled immediately
-    images = _get_images_recursive(output_dir)
+    images = _get_images_recursive(_output_dir())
     _sync_files_to_db(images)
     logger.info(f"[gallery] DB ready at {_DB_FILE} ({len(images)} images synced)")
 
@@ -576,16 +585,25 @@ def _get_image_metadata(file_path: str) -> dict:
 # Favorites DB helpers
 # ---------------------------------------------------------------------------
 
-def _fav_map(paths: List[str]) -> dict:
-    if not _DB_FILE or not paths:
+def _user_fav_map(user_id: int, paths: List[str]) -> dict:
+    """Returns {path: {is_favorite, favorite_score}} for the given user and paths."""
+    if not _DB_FILE or not paths or user_id is None:
         return {}
+    fid_to_path = {_file_id(p): p for p in paths}
+    fids = list(fid_to_path.keys())
     with sqlite3.connect(_DB_FILE) as conn:
         conn.row_factory = sqlite3.Row
-        ph = ",".join("?" * len(paths))
+        ph = ",".join("?" * len(fids))
         rows = conn.execute(
-            f"SELECT path, is_favorite FROM files WHERE path IN ({ph})", paths
+            f"SELECT file_id, score FROM user_favorites WHERE user_id=? AND file_id IN ({ph})",
+            [user_id] + fids,
         ).fetchall()
-    return {r["path"]: bool(r["is_favorite"]) for r in rows}
+    result = {}
+    for r in rows:
+        path = fid_to_path.get(r["file_id"])
+        if path:
+            result[path] = {"is_favorite": True, "favorite_score": r["score"]}
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -595,6 +613,10 @@ def _fav_map(paths: List[str]) -> dict:
 class FavoriteBatchRequest(BaseModel):
     file_paths: List[str]
     is_favorite: bool
+
+
+class FavoriteScoreRequest(BaseModel):
+    score: int  # 1-5
 
 
 class DownloadOptions(BaseModel):
@@ -634,14 +656,31 @@ def gallery_images():
 
 @router.get("/browse")
 @router.get("/browse/{folder_path:path}")
-def gallery_browse(folder_path: str = ""):
+def gallery_browse(
+    folder_path: str = "",
+    favorites_only: bool = False,
+    x_user_token: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(x_user_token)
+    if favorites_only and user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required for favorites")
+
     items = _get_items_in_dir(_output_dir(), folder_path)
     if items["images"]:
-        # Sync any newly generated files into the DB so favorites work immediately.
         _sync_files_to_db(items["images"])
-        fmap = _fav_map([i["path"] for i in items["images"]])
-        for img in items["images"]:
-            img["is_favorite"] = fmap.get(img["path"], False)
+        if user_id is not None:
+            fmap = _user_fav_map(user_id, [i["path"] for i in items["images"]])
+            for img in items["images"]:
+                fav = fmap.get(img["path"], {})
+                img["is_favorite"] = fav.get("is_favorite", False)
+                img["favorite_score"] = fav.get("favorite_score")
+        else:
+            for img in items["images"]:
+                img["is_favorite"] = False
+                img["favorite_score"] = None
+        if favorites_only:
+            items["images"] = [i for i in items["images"] if i.get("is_favorite")]
+
     return {"current_path": folder_path, "folders": items["folders"], "images": items["images"]}
 
 
@@ -770,57 +809,95 @@ def gallery_gen_thumbnails(req: GenerateThumbnailsRequest):
 
 
 @router.post("/favorite/{image_path:path}")
-def gallery_toggle_favorite(image_path: str):
+def gallery_toggle_favorite(image_path: str, x_user_token: Optional[str] = Header(None)):
+    user_id = _get_current_user_id(x_user_token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     if not _DB_FILE:
         raise HTTPException(status_code=500, detail="DB not initialised")
+
     fid = _file_id(image_path)
     with sqlite3.connect(_DB_FILE) as conn:
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT is_favorite FROM files WHERE id=?", (fid,)).fetchone()
+        row = conn.execute("SELECT id FROM files WHERE id=?", (fid,)).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="File not in DB — browse folder first")
-        new_status = 1 - row["is_favorite"]
-        conn.execute("UPDATE files SET is_favorite=? WHERE id=?", (new_status, fid))
+
+        fav_row = conn.execute(
+            "SELECT score FROM user_favorites WHERE user_id=? AND file_id=?",
+            (user_id, fid),
+        ).fetchone()
+
+        if fav_row is None:
+            conn.execute(
+                "INSERT INTO user_favorites (user_id, file_id, score, created_at) VALUES (?, ?, 1, ?)",
+                (user_id, fid, time.time()),
+            )
+            new_favorite, new_score = True, 1
+        else:
+            conn.execute(
+                "DELETE FROM user_favorites WHERE user_id=? AND file_id=?",
+                (user_id, fid),
+            )
+            new_favorite, new_score = False, None
         conn.commit()
-    return {"status": "success", "is_favorite": bool(new_status), "path": image_path}
+
+    return {"status": "success", "is_favorite": new_favorite, "score": new_score, "path": image_path}
+
+
+@router.post("/favorite-score/{image_path:path}")
+def gallery_set_favorite_score(
+    image_path: str, req: FavoriteScoreRequest, x_user_token: Optional[str] = Header(None)
+):
+    user_id = _get_current_user_id(x_user_token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not 1 <= req.score <= 5:
+        raise HTTPException(status_code=400, detail="Score must be between 1 and 5")
+    if not _DB_FILE:
+        raise HTTPException(status_code=500, detail="DB not initialised")
+
+    fid = _file_id(image_path)
+    with sqlite3.connect(_DB_FILE) as conn:
+        conn.execute(
+            """INSERT INTO user_favorites (user_id, file_id, score, created_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_id, file_id) DO UPDATE SET score=excluded.score""",
+            (user_id, fid, req.score, time.time()),
+        )
+        conn.commit()
+
+    return {"status": "success", "is_favorite": True, "score": req.score, "path": image_path}
 
 
 @router.post("/favorite-batch")
-def gallery_favorite_batch(req: FavoriteBatchRequest):
+def gallery_favorite_batch(req: FavoriteBatchRequest, x_user_token: Optional[str] = Header(None)):
+    user_id = _get_current_user_id(x_user_token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
     if not _DB_FILE:
         raise HTTPException(status_code=500, detail="DB not initialised")
+
     fids = [_file_id(p) for p in req.file_paths]
+    now = time.time()
     with sqlite3.connect(_DB_FILE) as conn:
-        ph = ",".join("?" * len(fids))
-        cur = conn.execute(
-            f"UPDATE files SET is_favorite=? WHERE id IN ({ph})",
-            [1 if req.is_favorite else 0] + fids,
-        )
+        if req.is_favorite:
+            for fid in fids:
+                conn.execute(
+                    """INSERT INTO user_favorites (user_id, file_id, score, created_at)
+                       VALUES (?, ?, 1, ?)
+                       ON CONFLICT(user_id, file_id) DO NOTHING""",
+                    (user_id, fid, now),
+                )
+        else:
+            ph = ",".join("?" * len(fids))
+            conn.execute(
+                f"DELETE FROM user_favorites WHERE user_id=? AND file_id IN ({ph})",
+                [user_id] + fids,
+            )
         conn.commit()
-    return {"status": "success", "updated": cur.rowcount, "is_favorite": req.is_favorite}
 
-
-@router.get("/favorites")
-def gallery_get_favorites():
-    if not _DB_FILE:
-        return {"images": [], "total": 0}
-    with sqlite3.connect(_DB_FILE) as conn:
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT path, name, mtime, size FROM files WHERE is_favorite=1 ORDER BY mtime DESC"
-        ).fetchall()
-    images = [
-        {
-            "path": r["path"],
-            "name": r["name"],
-            "modified": r["mtime"],
-            "modified_str": datetime.fromtimestamp(r["mtime"]).strftime("%Y-%m-%d %H:%M:%S"),
-            "size": r["size"],
-            "is_favorite": True,
-        }
-        for r in rows
-    ]
-    return {"images": images, "total": len(images)}
+    return {"status": "success", "updated": len(fids), "is_favorite": req.is_favorite}
 
 
 @router.delete("/image/{image_path:path}")

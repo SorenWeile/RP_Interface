@@ -3,6 +3,46 @@ import { ChevronDown, ChevronRight, Copy, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GalleryImage, ImageMetadata, WorkflowNode } from './types'
 
+function StarRating({
+  isFavorite,
+  score,
+  onToggle,
+  onScore,
+}: {
+  isFavorite: boolean
+  score: number | undefined
+  onToggle: () => void
+  onScore: (s: number) => void
+}) {
+  const [hovered, setHovered] = useState<number | null>(null)
+  const filled = hovered ?? (isFavorite ? (score ?? 1) : 0)
+
+  return (
+    <div className="flex items-center gap-0.5" title={isFavorite ? `Score: ${score ?? 1} — click same star to unfavourite` : 'Click a star to favourite'}>
+      {([1, 2, 3, 4, 5] as const).map(n => (
+        <button
+          key={n}
+          onMouseEnter={() => setHovered(n)}
+          onMouseLeave={() => setHovered(null)}
+          onClick={() => {
+            if (isFavorite && score === n) {
+              onToggle()
+            } else {
+              onScore(n)
+            }
+          }}
+          className={cn(
+            'transition-colors',
+            n <= filled ? 'text-yellow-400' : 'text-muted-foreground hover:text-yellow-300'
+          )}
+        >
+          <Star className="w-4 h-4" fill={n <= filled ? 'currentColor' : 'none'} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -106,9 +146,10 @@ interface Props {
   metadata: ImageMetadata | null
   loading: boolean
   onToggleFavorite: (img: GalleryImage) => void
+  onSetFavoriteScore: (img: GalleryImage, score: number) => void
 }
 
-export default function MetadataPanel({ image, metadata, loading, onToggleFavorite }: Props) {
+export default function MetadataPanel({ image, metadata, loading, onToggleFavorite, onSetFavoriteScore }: Props) {
   return (
     <aside className="w-[340px] shrink-0 border-l border-border bg-card flex flex-col overflow-hidden">
       <div className="px-3 py-2 border-b border-border flex items-center gap-2">
@@ -116,16 +157,12 @@ export default function MetadataPanel({ image, metadata, loading, onToggleFavori
           Metadata
         </p>
         {image && (
-          <button
-            onClick={() => onToggleFavorite(image)}
-            className={cn(
-              'transition-colors',
-              image.is_favorite ? 'text-yellow-400' : 'text-muted-foreground hover:text-foreground'
-            )}
-            title="Toggle favourite"
-          >
-            <Star className="w-4 h-4" fill={image.is_favorite ? 'currentColor' : 'none'} />
-          </button>
+          <StarRating
+            isFavorite={!!image.is_favorite}
+            score={image.favorite_score}
+            onToggle={() => onToggleFavorite(image)}
+            onScore={s => onSetFavoriteScore(image, s)}
+          />
         )}
       </div>
 
