@@ -24,6 +24,12 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.productivity
+
 publish:
   provider: github
   releaseType: release

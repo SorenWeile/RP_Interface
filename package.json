@@ -10,7 +10,8 @@
     "build:electron": "tsc -p electron/tsconfig.json && node -e \"const fs=require('fs'); fs.copyFileSync('electron/settings.html','dist-electron/settings.html'); fs.copyFileSync('electron/sync.html','dist-electron/sync.html'); fs.copyFileSync('electron/model-upload.html','dist-electron/model-upload.html')\"",
     "start": "npm run build:frontend && npm run build:electron && electron .",
     "build": "npm run build:frontend && npm run build:electron && electron-builder",
-    "build:win": "npm run build:frontend && npm run build:electron && electron-builder --win"
+    "build:win": "npm run build:frontend && npm run build:electron && electron-builder --win",
+    "build:mac": "npm run build:frontend && npm run build:electron && electron-builder --mac"
   },
   "devDependencies": {
     "@types/electron": "^1.6.10",
