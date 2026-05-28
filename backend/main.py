@@ -922,6 +922,32 @@ async def run_video_creation(params: VideoCreationParams, x_user_token: Optional
         raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
 
 
+# ── Generic workflow submission ───────────────────────────────────────────────
+
+@app.post("/api/workflow/submit")
+async def submit_workflow(workflow: dict):
+    """Queue an arbitrary ComfyUI workflow supplied by the caller.
+
+    The caller is responsible for preparing the full workflow JSON (node IDs,
+    inputs, output path nodes, etc.).  Any images referenced in the workflow
+    must be uploaded first via POST /api/upload.
+
+    Returns { prompt_id, client_id } — use GET /api/status/{prompt_id} to poll
+    and GET /api/image to download the result.
+    """
+    if not workflow:
+        raise HTTPException(422, "workflow body is required")
+    try:
+        await _queue_cleanup()
+        client_id = str(uuid.uuid4())
+        prompt_id = await comfy_client.queue_workflow(workflow, client_id)
+        logger.info(f"[submit_workflow] queued → {prompt_id}")
+        return {"prompt_id": prompt_id, "client_id": client_id}
+    except Exception as e:
+        logger.error(f"[submit_workflow] ERROR: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=422, detail=f"{type(e).__name__}: {e}")
+
+
 # ── Machine monitor ───────────────────────────────────────────────────────────
 
 @app.get("/api/monitor/stats")
