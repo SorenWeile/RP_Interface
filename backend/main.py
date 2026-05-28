@@ -234,7 +234,7 @@ def _storage_label(path: str) -> str:
 def _accessible(path: str) -> bool:
     """Check whether a storage path is reachable.
 
-    For UNC paths (\\server\share\sub) we probe the share root rather than the
+    For UNC paths (\\\\server\\share\\sub) we probe the share root rather than the
     subdirectory — the sub-folder may not exist yet on a fresh setup even though
     the NAS itself is perfectly accessible.
     """

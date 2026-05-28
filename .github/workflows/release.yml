@@ -7,7 +7,14 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            build_flag: --win
+          - os: macos-latest
+            build_flag: --mac
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
 
@@ -33,13 +40,14 @@ jobs:
         run: npx tsc -p electron/tsconfig.json
 
       - name: Copy static electron files
-        shell: pwsh
+        shell: bash
         run: |
-          Copy-Item electron/settings.html    dist-electron/settings.html
-          Copy-Item electron/sync.html        dist-electron/sync.html
-          Copy-Item electron/model-upload.html dist-electron/model-upload.html
+          cp electron/settings.html     dist-electron/settings.html
+          cp electron/sync.html         dist-electron/sync.html
+          cp electron/model-upload.html dist-electron/model-upload.html
 
       - name: Package and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --publish always
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder ${{ matrix.build_flag }} --publish always
