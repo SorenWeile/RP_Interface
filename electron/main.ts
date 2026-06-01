@@ -561,6 +561,13 @@ ipcMain.on('open-external', (_event, url: string) => {
   shell.openExternal(url)
 })
 
+ipcMain.on('open-docs', () => {
+  const docsPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'Docs', 'user-guide.html')
+    : path.join(app.getAppPath(), 'Docs', 'user-guide.html')
+  shell.openPath(docsPath)
+})
+
 // Legacy single-URL handler kept so old preload builds don't break.
 ipcMain.handle('save-backend-url', (_event, url: string) => {
   const which = store.get('activeBackend', 'local') as string

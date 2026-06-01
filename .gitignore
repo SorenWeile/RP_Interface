@@ -30,7 +30,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-/Docs
 .claude/settings.local.json
 /node_modules
 /release
