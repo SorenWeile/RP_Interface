@@ -13,6 +13,10 @@ files:
   - "!dist-electron/**/*.map"
   - dist-frontend/**
 
+extraResources:
+  - from: Docs
+    to: Docs
+
 win:
   target:
     - target: nsis

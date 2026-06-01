@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AI Toolhouse — User Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0f1119;
+    --bg2:       #13151f;
+    --card:      #1a1d2b;
+    --card2:     #1e2230;
+    --border:    #252840;
+    --accent:    #4f6ef7;
+    --accent-lt: #7b8fff;
+    --accent-dim:#2a3560;
+    --text:      #d0d5e8;
+    --muted:     #6b7394;
+    --label:     #8892b0;
+    --white:     #eef0ff;
+    --green:     #34d399;
+    --nav-h:     44px;
+    --sidebar-w: 240px;
+    --content-max: 820px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Top nav ─────────────────────────────────────────────────────── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--nav-h);
+    background: #0a0c13;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+  }
+  .topnav-brand {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .18em;
+    color: var(--label);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topnav-brand::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .topnav-center {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 800;
+    letter-spacing: .2em;
+    color: var(--white);
+    text-transform: uppercase;
+  }
+  .topnav-right {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: .14em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ──────────────────────────────────────────────────────── */
+  .layout {
+    display: flex;
+    padding-top: var(--nav-h);
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+    padding: 28px 0 28px 0;
+    border-right: 1px solid var(--border);
+    background: #0c0e17;
+  }
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 24px 10px;
+  }
+  .sidebar-items { list-style: none; }
+  .sidebar-items li a {
+    display: block;
+    padding: 7px 24px;
+    font-size: 12.5px;
+    color: var(--label);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all .15s ease;
+    line-height: 1.4;
+  }
+  .sidebar-items li a:hover,
+  .sidebar-items li a.active {
+    color: var(--white);
+    border-left-color: var(--accent);
+    background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 100%);
+    padding-left: 26px;
+  }
+  .sidebar-items li a .num {
+    color: var(--accent-lt);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    margin-right: 6px;
+  }
+
+  /* ── Main content ────────────────────────────────────────────────── */
+  .main {
+    flex: 1;
+    min-width: 0;
+    padding: 48px 52px 80px;
+  }
+
+  /* ── Hero ────────────────────────────────────────────────────────── */
+  .hero {
+    margin-bottom: 52px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .22em; text-transform: uppercase;
+    color: var(--label);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px; font-weight: 800;
+    color: var(--white);
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+  .hero-rule {
+    width: 40px; height: 2px;
+    background: var(--accent);
+    margin: 16px 0 20px;
+  }
+  .hero-sub {
+    font-size: 14px;
+    color: var(--muted);
+    font-style: italic;
+    padding: 12px 16px;
+    border-left: 2px solid var(--accent);
+    background: var(--card);
+    border-radius: 0 6px 6px 0;
+    display: inline-block;
+  }
+
+  /* ── TOC ─────────────────────────────────────────────────────────── */
+  .toc-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 0 0 8px 8px;
+    padding: 24px 28px;
+    margin-bottom: 48px;
+  }
+  .toc-block h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: var(--label);
+    margin-bottom: 16px;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 4px 16px;
+    list-style: none;
+  }
+  .toc-grid li a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color .12s;
+  }
+  .toc-grid li a:hover { color: var(--accent-lt); }
+  .toc-grid li a .n {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--accent);
+    min-width: 22px;
+  }
+
+  /* ── Sections ────────────────────────────────────────────────────── */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: calc(var(--nav-h) + 20px);
+  }
+
+  .section-header {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--white);
+    line-height: 1.3;
+  }
+  .section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--label);
+    margin: 28px 0 12px;
+  }
+  .section h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--accent-lt);
+    margin: 22px 0 10px;
+  }
+
+  .what-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: var(--text);
+    margin: 0 0 18px;
+  }
+  .what-badge::before {
+    content: 'WHAT IT DOES';
+    font-family: 'Syne', sans-serif;
+    font-size: 8px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent-lt);
+    border-right: 1px solid var(--accent);
+    padding-right: 10px;
+    margin-right: 2px;
+    white-space: nowrap;
+  }
+
+  p { margin-bottom: 14px; color: var(--text); font-size: 14.5px; }
+
+  /* ── Steps ───────────────────────────────────────────────────────── */
+  ol.steps { list-style: none; counter-reset: step; margin: 16px 0 20px; }
+  ol.steps li {
+    counter-increment: step;
+    display: flex; gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    align-items: flex-start;
+  }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps li::before {
+    content: counter(step);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  ul.bullets { list-style: none; margin: 12px 0 18px; }
+  ul.bullets li {
+    padding: 6px 0 6px 18px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  ul.bullets li:last-child { border-bottom: none; }
+  ul.bullets li::before {
+    content: '—';
+    position: absolute; left: 0;
+    color: var(--accent); font-size: 12px;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; margin: 18px 0 22px; border-radius: 6px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead tr { background: #161826; border-bottom: 1px solid var(--accent); }
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: var(--card); }
+  tbody tr:nth-child(odd)  { background: var(--card2); }
+  tbody tr:hover { background: var(--accent-dim); }
+  tbody td {
+    padding: 9px 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Callouts ────────────────────────────────────────────────────── */
+  .tip {
+    background: var(--card);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 18px 0;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  .tip strong { color: var(--accent-lt); }
+
+  .warning {
+    background: #1e1a10;
+    border-left: 2px solid #f59e0b;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 18px 0;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  .warning strong { color: #fbbf24; }
+
+  .note {
+    background: #101620;
+    border-left: 2px solid #38bdf8;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 18px 0;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  .note strong { color: #7dd3fc; }
+
+  /* ── Code / inline code ──────────────────────────────────────────── */
+  code {
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 6px;
+    color: var(--accent-lt);
+  }
+
+  /* ── Image placeholder ───────────────────────────────────────────── */
+  .img-block {
+    margin: 20px 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px; color: var(--muted);
+    font-style: italic;
+  }
+  .img-block::before {
+    content: '';
+    font-size: 20px; color: var(--border);
+    flex-shrink: 0;
+  }
+
+  strong { color: var(--white); font-weight: 500; }
+  em { color: var(--label); }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── Admin sub-section ───────────────────────────────────────────── */
+  .admin-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-top: 28px;
+  }
+  .admin-tag {
+    display: inline-block;
+    font-family: 'Syne', sans-serif;
+    font-size: 8px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    background: var(--accent-dim);
+    color: var(--accent-lt);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 2px 8px;
+    margin-bottom: 14px;
+  }
+
+  /* ── Status dots ─────────────────────────────────────────────────── */
+  .status-grid { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0 18px; }
+  .status-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 14px;
+    font-size: 13px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-grey  { background: #6b7394; }
+  .dot-blue  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-red   { background: #f87171; }
+
+  /* ── Footer ──────────────────────────────────────────────────────── */
+  .footer-note {
+    margin-top: 60px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted); font-style: italic;
+  }
+
+
+  /* ── Images ──────────────────────────────────────────────────────── */
+  figure.img-block {
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--card);
+    display: inline-block;
+    max-width: 100%;
+  }
+  figure.img-block img {
+    max-width: 100%;
+    max-height: 420px;
+    width: auto;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+  figure.img-block figcaption {
+    padding: 7px 14px;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-style: italic;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  @media (max-width: 860px) {
+    .sidebar { display: none; }
+    .main { padding: 32px 24px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top nav -->
+<nav class="topnav">
+  <div class="topnav-brand">AI TOOLHOUSE</div>
+  <div class="topnav-center">INDG</div>
+  <div class="topnav-right">User Guide</div>
+</nav>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Contents</div>
+    <ul class="sidebar-items">
+      <li><a href="#s1"><span class="num">01</span>Installation &amp; First Launch</a></li>
+      <li><a href="#s2"><span class="num">02</span>Logging In</a></li>
+      <li><a href="#s3"><span class="num">03</span>The Home Screen</a></li>
+      <li><a href="#s4"><span class="num">04</span>The Sidebar</a></li>
+      <li><a href="#s5"><span class="num">05</span>Output Paths</a></li>
+      <li><a href="#s6"><span class="num">06</span>Magnific Upscaler</a></li>
+      <li><a href="#s7"><span class="num">07</span>Batch Upscaler</a></li>
+      <li><a href="#s8"><span class="num">08</span>Outfit Swapping</a></li>
+      <li><a href="#s9"><span class="num">09</span>Image Edit</a></li>
+      <li><a href="#s10"><span class="num">10</span>Image Prompting</a></li>
+      <li><a href="#s11"><span class="num">11</span>Video Creation</a></li>
+      <li><a href="#s12"><span class="num">12</span>Panorama Outpainting</a></li>
+      <li><a href="#s13"><span class="num">13</span>Custom Tools</a></li>
+      <li><a href="#s14"><span class="num">14</span>Gallery</a></li>
+      <li><a href="#s15"><span class="num">15</span>Updates</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-eyebrow">Documentation</div>
+      <h1>AI Toolhouse<br>User Guide</h1>
+      <div class="hero-rule"></div>
+      <div class="hero-sub">For studio users — no technical knowledge required.</div>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc-block">
+      <h2>Table of Contents</h2>
+      <ol class="toc-grid">
+        <li><a href="#s1"><span class="n">01</span>Installation &amp; First Launch</a></li>
+        <li><a href="#s2"><span class="n">02</span>Logging In</a></li>
+        <li><a href="#s3"><span class="n">03</span>The Home Screen</a></li>
+        <li><a href="#s4"><span class="n">04</span>The Sidebar</a></li>
+        <li><a href="#s5"><span class="n">05</span>Output Paths</a></li>
+        <li><a href="#s6"><span class="n">06</span>Magnific Upscaler</a></li>
+        <li><a href="#s7"><span class="n">07</span>Batch Upscaler</a></li>
+        <li><a href="#s8"><span class="n">08</span>Outfit Swapping</a></li>
+        <li><a href="#s9"><span class="n">09</span>Image Edit</a></li>
+        <li><a href="#s10"><span class="n">10</span>Image Prompting</a></li>
+        <li><a href="#s11"><span class="n">11</span>Video Creation</a></li>
+        <li><a href="#s12"><span class="n">12</span>Panorama Outpainting</a></li>
+        <li><a href="#s13"><span class="n">13</span>Custom Tools</a></li>
+        <li><a href="#s14"><span class="n">14</span>Gallery</a></li>
+        <li><a href="#s15"><span class="n">15</span>Updates</a></li>
+      </ol>
+    </div>
+
+    <!-- 1 -->
+    <div class="section" id="s1">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h2>Installation &amp; First Launch</h2>
+      </div>
+      <ol class="steps">
+        <li>Download the latest installer (<code>AI-Toolhouse-Setup-x.x.x.exe</code>) from the shared release location.</li>
+        <li>Run the installer and follow the on-screen steps. No admin rights required.</li>
+        <li>A desktop shortcut and Start Menu entry are created automatically.</li>
+        <li>On first launch, a <strong>Settings</strong> window appears asking for the backend URL. Enter the address your IT contact provided and click <strong>Save</strong>.</li>
+      </ol>
+      <figure class="img-block"><img src="guide/Settings_Docker.png" alt="Settings window with the backend URL field and Save button" loading="lazy"/><figcaption>Settings window with the backend URL field and Save button</figcaption></figure>
+      <p>You only need to do this once. The app remembers your setting between sessions.</p>
+    </div>
+
+    <!-- 2 -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>Logging In</h2>
+      </div>
+      <figure class="img-block"><img src="guide/Login_Screen.png" alt="Login screen showing username and password fields" loading="lazy"/><figcaption>Login screen showing username and password fields</figcaption></figure>
+      <p>Enter your username and password and click <strong>Log in</strong>. Your session stays active until you log out manually — you will not be asked to log in again each time you open the app.</p>
+      <p>To log out, click your username in the top-right corner and select <strong>Log out</strong>.</p>
+    </div>
+
+    <!-- 3 -->
+    <div class="section" id="s3">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h2>The Home Screen</h2>
+      </div>
+      <p>After logging in you land on the <strong>Home screen</strong>, which shows all the tools available to your account as tiles.</p>
+      <figure class="img-block"><img src="guide/Homescreen.png" alt="Home screen / module grid showing tool tiles" loading="lazy"/><figcaption>Home screen / module grid showing tool tiles</figcaption></figure>
+      <ul class="bullets">
+        <li>Tools you do not have access to will not appear.</li>
+        <li>Click any tile to open that tool.</li>
+        <li>Click the <strong>AI Toolhouse</strong> logo in the top-left at any time to return here.</li>
+      </ul>
+    </div>
+
+    <!-- 4 -->
+    <div class="section" id="s4">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h2>The Sidebar</h2>
+      </div>
+      <p>While inside a tool, a sidebar is visible on the right side of the screen.</p>
+      <figure class="img-block"><img src="guide/Sidebar.png" alt="Sidebar showing tool list, storage status, and machine stats" loading="lazy"/><figcaption>Sidebar showing tool list, storage status, and machine stats</figcaption></figure>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Section</th><th>What it shows</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Apps</strong></td><td>Quick links to all your tools — click any to switch directly</td></tr>
+            <tr><td><strong>Storage</strong></td><td>Whether the NAS storage is reachable (green dot = connected)</td></tr>
+            <tr><td><strong>Machine</strong></td><td>Live GPU, RAM, and VRAM usage of the server</td></tr>
+            <tr><td><strong>Queue</strong></td><td>Whether the AI server is currently busy or idle</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h2>Output Paths (Client / Project / Filename)</h2>
+      </div>
+      <p>Most tools have an <strong>Output Path</strong> section at the bottom of the left panel.</p>
+      <figure class="img-block"><img src="guide/Output_Path.png" alt="Output path fields showing Client, Project, and Filename prefix inputs" loading="lazy"/><figcaption>Output path fields showing Client, Project, and Filename prefix inputs</figcaption></figure>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Client</strong></td><td>The client folder your output is saved under</td></tr>
+            <tr><td><strong>Project</strong></td><td>Sub-folder within that client</td></tr>
+            <tr><td><strong>Filename prefix</strong></td><td>Optional text prepended to every output filename</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>These fields are optional. If left empty, files are saved to a default location. Filling them in keeps the Gallery organised and makes it easier to find your work later.</p>
+    </div>
+
+    <!-- 6 -->
+    <div class="section" id="s6">
+      <div class="section-header">
+        <span class="section-num">06</span>
+        <h2>Magnific Upscaler</h2>
+      </div>
+      <figure class="img-block"><img src="guide/Magnifici_Upscaler.png" alt="Magnific Upscaler with an image loaded, sliders visible, and scale buttons highlighted" loading="lazy"/><figcaption>Magnific Upscaler with an image loaded, sliders visible, and scale buttons highlighted</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Enlarges a single image up to 16× the original size using AI.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Drag your image onto the upload area, or click it to browse for a file.</li>
+        <li>Choose your <strong>Scale</strong> — 2×, 4×, 8×, or 16×.</li>
+        <li>Adjust the three quality sliders:<br>
+          <ul class="bullets" style="margin-top:8px">
+            <li><strong>--Sharpen</strong> — increases edge crispness (0–100)</li>
+            <li><strong>--Smart Grain</strong> — adds subtle film grain to hide AI artefacts (0–100)</li>
+            <li><strong>--Ultra Detail</strong> — pushes fine detail recovery (0–100)</li>
+          </ul>
+        </li>
+        <li>Fill in the Output Path if needed.</li>
+        <li>Click <strong>Upscale</strong></li>
+      </ol>
+      <p>The result appears on the right side. Click <strong>Download</strong> to save it.</p>
+      <div class="tip"><strong>Tip:</strong> For clean product photos, keep Smart Grain low. For organic / lifestyle images, a small amount of grain (10–20) looks more natural.</div>
+    </div>
+
+    <!-- 7 -->
+    <div class="section" id="s7">
+      <div class="section-header">
+        <span class="section-num">07</span>
+        <h2>Batch Upscaler</h2>
+      </div>
+      <figure class="img-block"><img src="guide/Batch_Upscaler.png" alt="Batch Upscaler showing the model selection checkboxes and the dynamic button label" loading="lazy"/><figcaption>Batch Upscaler showing the model selection checkboxes and the dynamic button label</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Runs one image through several AI upscale models in parallel — each at 4K and 8K.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Upload your image.</li>
+        <li>Tick the <strong>models</strong> you want to compare (multiple allowed).</li>
+        <li>Set <strong>Runs per model</strong> — more runs = more variation to choose from.</li>
+        <li>Note the button label — it shows exactly how many images will be generated, e.g. <em>"Start Batch — 48 images (6 models × 4 runs × 4K+8K)"</em>.</li>
+        <li>Click <strong>Start Batch</strong>.</li>
+      </ol>
+      <p>Progress is shown per model with coloured status dots:</p>
+      <div class="status-grid">
+        <div class="status-item"><div class="dot dot-grey"></div> Queued</div>
+        <div class="status-item"><div class="dot dot-blue"></div> Processing</div>
+        <div class="status-item"><div class="dot dot-green"></div> Done</div>
+        <div class="status-item"><div class="dot dot-red"></div> Error</div>
+      </div>
+      <p>When all runs are complete, click <strong>Download ZIP</strong> to get all results at once.</p>
+    </div>
+
+    <!-- 8 -->
+    <div class="section" id="s8">
+      <div class="section-header">
+        <span class="section-num">08</span>
+        <h2>Outfit Swapping</h2>
+      </div>
+      <figure class="img-block"><img src="guide/Outfit_Swapping.png" alt="Outfit Swapping with a main subject image on the left and several reference images loaded" loading="lazy"/><figcaption>Outfit Swapping with a main subject image on the left and several reference images loaded</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Applies outfit items from reference images onto a subject photo using AI.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Upload your <strong>main image</strong> — the person or subject who will wear the outfit.</li>
+        <li>Upload up to <strong>7 reference images</strong> — garments, accessories, or style references.</li>
+        <li>Edit the <strong>prompt</strong> to describe the desired result. A starting template is pre-filled.</li>
+        <li>Set the Output Path if needed.</li>
+        <li>Click <strong>Generate</strong>.</li>
+      </ol>
+      <p>The result appears on the right when complete.</p>
+      <div class="tip"><strong>Tip:</strong> The more specific your prompt, the better the result. Name the items visible in your reference images (e.g. "white linen blazer, wide-leg trousers").</div>
+    </div>
+
+    <!-- 9 -->
+    <div class="section" id="s9">
+      <div class="section-header">
+        <span class="section-num">09</span>
+        <h2>Image Edit</h2>
+      </div>
+      <figure class="img-block"><img src="guide/Image_edit.png" alt="Image Edit showing input image, edit instruction field, and reference image slots" loading="lazy"/><figcaption>Image Edit showing input image, edit instruction field, and reference image slots</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Modifies an existing image based on a plain-language instruction, with optional reference images for style guidance.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Upload the <strong>image you want to edit</strong>.</li>
+        <li>Optionally upload up to <strong>4 reference images</strong> to guide the style or look.</li>
+        <li>Type your <strong>Edit Instruction</strong>, e.g. <em>"change the bike colour to bright yellow"</em> or <em>"replace the background with a forest"</em>.</li>
+        <li>Use the <strong>Runs</strong> slider to generate multiple variations in one go (1–10).</li>
+        <li>Set the Output Path if needed.</li>
+        <li>Click <strong>Generate</strong>.</li>
+      </ol>
+      <p>Results appear below the progress bar. Use <strong>Download ZIP</strong> to get all versions.</p>
+    </div>
+
+    <!-- 10 -->
+    <div class="section" id="s10">
+      <div class="section-header">
+        <span class="section-num">10</span>
+        <h2>Image Prompting</h2>
+      </div>
+      <figure class="img-block"><img src="guide/image_prompting.png" alt="Image Prompting with a filled prompt, reference images, and the Runs slider" loading="lazy"/><figcaption>Image Prompting with a filled prompt, reference images, and the Runs slider</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Generates new images from a text description, with optional reference images.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Optionally upload up to <strong>4 reference images</strong> to guide the output.</li>
+        <li>Write your <strong>prompt</strong> — describe what you want to create in as much detail as possible.</li>
+        <li>Set the number of <strong>Runs</strong> (1–10) to generate variations.</li>
+        <li>Set the Output Path if needed.</li>
+        <li>Click <strong>Generate</strong>.</li>
+      </ol>
+      <p>Each run is tracked with its own status indicator. Click individual images to download, or use <strong>Download ZIP</strong> for all.</p>
+    </div>
+
+    <!-- 11 -->
+    <div class="section" id="s11">
+      <div class="section-header">
+        <span class="section-num">11</span>
+        <h2>Video Creation</h2>
+      </div>
+      <figure class="img-block"><img src="guide/video_creation.png" alt="Video Creation showing first frame, last frame uploads, prompt field, and length slider" loading="lazy"/><figcaption>Video Creation showing first frame, last frame uploads, prompt field, and length slider</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Generates a short AI video that transitions between two keyframe images.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Upload the <strong>First Frame</strong> — where the video begins.</li>
+        <li>Upload the <strong>Last Frame</strong> — where the video ends.</li>
+        <li>Write a <strong>prompt</strong> describing the motion, e.g. <em>"Camera slowly pans right across a sun-lit studio"</em>.</li>
+        <li>Set the <strong>Length</strong> using the slider (25–125 frames — the label shows the duration in seconds at 25 fps).</li>
+        <li>Set the Output Path if needed.</li>
+        <li>Click <strong>Generate</strong>.</li>
+      </ol>
+      <p>The finished video plays directly in the app when complete. Click <strong>Download</strong> to save it.</p>
+    </div>
+
+    <!-- 12 -->
+    <div class="section" id="s12">
+      <div class="section-header">
+        <span class="section-num">12</span>
+        <h2>Panorama Outpainting</h2>
+      </div>
+      <figure class="img-block"><img src="guide/Panorama_Workflow.png" alt="Panorama editor canvas with a base image loaded and sticker markers placed" loading="lazy"/><figcaption>Panorama editor canvas with a base image loaded and sticker markers placed</figcaption></figure>
+      <div style="display:block;margin:0 0 18px"><div style="display:block"><div class="what-badge">Expands a partial image into a full 360° equirectangular panorama using AI.</div></div></div>
+      <h3>Steps</h3>
+      <ol class="steps">
+        <li>Upload your <strong>base image</strong> — the section of the panorama you already have.</li>
+        <li>Use the canvas editor to place <strong>stickers</strong> on the areas you want filled in.</li>
+        <li>Adjust the <strong>prompt</strong> to describe the style and content of the filled areas.</li>
+        <li>Set the Output Path if needed.</li>
+        <li>Click <strong>Generate</strong> (greyed out until at least one sticker is placed).</li>
+      </ol>
+      <p>The completed 360° panorama replaces the canvas preview when done.</p>
+      <div class="tip"><strong>Tip:</strong> Place stickers generously — it is better to mark too large an area than too small, as the AI handles blending at the edges.</div>
+    </div>
+
+    <!-- 13 -->
+    <div class="section" id="s13">
+      <div class="section-header">
+        <span class="section-num">13</span>
+        <h2>Custom Tools</h2>
+      </div>
+      <p>Custom Tools are built by your admin directly from ComfyUI workflows. They appear alongside the standard tools in the sidebar and home screen — fill in the fields and click <strong>Run</strong>.</p>
+      <figure class="img-block"><img src="guide/Custom_tool.png" alt="A custom tool open, showing its unique set of input fields" loading="lazy"/><figcaption>A custom tool open, showing its unique set of input fields</figcaption></figure>
+      <p>Each custom tool is different. Ask your admin what a specific tool does.</p>
+
+      <h3>Batch Mode</h3>
+      <p>Most custom tools support batch runs. Set the <strong>Batch count</strong> (1–50) and click <strong>Start Batch</strong>. Results appear one by one as each run completes, and you can download all as a ZIP when done.</p>
+
+      <div class="admin-block">
+        <div class="admin-tag">Admin only</div>
+        <h4 style="margin-top:0">13a. Building a Custom Tool</h4>
+        <p>Admins can create new custom tools from any ComfyUI workflow using the <strong>Workflow Builder</strong> wizard. Click <strong>+ New Tool</strong> at the bottom of the sidebar to start.</p>
+
+        <h4>Before you begin — two requirements</h4>
+        <p><strong>1. Export the workflow in API format</strong></p>
+        <p>The Workflow Builder needs the workflow's <em>API JSON</em>, not the regular save file. In ComfyUI:</p>
+        <ol class="steps">
+          <li>Open <strong>Settings</strong> (gear icon, top-right)</li>
+          <li>Enable <strong>Dev Mode</strong></li>
+          <li>Close Settings — the top bar now shows a <strong>Save (API Format)</strong> button</li>
+          <li>Click it to download the <code>.json</code> file</li>
+        </ol>
+        <figure class="img-block"><img src="guide/CustomTool_ExportAPI.png" alt="ComfyUI with Dev Mode enabled, highlighting the Save (API Format) button" loading="lazy"/><figcaption>ComfyUI with Dev Mode enabled, highlighting the Save (API Format) button</figcaption></figure>
+        <div class="warning"><strong>Important:</strong> A workflow saved with the regular Save button will not work — the Workflow Builder will show "No configurable inputs found" if you upload the wrong format.</div>
+
+        <p><strong>2. Use INDG custom nodes for output saving</strong></p>
+        <p>For a custom tool to save results to studio storage, the workflow must contain an <strong>INDGOutputPath</strong> node. If the workflow uses a standard ComfyUI Save Image node, results will save to ComfyUI's default output folder and the output path picker will not appear. Ask your pipeline TD to add an INDGOutputPath node if it is missing.</p>
+        <figure class="img-block"><img src="guide/CustomTool_INDGOutputI.png" alt="ComfyUI workflow canvas showing an INDGOutputPath node connected to a Save Image node" loading="lazy"/><figcaption>ComfyUI workflow canvas showing an INDGOutputPath node connected to a Save Image node</figcaption></figure>
+
+        <h4>Step 1 — Upload the workflow</h4>
+        <p>Drop your API-format <code>.json</code> onto the upload zone (or click to browse). The app scans the workflow and shows an <strong>inspection table</strong> listing every configurable input found.</p>
+        <figure class="img-block"><img src="guide/CustomTool_Workflow_Upload.png" alt="Step 1 — the upload drop zone and inspection table showing detected inputs" loading="lazy"/><figcaption>Step 1 — the upload drop zone and inspection table showing detected inputs</figcaption></figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Node</strong></td><td>The ComfyUI node ID</td></tr>
+              <tr><td><strong>Title</strong></td><td>The node's title as set in ComfyUI</td></tr>
+              <tr><td><strong>Type</strong></td><td>What kind of field was detected (see below)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><strong>Detected types explained:</strong></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Badge</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>Image</code></td><td>An image upload slot</td></tr>
+              <tr><td><code>Text</code></td><td>A short text input</td></tr>
+              <tr><td><code>Textarea</code></td><td>A longer text/prompt field</td></tr>
+              <tr><td><code>Number</code></td><td>A numeric value</td></tr>
+              <tr><td><code>Slider</code></td><td>A value with a min/max range</td></tr>
+              <tr><td><code>Select</code></td><td>A dropdown with fixed options</td></tr>
+              <tr><td><code>Toggle</code></td><td>An on/off switch</td></tr>
+              <tr><td><code>Auto · seed</code></td><td>Random seed — handled automatically, no user input needed</td></tr>
+              <tr><td><code>Auto · user</code></td><td>Username — injected automatically at run time</td></tr>
+              <tr><td><code>Output Path</code></td><td>The INDGOutputPath node — handled automatically</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Tick the inputs you want to expose as fields in the finished tool. Auto and Output Path rows are locked. For image inputs, you can mark a field as <em>optional</em> (it will use a built-in placeholder if left empty). Click <strong>Next</strong> when you have selected at least one field.</p>
+
+        <h4>Step 2 — Configure fields</h4>
+        <figure class="img-block"><img src="guide/CustomTool_FieldCards.png" alt="Step 2 showing the full field list on the left and the live tool preview on the right" loading="lazy"/><figcaption>Step 2 showing the full field list on the left and the live tool preview on the right</figcaption></figure>
+        <p>Each selected input becomes a <strong>field card</strong>. For every card you can set:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Label</strong></td><td>The name shown to the user (e.g. "Reference Image", "Prompt")</td></tr>
+              <tr><td><strong>Type</strong></td><td>Override the auto-detected type if needed</td></tr>
+              <tr><td><strong>Required</strong></td><td>Whether the user must fill this field before running</td></tr>
+              <tr><td><strong>Placeholder</strong></td><td>Hint text for text / textarea fields</td></tr>
+              <tr><td><strong>Group</strong></td><td>Image fields with the same group name appear side by side</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figure class="img-block"><img src="guide/CustomTool_ConfiguratorField.png" alt="A single field card open, showing the label, type, and required settings" loading="lazy"/><figcaption>A single field card open, showing the label, type, and required settings</figcaption></figure>
+        <p>Use the <strong>↑ ↓ arrows</strong> on each card to reorder fields. The <strong>live preview</strong> on the right updates as you make changes. Click <strong>Next</strong> when done.</p>
+
+        <h4>Step 3 — Name and save</h4>
+        <figure class="img-block"><img src="guide/CustomTool_NameAndSave.png" alt="Step 3 showing the name field, description, icon grid, and the live tile preview" loading="lazy"/><figcaption>Step 3 showing the name field, description, icon grid, and the live tile preview</figcaption></figure>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Tool name</strong> <em>(required)</em></td><td>Shown on the hub tile and in the sidebar</td></tr>
+              <tr><td><strong>Short description</strong></td><td>One-line summary shown under the name on the tile</td></tr>
+              <tr><td><strong>Icon</strong></td><td>Pick an icon from the grid — shown on the tile and in the sidebar</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The <strong>preview tile</strong> shows exactly how the tool will look on the home screen. Click <strong>Save Tool</strong>. The tool is immediately available to all assigned users.</p>
+      </div>
+    </div>
+
+    <!-- 14 -->
+    <div class="section" id="s14">
+      <div class="section-header">
+        <span class="section-num">14</span>
+        <h2>Gallery</h2>
+      </div>
+      <p>The Gallery lets you browse, preview, and manage all AI-generated images saved on the server.</p>
+      <figure class="img-block"><img src="guide/Gallery_DetailView.png" alt="Gallery in Detail View — folder tree on the left, large image preview in the centre, metadata panel on the right" loading="lazy"/><figcaption>Gallery in Detail View — folder tree on the left, large image preview in the centre, metadata panel on the right</figcaption></figure>
+
+      <h3>Navigating Folders</h3>
+      <p>The left panel shows a folder tree. Click any folder to browse its contents. The tree refreshes automatically every 10 seconds — new outputs appear without needing to reload.</p>
+
+      <h3>Two View Modes</h3>
+      <p>Switch using the view toggle buttons in the top-right of the gallery.</p>
+
+      <h4>Detail View (default)</h4>
+      <ul class="bullets">
+        <li>Large preview of the selected image</li>
+        <li>Right panel shows: filename, format, dimensions, and creation metadata</li>
+        <li>Use the <strong>left / right arrow keys</strong> to step through images quickly</li>
+      </ul>
+
+      <h4>Grid View</h4>
+      <ul class="bullets">
+        <li>Thumbnail overview of all images in the current folder</li>
+        <li>Tick checkboxes on images to select multiple at once</li>
+        <li>Bulk actions appear at the top when images are selected</li>
+      </ul>
+      <figure class="img-block"><img src="guide/Gallery_GridView.png" alt="Gallery in Grid View with several images selected and the bulk action bar visible" loading="lazy"/><figcaption>Gallery in Grid View with several images selected and the bulk action bar visible</figcaption></figure>
+
+      <h3>Favourites</h3>
+      <p>The <strong>Favourites</strong> button (star icon, top-right) is a toggle. When active, the folder tree is replaced by a flat list of every image you have starred — across all folders and projects at once.</p>
+      <figure class="img-block"><img src="guide/Gallery_Favorites.png" alt="Gallery in Favourites mode — all starred images shown in one flat list, no folder tree" loading="lazy"/><figcaption>Gallery in Favourites mode — all starred images shown in one flat list, no folder tree</figcaption></figure>
+
+      <h4>Starring a single image — Detail View</h4>
+      <p>With an image selected in Detail View, click the star icon in the metadata panel. Click it again to unstar.</p>
+      <figure class="img-block"><img src="guide/Gallery_MetaData.png" alt="Metadata panel with the star icon highlighted next to an image" loading="lazy"/><figcaption>Metadata panel with the star icon highlighted next to an image</figcaption></figure>
+
+      <h4>Starring multiple images — Grid View</h4>
+      <ol class="steps">
+        <li>Switch to <strong>Grid View</strong></li>
+        <li>Tick the checkboxes on the images you want to act on</li>
+        <li>Click <strong>Star selected</strong> or <strong>Unstar selected</strong> in the bulk action bar</li>
+      </ol>
+      <figure class="img-block"><img src="guide/Gallery_BulkFavorite.png" alt="Grid View with several images ticked and the bulk star/unstar buttons visible in the action bar" loading="lazy"/><figcaption>Grid View with several images ticked and the bulk star/unstar buttons visible in the action bar</figcaption></figure>
+
+      <h3>Managing Images</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Action</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Favourite</strong></td><td>Star icon in Detail View, or bulk star in Grid View</td></tr>
+            <tr><td><strong>Rename</strong></td><td>⋯ menu → Rename, or right-click the image</td></tr>
+            <tr><td><strong>Move</strong></td><td>Drag the image to another folder in the tree</td></tr>
+            <tr><td><strong>Download</strong></td><td>Download icon in the Detail View metadata panel</td></tr>
+            <tr><td><strong>Delete</strong></td><td>⋯ menu for single image, or bulk delete in Grid View</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>Note:</strong> Deleted images cannot be recovered. A confirmation prompt always appears before deletion.</div>
+    </div>
+
+    <!-- 15 -->
+    <div class="section" id="s15">
+      <div class="section-header">
+        <span class="section-num">15</span>
+        <h2>Updates</h2>
+      </div>
+      <p>AI Toolhouse updates itself automatically. When a new version is ready, a small dialog appears:</p>
+      <figure class="img-block"><img src="guide/UpdateReady.png" alt="The Update Ready dialog with Restart Now and Later buttons" loading="lazy"/><figcaption>The Update Ready dialog with Restart Now and Later buttons</figcaption></figure>
+      <ul class="bullets">
+        <li><strong>Restart Now</strong> — closes the app and installs the update immediately. The app reopens on its own.</li>
+        <li><strong>Later</strong> — dismisses the dialog. The update will be installed the next time you restart the app normally.</li>
+      </ul>
+      <p>You do not need to download or run any installer manually for updates after the initial installation.</p>
+    </div>
+
+    <div class="footer-note">
+      For technical issues or access problems, contact your system administrator.
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Active sidebar link on scroll
+  const sections = document.querySelectorAll('.section');
+  const links = document.querySelectorAll('.sidebar-items a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const id = e.target.getAttribute('id');
+        const active = document.querySelector(`.sidebar-items a[href="#${id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-60px 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
