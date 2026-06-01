@@ -1,6 +1,6 @@
 {
   "name": "ai-toolhouse",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "description": "AI Toolhouse — generative AI pipeline for studio workstations",
   "author": "Studio",
   "main": "dist-electron/main.js",
